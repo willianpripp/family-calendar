@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ month_name }} {{ year }} — Family calendar{% endblock %}
+{% block content %}
+<div class="month-nav">
+  <a href="/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">&larr;</a>
+  <h1>{{ month_name }} {{ year }}</h1>
+  <a href="/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">&rarr;</a>
+</div>
+
+<div class="grid" role="grid">
+  {% for name in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
+  <div class="dow">{{ name }}</div>
+  {% endfor %}
+  {% for week in weeks %}
+    {% for d in week %}
+    <div class="day {% if d.month != month %}pad{% endif %} {% if d == today %}today{% endif %}">
+      <a class="daynum" href="/events/new?day={{ d.isoformat() }}&back=/month%3Fy%3D{{ year }}%26m%3D{{ month }}"
+         title="add an event on {{ d.isoformat() }}">{{ d.day }}</a>
+      {% for e in days[d] %}
+      <a class="event owner-{{ e.owner | lower }}" title="{{ e.title }}"
+         href="/events/{{ e.id }}/edit?back=/month%3Fy%3D{{ year }}%26m%3D{{ month }}">
+        {% if not e.all_day and e.starts_local.date() == d %}<span class="t">{{ e.starts_local.strftime('%-I:%M%p') | lower }}</span>{% endif %}
+        {{ e.title }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+{% endblock %}

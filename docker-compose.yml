@@ -1,0 +1,85 @@
+# The family calendar: view and add household events, warn on the double-booking
+# that triggered this build (a flight and a Guns N' Roses show on the same day).
+#
+# Household infrastructure, not a product, so it lives in the homelab repo and
+# deploys exactly like the dashboard: rsync compose/calendar/ to
+# lab:/srv/lab/calendar/ and `docker compose up -d --build` there. The rsync has
+# no --delete, so the host-only pieces (.env, db/) survive redeploys.
+#
+# NO authentication in the app, deliberately. It is reachable only through
+# `tailscale serve` (loopback publish below), and everyone on the tailnet is
+# family. Unlike House Finances there is no Caddy basic_auth in front, because
+# there is no LAN exposure to defend against and nothing here is secret.
+
+# Explicit project name, same reason as the finances stack: without it Compose
+# derives one from the directory basename, and invoking this file from another
+# path would rename the network and orphan the database.
+name: calendar
+
+services:
+
+  db:
+    # Stock image, unlike the finances db, which is custom-built to reproduce
+    # the en_US.UTF-8 collation of a database it had to import. This one is
+    # greenfield: there is no existing cluster whose collation must be matched,
+    # so the image default is fine and the build step buys nothing.
+    image: postgres:17.10
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${CAL_DB_NAME:-calendar}
+      POSTGRES_USER: ${CAL_DB_USER:-calendar}
+      POSTGRES_PASSWORD: ${CAL_DB_PASSWORD:?set CAL_DB_PASSWORD in .env}
+    volumes:
+      # Bind mount, never a named volume (ADR-0005): moving this host is one
+      # rsync of /srv, and the data is inspectable as ordinary files.
+      - /srv/lab/calendar/db:/var/lib/postgresql/data
+    # Never published. Reaching Postgres means going through the app, or
+    # `docker compose exec db psql` on the host.
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CAL_DB_USER:-calendar} -d ${CAL_DB_NAME:-calendar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  app:
+    build:
+      context: ./app
+    image: calendar-app:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        # service_healthy, not the default: plain depends_on waits only for the
+        # container to be created, and Postgres is still running initdb on
+        # first boot.
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://${CAL_DB_USER:-calendar}:${CAL_DB_PASSWORD}@db:5432/${CAL_DB_NAME:-calendar}"
+      # The guest runs Etc/UTC while the household lives in America/New_York.
+      # Storage is timestamptz (UTC) and every render converts to this zone. A
+      # calendar that is silently four hours out is worse than no calendar, so
+      # the zone is set explicitly rather than inherited from the host.
+      CAL_TZ: ${CAL_TZ:-America/New_York}
+      TZ: ${CAL_TZ:-America/New_York}
+    ports:
+      # Loopback only. `tailscale serve` exposes it at :8446, and only to the
+      # tailnet. Binding 0.0.0.0 here would quietly put it on the LAN.
+      - "127.0.0.1:3002:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  default:
+    name: calendar_internal

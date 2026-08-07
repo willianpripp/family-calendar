@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Family calendar{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📅</text></svg>">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/htmx.min.js" defer></script>
+</head>
+{# hx-boost turns the plain links and forms into ajax navigation when JS is
+   available; everything still works as ordinary requests without it. #}
+<body hx-boost="true">
+<header class="top">
+  <nav>
+    <a href="/month" {% if view == 'month' %}class="active"{% endif %}>Month</a>
+    <a href="/upcoming" {% if view == 'upcoming' %}class="active"{% endif %}>Upcoming</a>
+  </nav>
+  <a class="add" href="/events/new?back={{ (request.url.path ~ ('?' ~ request.url.query if request.url.query else '')) | urlencode }}">+ Add</a>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer class="legend">
+  <span class="dot owner-willian"></span> Willian
+  <span class="dot owner-aline"></span> Aline
+  <span class="dot owner-both"></span> Both
+</footer>
+</body>
+</html>

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit event' if ev and ev.get('id') else 'New event' }} — Family calendar{% endblock %}
+{% block content %}
+<h1>{{ 'Edit event' if ev and ev.get('id') else 'New event' }}</h1>
+
+{% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+
+{% if conflicts %}
+<div class="flash warn">
+  <strong>Heads up: this overlaps</strong>
+  <ul>
+    {% for c in conflicts %}
+    <li>
+      <span class="dot owner-{{ c.owner | lower }}"></span>
+      {{ c.title }} ({{ c.owner }}) —
+      {% if c.all_day %}all day {{ c.starts_local.strftime('%b %-d') }}{% if c.last_day_local != c.starts_local.date() %}–{{ c.last_day_local.strftime('%b %-d') }}{% endif %}
+      {% else %}{{ c.starts_local.strftime('%b %-d, %-I:%M%p') | lower }}–{{ c.ends_local.strftime('%-I:%M%p') | lower }}{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <p>Double-booked, or on purpose? Saving anyway is allowed.</p>
+</div>
+{% endif %}
+
+{# One form serves create, edit, and the save-anyway confirmation. The values
+   below prefer what was just typed (form_*) over what is stored, so a conflict
+   warning never silently reverts an edit. #}
+<form method="post" action="/events/save" class="event-form">
+  <input type="hidden" name="event_id" value="{{ ev.get('id') or '' if ev else '' }}">
+  <input type="hidden" name="back" value="{{ back }}">
+  {% if conflicts %}<input type="hidden" name="confirmed" value="1">{% endif %}
+
+  <label>Title
+    <input name="title" required maxlength="200" value="{{ ev.get('title', '') if ev else '' }}">
+  </label>
+
+  <label>Who
+    <select name="owner">
+      {% for o in owners %}
+      <option value="{{ o }}" {% if ev and ev.get('owner') == o %}selected{% endif %}>{{ o }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="check">
+    <input type="checkbox" name="all_day" id="all_day" {% if ev and ev.get('all_day') %}checked{% endif %}>
+    All day
+  </label>
+
+  {% set starts_val = ev.get('form_starts') if ev and ev.get('form_starts') is not none
+      else (ev.starts_local.strftime('%Y-%m-%dT%H:%M') if ev and ev.get('starts_local') else default_start.strftime('%Y-%m-%dT%H:%M')) %}
+  {% set ends_val = ev.get('form_ends') if ev and ev.get('form_ends') is not none
+      else (ev.ends_local.strftime('%Y-%m-%dT%H:%M') if ev and ev.get('ends_local') else default_end.strftime('%Y-%m-%dT%H:%M')) %}
+  {% set sd_val = ev.get('form_start_date') if ev and ev.get('form_start_date') is not none
+      else (ev.starts_local.date().isoformat() if ev and ev.get('starts_local') else default_start.date().isoformat()) %}
+  {% set ed_val = ev.get('form_end_date') if ev and ev.get('form_end_date') is not none
+      else (ev.last_day_local.isoformat() if ev and ev.get('last_day_local') else default_start.date().isoformat()) %}
+
+  <div class="timed">
+    <label>Starts
+      <input type="datetime-local" name="starts" value="{{ starts_val }}">
+    </label>
+    <label>Ends
+      <input type="datetime-local" name="ends" value="{{ ends_val }}">
+    </label>
+  </div>
+
+  <div class="allday">
+    <label>First day
+      <input type="date" name="start_date" value="{{ sd_val }}">
+    </label>
+    <label>Last day
+      <input type="date" name="end_date" value="{{ ed_val }}">
+    </label>
+  </div>
+
+  <label>Location
+    <input name="location" maxlength="200" value="{{ ev.get('location', '') if ev else '' }}">
+  </label>
+
+  <label>Notes
+    <textarea name="notes" rows="3" maxlength="2000">{{ ev.get('notes', '') if ev else '' }}</textarea>
+  </label>
+
+  <div class="actions">
+    <button type="submit" class="primary">{{ 'Save anyway' if conflicts else 'Save' }}</button>
+    <a class="cancel" href="{{ back }}">Cancel</a>
+  </div>
+</form>
+
+{% if ev and ev.get('id') %}
+<form method="post" action="/events/{{ ev.get('id') }}/delete" class="delete-form"
+      onsubmit="return confirm('Delete this event?')">
+  <input type="hidden" name="back" value="{{ back }}">
+  <button type="submit" class="danger">Delete</button>
+</form>
+{% endif %}
+
+<script>
+  // Show the timed or the whole-day fields, never both. Plain JS on purpose:
+  // it must work before (and without) htmx.
+  function syncAllDay() {
+    var on = document.getElementById('all_day').checked;
+    document.querySelector('.timed').style.display = on ? 'none' : '';
+    document.querySelector('.allday').style.display = on ? '' : 'none';
+  }
+  document.getElementById('all_day').addEventListener('change', syncAllDay);
+  syncAllDay();
+</script>
+{% endblock %}
