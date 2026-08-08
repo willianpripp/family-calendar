@@ -62,12 +62,26 @@ def _get(path: str, params: dict | None = None) -> dict:
         return r.json()
 
 
-def _films(raw: list[dict], limit: int) -> list[dict]:
+def _films(raw: list[dict], limit: int, newest_first: bool = False) -> list[dict]:
+    """Pick by popularity, then order by DATE.
+
+    Those are two different jobs and doing them in this order matters. TMDB
+    hands back the most popular titles, which is the right way to choose WHICH
+    six to show; but reading them in popularity order tells you nothing about
+    when to go. So the six are chosen by popularity and then sorted
+    chronologically: for anything still to come, the one that opens first is
+    first, which is the order you actually plan in.
+
+    `newest_first` flips it for films already showing, where "what just opened"
+    is more useful than "what has been out longest".
+    """
     # A result with no poster is reliably a listing artefact rather than a film
     # anyone will see, so those are dropped BEFORE the limit is applied —
     # otherwise they eat the slots.
+    picked = [m for m in raw if m.get("poster_path")][:limit]
+    picked.sort(key=lambda m: m.get("release_date") or "", reverse=newest_first)
     out = []
-    for m in [m for m in raw if m.get("poster_path")][:limit]:
+    for m in picked:
         out.append({
             "title": m.get("title") or m.get("original_title") or "Untitled",
             "date": m.get("release_date") or "",
@@ -79,8 +93,10 @@ def _films(raw: list[dict], limit: int) -> list[dict]:
 
 
 def _series(raw: list[dict], limit: int) -> list[dict]:
+    picked = [s for s in raw if s.get("poster_path")][:limit]
+    picked.sort(key=lambda s: s.get("first_air_date") or "")
     out = []
-    for s in [s for s in raw if s.get("poster_path")][:limit]:
+    for s in picked:
         out.append({
             "title": s.get("name") or s.get("original_name") or "Untitled",
             "date": s.get("first_air_date") or "",
@@ -130,7 +146,7 @@ def releases(year: int, month: int, today: date, limit: int = 6) -> dict:
             sections.append({
                 "label": "In theatres now",
                 "entries": _films(_get("/movie/now_playing", {"region": "US", "language": "en-US"})
-                                .get("results", []), limit),
+                                  .get("results", []), limit, newest_first=True),
             })
             if today.day < last:
                 rest = _films(_discover_movies(today.isoformat(), f"{year}-{month:02d}-{last:02d}"), 4)
