@@ -42,12 +42,18 @@ lower shows more of it.
 
 ## Licensing
 
-**This repository is private**, so anything dropped in here stays between the
-two of us and licensing is not a practical concern. The paintings that ship as
-fallbacks happen to be public domain (the artists died over seventy years ago),
-which is documented in `ATTRIBUTION.md` in case this ever changes.
+The repo is private today, but **it is going public eventually** (Willian's
+decision, 2026-08-08), and what goes public is the **history**, not the tree.
+Deleting a picture later does not remove it; that needs `git-filter-repo` and a
+force-push. So the test is applied when you commit, not when you publish:
 
-If the repo is ever made public, that flips: photographs you took are fine,
-film stills and image-search results generally are not. The escape hatch then
-is to copy the file straight to `/srv/lab/calendar/app/static/art/` on the host
-and add its name to `.gitignore`. It works identically and is never published.
+- A photograph you took yourself is fine.
+- A film still, a promotional image, or something an image search turned up
+  generally is **not**, whatever the search engine implies.
+- The paintings that ship as fallbacks are public domain, because the artists
+  died over seventy years ago. `ATTRIBUTION.md` records which is which.
+
+For a picture that cannot be published, the escape hatch is to keep it out of
+git entirely: copy it straight to `/srv/lab/calendar/app/static/art/` on the
+host and add its name to `.gitignore`. The calendar renders it identically and
+it is never committed, so nothing has to be scrubbed later.

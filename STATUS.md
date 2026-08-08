@@ -56,9 +56,16 @@ show a public-domain painting as a fallback, one per month, credited in
 **Aim for 2560x1440**, under about a megabyte. His first attempt was 740px wide
 and was upscaled 3.4x on his monitor; no setting fixes missing pixels.
 
-**This repo is private**, so a picture that cannot be published is fine to
-commit here. That was not true while the calendar lived in the homelab repo,
-and the old warning about film stills no longer applies.
+**This repo is private today but is going public eventually** (Willian's
+decision, 2026-08-08), and it is the git *history* that gets published. So the
+licensing test applies at commit time: your own photographs yes, film stills and
+image-search results no. Anything that cannot be published goes straight to the
+host at `/srv/lab/calendar/app/static/art/` plus a `.gitignore` entry, and is
+never committed at all. See the README in that folder.
+
+**This file is the other thing to watch.** It names Aline and describes real
+travel. Whatever the publishing mechanism turns out to be, this file needs a
+pass before the repo is public.
 
 ## Deliberately removed, do not reintroduce
 
