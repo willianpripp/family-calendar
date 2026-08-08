@@ -59,9 +59,16 @@
            onchange="this.form.submit()">
     <span aria-hidden="true">🖼</span> Change this month's picture
   </label>
-  {% if art.mine %}
+  {# Only offered when the picture on screen is at YOUR level. Offering it for
+     the shared picture is how the shared October got deleted by someone who
+     meant to clear their own. #}
+  {% if art.level == 'own' %}
   <button type="submit" class="artbar-btn plain" formaction="/art/remove"
           title="Go back to the picture underneath">Reset</button>
+  {% elif art.level == 'shared' and who.key is none %}
+  <button type="submit" class="artbar-btn plain" formaction="/art/remove"
+          onclick="return confirm('Remove the shared picture for this month? Everyone loses it, not just you.')"
+          title="This is the shared picture: removing it affects both of you">Remove shared</button>
   {% endif %}
 </form>
 {% if art_error %}<p class="artbar-error">{{ art_error }}</p>{% endif %}

@@ -38,6 +38,20 @@ FALLBACK_ART = {
 
 
 def own_art(month: int, person: str | None = None) -> str | None:
+    """Deprecated shape kept for callers that only want the filename."""
+    found = find_art(month, person)
+    return found[0] if found else None
+
+
+def find_art(month: int, person: str | None = None) -> tuple[str, str] | None:
+    """(filename, level) where level is 'own' or 'shared'.
+
+    Which LEVEL matched is not a detail. A "remove this picture" button that
+    only knows a picture exists will happily delete the shared one on behalf of
+    someone who meant to clear their own, which is exactly what happened on
+    2026-08-08: clearing October while viewing as Shared deleted the October
+    everybody saw, with nothing on screen to say that was the level in play.
+    """
     """The supplied picture for this month, if there is one.
 
     With a person, looks in that person's folder first: `art/aline/month-05.jpg`
@@ -50,13 +64,12 @@ def own_art(month: int, person: str | None = None) -> str | None:
     is "copy the file in and reload" rather than "copy it in and remember to
     restart".
     """
-    folders = [f"{person}/"] if person else []
-    folders.append("")
-    for folder in folders:
+    levels = ([(f"{person}/", "own")] if person else []) + [("", "shared")]
+    for folder, level in levels:
         for ext in MONTH_ART_EXT:
             name = f"{folder}month-{month:02d}.{ext}"
             if (ART_DIR / name).exists():
-                return name
+                return name, level
     return None
 
 
@@ -79,15 +92,16 @@ def _version(name: str) -> str:
 def art_for(month: int, person: str | None = None) -> dict:
     """{file, credit, v} for a month. `credit` is None for their own pictures,
     because captioning a family photo with a painter's name would be daft."""
-    own = own_art(month, person)
-    if own:
-        return {"file": own, "credit": None, "v": _version(own), "mine": True}
+    found = find_art(month, person)
+    if found:
+        name, level = found
+        return {"file": name, "credit": None, "v": _version(name), "level": level}
     art_file, title, artist, year = FALLBACK_ART[month]
     return {
         "file": art_file,
         "credit": f"{title} — {artist}, {year}",
         "v": _version(art_file),
-        "mine": False,
+        "level": "painting",
     }
 
 

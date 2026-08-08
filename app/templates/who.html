@@ -44,8 +44,11 @@ inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
       <label class="artbar-btn">
         <input type="file" name="file" accept="{{ art_accept }}" hidden
                onchange="this.form.submit()">Set</label>
-      {% if a.mine %}
+      {% if a.level == 'own' %}
       <button type="submit" class="artbar-btn" formaction="/art/remove">Clear</button>
+      {% elif a.level == 'shared' and who.key is none %}
+      <button type="submit" class="artbar-btn" formaction="/art/remove"
+              onclick="return confirm('Remove the shared picture for month {{ m }}? Everyone loses it.')">Clear shared</button>
       {% endif %}
     </form>
   </figure>
