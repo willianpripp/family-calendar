@@ -365,7 +365,11 @@ def month_view(request: Request, y: int | None = None, m: int | None = None,
     prev = (date(y, m, 1) - timedelta(days=1)).replace(day=1)
     nxt = (date(y, m, 28) + timedelta(days=7)).replace(day=1)
 
-    ctx = base_context(request, "month", theme, (weeks[0][0], weeks[-1][-1]))
+    # The theme follows the MONTH, not the padded grid. The grid runs into the
+    # neighbouring months to fill whole weeks, and using its span made November
+    # look like Christmas because the trailing days reach December.
+    last_day = (date(y, m, 28) + timedelta(days=7)).replace(day=1) - timedelta(days=1)
+    ctx = base_context(request, "month", theme, (date(y, m, 1), last_day))
     ctx.update(
         weeks=weeks, days=days, year=y, month=m,
         month_name=date(y, m, 1).strftime("%B"), today=today,

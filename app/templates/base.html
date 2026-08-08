@@ -27,9 +27,13 @@
     if (m === 'light' || m === 'dark') { document.documentElement.dataset.mode = m; }
   })();
 </script>
-<script src="/static/htmx.min.js?v={{ asset_v }}" defer></script>
 </head>
-<body hx-boost="true">
+{# NO hx-boost, deliberately. It swapped the body on navigation and left
+   <head> alone, so the theme's <style> block — the image, the accent, the
+   whole dressing — kept whatever the FIRST page loaded had. Changing month
+   changed the grid and not the picture. These pages are a few KB over a
+   tailnet; a real navigation costs nothing and cannot desync. #}
+<body>
 <header class="top">
   <div class="brand">
     <span class="motif" aria-hidden="true">{{ theme.motif }}</span>
@@ -45,7 +49,7 @@
   <div class="tools">
     {# Auto follows the dates on screen; the picker is for overriding it when
        you just want pumpkins in March. #}
-    <form method="get" class="themepick" hx-boost="false">
+    <form method="get" class="themepick">
       {% for k, v in request.query_params.items() if k != 'theme' %}
       <input type="hidden" name="{{ k }}" value="{{ v }}">
       {% endfor %}

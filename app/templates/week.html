@@ -72,8 +72,7 @@
   // Open on the week's first event, not on midnight, or the grid lands at
   // 00:00 with every real event below the fold. Deferred to the next frame:
   // run inline, scrollHeight is still the pre-layout value and the scroll is
-  // silently a no-op. Re-run after an htmx swap, since boosted navigation
-  // replaces this grid without a page load.
+  // silently a no-op.
   (function () {
     function openAtFirstEvent() {
       var g = document.getElementById('weekgrid');
@@ -83,7 +82,6 @@
       });
     }
     openAtFirstEvent();
-    document.body.addEventListener('htmx:afterSettle', openAtFirstEvent);
   })();
 </script>
 {% endblock %}

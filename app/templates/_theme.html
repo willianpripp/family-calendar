@@ -7,10 +7,15 @@
   </div>
   <h2 class="themecard-name">{{ theme.name }}</h2>
   <p class="themecard-blurb">{{ theme.blurb }}</p>
+  {% if not theme.art_own %}
+  {# Credit the painting only when a painting is what is showing. Once a month
+     picture is dropped in it takes over, and captioning someone else's holiday
+     photo as a Bruegel would be daft. #}
   <p class="themecard-art">
     <span class="art-title">{{ theme.art_title }}</span><br>
     {{ theme.art_artist }}, {{ theme.art_year }}
   </p>
+  {% endif %}
   <p class="panel-note">
     {% if theme.auto %}Picked from the dates on screen.{% else %}Pinned by hand. Set the picker back to Auto to follow the calendar again.{% endif %}
   </p>

@@ -9,6 +9,7 @@
 # changes. That keeps the fun from costing legibility, and it means a new theme
 # is a dict entry rather than a stylesheet.
 
+import pathlib
 from datetime import date, timedelta
 from urllib.parse import quote
 
@@ -176,8 +177,9 @@ def theme_for(start: date, end: date, override: str | None = None) -> dict:
     A special window only has to INTERSECT the range, so opening October at all
     is enough to get pumpkins, rather than needing the 31st on screen.
     """
+    month = (start + (end - start) / 2).month
     if override and override in THEMES:
-        return _dress(override, auto=False)
+        return _dress(override, auto=False, month=month)
 
     best: tuple[int, str] | None = None
     for year in {start.year, end.year}:
@@ -186,19 +188,40 @@ def theme_for(start: date, end: date, override: str | None = None) -> dict:
                 if best is None or priority > best[0]:
                     best = (priority, key)
     key = best[1] if best else season_for(start + (end - start) / 2)
-    return _dress(key, auto=True)
+    return _dress(key, auto=True, month=month)
 
 
-def _dress(key: str, auto: bool) -> dict:
+ART_DIR = pathlib.Path("static/art")
+# Willian's own images, one per month, dropped in as month-01 … month-12.
+# Checked on every request rather than cached at startup: adding a picture
+# should be "copy the file in and reload", not "copy it in and remember to
+# restart".
+MONTH_ART_EXT = ("jpg", "jpeg", "png", "webp", "avif")
+
+
+def month_art(month: int) -> str | None:
+    for ext in MONTH_ART_EXT:
+        name = f"month-{month:02d}.{ext}"
+        if (ART_DIR / name).exists():
+            return name
+    return None
+
+
+def _dress(key: str, auto: bool, month: int | None = None) -> dict:
     t = THEMES[key]
     art_file, art_title, art_artist, art_year = t["art"]
+    # A month picture, if there is one for this month, otherwise the painting
+    # that shipped with the theme. The fallback is what keeps the calendar
+    # dressed while the twelve are still being collected.
+    own = month_art(month) if month else None
     return {
+        "art_own": bool(own),
         "key": key,
         "auto": auto,
         # The first motif doubles as the single icon in the header brand.
         "motif": t["motifs"][0],
         "pattern": pattern_uri(t["motifs"]),
-        "art_file": art_file,
+        "art_file": own or art_file,
         "art_title": art_title,
         "art_artist": art_artist,
         "art_year": art_year,
