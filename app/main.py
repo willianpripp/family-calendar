@@ -198,6 +198,21 @@ def today_local() -> date:
     return datetime.now(HOUSEHOLD_TZ).date()
 
 
+def parse_day(value: str | None) -> date:
+    """A YYYY-MM-DD from the query string, or today.
+
+    A bad one is a 400, never a traceback: these dates arrive in URLs that get
+    bookmarked, shared and hand-edited, and `2026-02-29` in a non-leap year is
+    an easy thing to type. It used to return 500.
+    """
+    if not value:
+        return today_local()
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"not a date: {value}") from None
+
+
 def decorate(ev: dict) -> dict:
     """Attach the local-time and colour fields every template renders from."""
     ev = dict(ev)
@@ -383,7 +398,7 @@ def month_view(request: Request, y: int | None = None, m: int | None = None,
 
 @app.get("/week", response_class=HTMLResponse)
 def week_view(request: Request, d: str | None = None, theme: str | None = None):
-    focus = date.fromisoformat(d) if d else today_local()
+    focus = parse_day(d)
     start = focus - timedelta(days=(focus.weekday() + 1) % 7)  # back to Sunday
     week = [start + timedelta(days=i) for i in range(7)]
 
@@ -471,9 +486,9 @@ def form_context(request: Request, ev: dict | None, day: date, back: str,
 @app.get("/events/new", response_class=HTMLResponse)
 def new_event_form(request: Request, day: str | None = None, back: str = "/month",
                    hour: int | None = None):
-    d = date.fromisoformat(day) if day else today_local()
     return templates.TemplateResponse(
-        request, "event_form.html", form_context(request, None, d, back, hour)
+        request, "event_form.html",
+        form_context(request, None, parse_day(day), back, hour),
     )
 
 

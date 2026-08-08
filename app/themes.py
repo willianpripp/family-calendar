@@ -191,6 +191,33 @@ def theme_for(start: date, end: date, override: str | None = None) -> dict:
     return _dress(key, auto=True, month=month)
 
 
+# The fallback picture is chosen BY MONTH, one each, never by season.
+#
+# It used to fall out of the theme, and that produced duplicates that read as
+# a bug: March and April both landed on Easter (the 2026 window straddles the
+# two), and May and June both landed on Spring (neither has an event window, so
+# both fell through to the same season). Twelve months, twelve pictures, no
+# arithmetic.
+#
+# Two entries here are used only when a theme is pinned by hand in the picker:
+# newyear.jpg and fall.jpg. That is deliberate, not a leftover — January is
+# better served by Bruegel's snow than by fireworks, and November by the
+# Thanksgiving table than by another autumn landscape.
+FALLBACK_ART = {
+    1:  ("winter.jpg", "Hunters in the Snow", "Pieter Bruegel the Elder", 1565),
+    2:  ("carnaval.jpg", "Christ's Entry into Brussels in 1889", "James Ensor", 1889),
+    3:  ("spring.jpg", "Primavera", "Sandro Botticelli", 1480),
+    4:  ("easter.jpg", "Almond Blossom", "Vincent van Gogh", 1890),
+    5:  ("may.jpg", "The Artist's Garden at Giverny", "Claude Monet", 1900),
+    6:  ("june.jpg", "Les Coquelicots", "Gustave Courbet", 1850),
+    7:  ("july4.jpg", "Our Banner in the Sky", "Frederic Edwin Church", 1861),
+    8:  ("summer.jpg", "Strolling along the Seashore", "Joaquin Sorolla", 1909),
+    9:  ("farroupilha.jpg", "La doma", "Juan Manuel Blanes", 1870),
+    10: ("halloween.jpg", "The Nightmare", "Henry Fuseli", 1781),
+    11: ("thanksgiving.jpg", "Sumptuous Still Life with Fruits, Pie and Goblets", "Jan Davidsz. de Heem", 1655),
+    12: ("christmas.jpg", "The Census at Bethlehem", "Pieter Bruegel the Elder", 1566),
+}
+
 ART_DIR = pathlib.Path("static/art")
 # Willian's own images, one per month, dropped in as month-01 … month-12.
 # Checked on every request rather than cached at startup: adding a picture
@@ -209,11 +236,18 @@ def month_art(month: int) -> str | None:
 
 def _dress(key: str, auto: bool, month: int | None = None) -> dict:
     t = THEMES[key]
-    art_file, art_title, art_artist, art_year = t["art"]
-    # A month picture, if there is one for this month, otherwise the painting
-    # that shipped with the theme. The fallback is what keeps the calendar
-    # dressed while the twelve are still being collected.
+    # Which picture, in order of precedence:
+    #   1. Willian's own image for this month, if he has supplied one
+    #   2. the pinned theme's painting, when a theme was chosen by hand — the
+    #      picker has to change the picture or it is not really a picker
+    #   3. the month's own fallback painting
     own = month_art(month) if month else None
+    if own:
+        art_file, art_title, art_artist, art_year = own, None, None, None
+    elif not auto:
+        art_file, art_title, art_artist, art_year = t["art"]
+    else:
+        art_file, art_title, art_artist, art_year = FALLBACK_ART[month or 1]
     return {
         "art_own": bool(own),
         "key": key,
@@ -221,7 +255,7 @@ def _dress(key: str, auto: bool, month: int | None = None) -> dict:
         # The first motif doubles as the single icon in the header brand.
         "motif": t["motifs"][0],
         "pattern": pattern_uri(t["motifs"]),
-        "art_file": own or art_file,
+        "art_file": art_file,
         "art_title": art_title,
         "art_artist": art_artist,
         "art_year": art_year,

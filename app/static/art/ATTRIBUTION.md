@@ -1,6 +1,9 @@
-# Seasonal artwork
+# Fallback artwork
 
-One painting per theme, shown behind the calendar. **Every one is in the public
+One painting per **month**, shown behind the calendar whenever that month has
+no `month-NN` picture of its own (see `README.md`). Two of them, `newyear.jpg`
+and `fall.jpg`, appear only when a theme is pinned by hand in the header
+picker. **Every one is in the public
 domain** — each artist died well over seventy years ago — which is why twelve
 full images can live in a public repository with no licence file and no
 attribution requirement. The credits below are courtesy, not obligation.
@@ -23,6 +26,8 @@ replace one, keep it in that range.
 | `carnaval.jpg` | Christ's Entry into Brussels in 1889 | James Ensor, 1889 | Public domain | [Commons](https://commons.wikimedia.org/wiki/File%3AChrist%27s_Entry_into_Brussels_in_1889.jpg) |
 | `easter.jpg` | Almond Blossom | Vincent van Gogh, 1890 | Public domain | [Commons](https://commons.wikimedia.org/wiki/File%3AVincent_van_Gogh_-_Almond_blossom_-_Google_Art_Project.jpg) |
 | `farroupilha.jpg` | La doma | Juan Manuel Blanes, 1870 | Public domain | [Commons](https://commons.wikimedia.org/wiki/File%3AJuan_Manuel_Blanes_-_La_doma.png) |
+| `may.jpg` | The Artist's Garden at Giverny | Claude Monet, 1900 | Public domain | [Commons](https://commons.wikimedia.org/wiki/File%3AMonet%2C_Le_jardin_de_l%27artiste.jpg) |
+| `june.jpg` | Les Coquelicots | Gustave Courbet, 1850 | Public domain | [Commons](https://commons.wikimedia.org/wiki/File%3A%28Cahors%29_Les_Coquelicots_1850_-_Gustave_Courbet_-_Mus%C3%A9e_de_Cahors_Henri-Martin.jpg) |
 
 A note on `farroupilha.jpg`: Blanes was Uruguayan and *La doma* is a River Plate
 scene rather than a specifically gaucho-of-Rio-Grande-do-Sul one. It is the same
