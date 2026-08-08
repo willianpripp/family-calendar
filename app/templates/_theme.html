@@ -1,0 +1,13 @@
+{# The season, named. The dressing is only fun if you can tell what it is
+   supposed to be, and this is also where "why is my calendar orange" gets
+   answered without a trip to the code. #}
+<section class="panel themecard">
+  <div class="themecard-motifs" aria-hidden="true">
+    {% for m in theme.motifs %}<span>{{ m }}</span>{% endfor %}
+  </div>
+  <h2 class="themecard-name">{{ theme.name }}</h2>
+  <p class="themecard-blurb">{{ theme.blurb }}</p>
+  <p class="panel-note">
+    {% if theme.auto %}Picked from the dates on screen.{% else %}Pinned by hand. Set the picker back to Auto to follow the calendar again.{% endif %}
+  </p>
+</section>

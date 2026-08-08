@@ -10,6 +10,7 @@
 # is a dict entry rather than a stylesheet.
 
 from datetime import date, timedelta
+from urllib.parse import quote
 
 from holidays import easter
 
@@ -22,20 +23,97 @@ SEASONS = [
     ("fall", (9, 22), (12, 20)),
 ]
 
+# Each theme carries a cast of motifs, not one icon. They are drawn three ways:
+# a tiled wallpaper behind the page, a column of large drifting characters
+# beside the calendar, and a card in the rail. Emoji rather than photographs is
+# a deliberate choice: twelve themes would otherwise mean thirty-odd licensed
+# images in a public repo, every one of them a download on a phone over the
+# tailnet, to decorate a page whose job is to be read in three seconds.
 THEMES = {
-    "winter":   {"name": "Winter",      "motif": "❄️", "accent": "#7FB2E5", "accent2": "#B8D8F0", "tint": "#0F1720"},
-    "spring":   {"name": "Spring",      "motif": "\U0001F338", "accent": "#7FC8A9", "accent2": "#E9A6C4", "tint": "#101A16"},
-    "summer":   {"name": "Summer",      "motif": "☀️", "accent": "#F2B33D", "accent2": "#5FC7D8", "tint": "#171408"},
-    "fall":     {"name": "Fall",        "motif": "\U0001F342", "accent": "#D98E4A", "accent2": "#B5654A", "tint": "#1A1410"},
-    "halloween":{"name": "Halloween",   "motif": "\U0001F383", "accent": "#F0821E", "accent2": "#9B6BD6", "tint": "#150E18"},
-    "christmas":{"name": "Christmas",   "motif": "\U0001F384", "accent": "#E5484D", "accent2": "#4FBF73", "tint": "#101812"},
-    "newyear":  {"name": "New Year",    "motif": "\U0001F386", "accent": "#E8C33D", "accent2": "#7FB2E5", "tint": "#12131C"},
-    "carnaval": {"name": "Carnaval",    "motif": "\U0001F3AD", "accent": "#F0459B", "accent2": "#F2C53D", "tint": "#1A0F18"},
-    "easter":   {"name": "Easter",      "motif": "\U0001F430", "accent": "#C9A6E9", "accent2": "#8FD3B6", "tint": "#141020"},
-    "july4":    {"name": "4th of July", "motif": "\U0001F1FA\U0001F1F8", "accent": "#4F86E5", "accent2": "#E5484D", "tint": "#0E1420"},
-    "farroupilha": {"name": "Farroupilha", "motif": "\U0001F1E7\U0001F1F7", "accent": "#4FBF73", "accent2": "#E8C33D", "tint": "#101A14"},
-    "thanksgiving": {"name": "Thanksgiving", "motif": "\U0001F983", "accent": "#C97B3D", "accent2": "#D9B44A", "tint": "#181209"},
+    "winter": {
+        "name": "Winter", "accent": "#7FB2E5", "accent2": "#B8D8F0", "tint": "#0F1720",
+        "motifs": ("❄️", "☃️", "\U0001F328️", "\U0001F9E3", "\U0001F3D4️", "☕"),
+        "blurb": "Short days, long evenings.",
+    },
+    "spring": {
+        "name": "Spring", "accent": "#7FC8A9", "accent2": "#E9A6C4", "tint": "#101A16",
+        "motifs": ("\U0001F338", "\U0001F337", "\U0001F41D", "\U0001F33F", "\U0001F326️", "\U0001F98B"),
+        "blurb": "Everything starts again.",
+    },
+    "summer": {
+        "name": "Summer", "accent": "#F2B33D", "accent2": "#5FC7D8", "tint": "#171408",
+        "motifs": ("☀️", "\U0001F3D6️", "\U0001F576️", "\U0001F349", "\U0001F30A", "\U0001F366"),
+        "blurb": "Beach weather, and the AC bill.",
+    },
+    "fall": {
+        "name": "Fall", "accent": "#D98E4A", "accent2": "#B5654A", "tint": "#1A1410",
+        "motifs": ("\U0001F342", "\U0001F33E", "\U0001F3C8", "☕", "\U0001F343", "\U0001F9E5"),
+        "blurb": "Sweater weather.",
+    },
+    "halloween": {
+        "name": "Halloween", "accent": "#F0821E", "accent2": "#9B6BD6", "tint": "#150E18",
+        "motifs": ("\U0001F383", "\U0001F47B", "\U0001F577️", "\U0001F987", "\U0001F36C", "\U0001F56F️"),
+        "blurb": "Candy, and one very good costume.",
+    },
+    "christmas": {
+        "name": "Christmas", "accent": "#E5484D", "accent2": "#4FBF73", "tint": "#101812",
+        "motifs": ("\U0001F384", "\U0001F381", "\U0001F385", "\U0001F98C", "\U0001F56F️", "⭐"),
+        "blurb": "The good month.",
+    },
+    "newyear": {
+        "name": "New Year", "accent": "#E8C33D", "accent2": "#7FB2E5", "tint": "#12131C",
+        "motifs": ("\U0001F386", "\U0001F942", "\U0001F389", "\U0001F570️", "✨", "\U0001F3C1"),
+        "blurb": "Reset the counters.",
+    },
+    "carnaval": {
+        "name": "Carnaval", "accent": "#F0459B", "accent2": "#F2C53D", "tint": "#1A0F18",
+        "motifs": ("\U0001F3AD", "\U0001F941", "\U0001F483", "\U0001F3BA", "\U0001F387", "\U0001F1E7\U0001F1F7"),
+        "blurb": "Brasil para.",
+    },
+    "easter": {
+        "name": "Easter", "accent": "#C9A6E9", "accent2": "#8FD3B6", "tint": "#141020",
+        "motifs": ("\U0001F430", "\U0001F95A", "\U0001F36B", "\U0001F337", "\U0001F423", "\U0001F338"),
+        "blurb": "Chocolate season.",
+    },
+    "july4": {
+        "name": "4th of July", "accent": "#4F86E5", "accent2": "#E5484D", "tint": "#0E1420",
+        "motifs": ("\U0001F1FA\U0001F1F8", "\U0001F386", "\U0001F32D", "\U0001F5FD", "\U0001F389", "\U0001F35F"),
+        "blurb": "Fireworks over the neighbourhood.",
+    },
+    "farroupilha": {
+        "name": "Farroupilha", "accent": "#4FBF73", "accent2": "#E8C33D", "tint": "#101A14",
+        "motifs": ("\U0001F1E7\U0001F1F7", "\U0001F40E", "\U0001F969", "\U0001F9C9", "\U0001F525", "\U0001F920"),
+        "blurb": "Churrasco e chimarrao.",
+    },
+    "thanksgiving": {
+        "name": "Thanksgiving", "accent": "#C97B3D", "accent2": "#D9B44A", "tint": "#181209",
+        "motifs": ("\U0001F983", "\U0001F967", "\U0001F33D", "\U0001F35E", "\U0001F342", "\U0001F37D️"),
+        "blurb": "Eat, then do not move.",
+    },
 }
+
+
+def pattern_uri(motifs: tuple[str, ...]) -> str:
+    """An SVG data URI tiling the theme's motifs, for the page wallpaper.
+
+    Generated rather than shipped: a tile per theme would be twelve binary
+    files to keep in step with this table, and this stays one source of truth.
+    The positions are fixed, not random, so the tile seams line up.
+    """
+    spots = [(26, 62, 40), (128, 40, 26), (196, 108, 34),
+             (58, 168, 30), (150, 196, 38), (222, 236, 28)]
+    parts = []
+    for i, (x, y, size) in enumerate(spots):
+        parts.append(
+            f"<text x='{x}' y='{y}' font-size='{size}'"
+            f" transform='rotate({-18 + i * 11} {x} {y})'>{motifs[i % len(motifs)]}</text>"
+        )
+    svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'>"
+        + "".join(parts)
+        + "</svg>"
+    )
+    return "data:image/svg+xml," + quote(svg, safe="")
 
 
 def _span(y: int, m1: int, d1: int, m2: int, d2: int) -> tuple[date, date]:
@@ -81,7 +159,7 @@ def theme_for(start: date, end: date, override: str | None = None) -> dict:
     is enough to get pumpkins, rather than needing the 31st on screen.
     """
     if override and override in THEMES:
-        return {"key": override, "auto": False, **THEMES[override]}
+        return _dress(override, auto=False)
 
     best: tuple[int, str] | None = None
     for year in {start.year, end.year}:
@@ -90,7 +168,19 @@ def theme_for(start: date, end: date, override: str | None = None) -> dict:
                 if best is None or priority > best[0]:
                     best = (priority, key)
     key = best[1] if best else season_for(start + (end - start) / 2)
-    return {"key": key, "auto": True, **THEMES[key]}
+    return _dress(key, auto=True)
+
+
+def _dress(key: str, auto: bool) -> dict:
+    t = THEMES[key]
+    return {
+        "key": key,
+        "auto": auto,
+        # The first motif doubles as the single icon in the header brand.
+        "motif": t["motifs"][0],
+        "pattern": pattern_uri(t["motifs"]),
+        **t,
+    }
 
 
 def theme_choices() -> list[tuple[str, str]]:

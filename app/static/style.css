@@ -79,6 +79,55 @@ body {
 a { color: var(--accent); text-decoration: none; }
 h1 { font-size: 1.35rem; margin: 0; text-wrap: balance; }
 
+/* --- the dressing ----------------------------------------------------------
+ *
+ * Three layers, deliberately in this order of loudness: a tiled wallpaper you
+ * notice only if you look, a column of drifting motifs beside the calendar,
+ * and a named card in the rail. The calendar itself stays plain — the moment
+ * decoration reaches the day cells, reading a Tuesday gets harder, and that is
+ * the whole job.
+ */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: var(--motif-pattern);
+  background-size: 260px 260px;
+  /* Low enough to sit under text without a scrim. Raising this is the first
+     thing to try if a theme ever reads as too subtle, and the first thing to
+     regret. */
+  opacity: .09;
+}
+@media (prefers-color-scheme: light) { body::before { opacity: .13; } }
+.top, .shell { position: relative; z-index: 1; }
+
+.decor {
+  display: flex; flex-direction: column; justify-content: space-around;
+  align-items: center; overflow: hidden; pointer-events: none;
+  font-size: 2.1rem; line-height: 1;
+}
+.decor-item {
+  opacity: .5;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .35));
+  /* Staggered by index so the column drifts as a loose group rather than
+     pulsing in unison, which reads as a broken loading state. */
+  animation: drift 7s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.15s);
+}
+.decor-item:nth-child(even) { font-size: 1.5rem; opacity: .34; }
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotate(-7deg); }
+  50%      { transform: translateY(-11px) rotate(7deg); }
+}
+@media (prefers-reduced-motion: reduce) { .decor-item { animation: none; } }
+
+.themecard { text-align: center; }
+.themecard-motifs { font-size: 1.5rem; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; }
+.themecard-name {
+  margin: 8px 0 2px; font-size: 1.05rem; color: var(--text);
+  letter-spacing: .01em;
+}
+.themecard-blurb { margin: 0; color: var(--accent); font-size: .85rem; }
+.themecard .panel-note { margin-top: 6px; font-size: .72rem; }
+
 /* --- chrome ---------------------------------------------------------------- */
 
 /* The theme has to be visible without being loud. Three touches carry it: an
@@ -129,7 +178,7 @@ h1 { font-size: 1.35rem; margin: 0; text-wrap: balance; }
  * full 24-hour height and the whole page scrolls instead. */
 .shell {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px;
+  display: grid; grid-template-columns: 96px minmax(0, 1fr) 300px; gap: 14px;
   padding: 14px 18px 18px; align-items: stretch;
 }
 main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
@@ -142,6 +191,9 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 @media (max-width: 1100px) {
   body { height: auto; overflow: visible; }
   .shell { grid-template-columns: minmax(0, 1fr); }
+  /* The decoration is the first thing to go on a phone: the screen is the
+     calendar, and a column of pumpkins would be taking a third of it. */
+  .decor { display: none; }
   .rail { order: 2; max-height: none; overflow: visible; }
   main { min-height: auto; }
   .grid.month { min-height: 520px; }
