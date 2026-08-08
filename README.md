@@ -39,6 +39,16 @@ and the **Pictures** page (`/who`) shows what was decided, reports the address
 it saw, and overrides it per device with a cookie. See `app/people.py` for why
 Tailscale's own identity headers cannot do this job.
 
+Either of them can change a month from the browser: the button in the bottom
+right of any calendar view uploads into their own folder. `static/art` is
+bind-mounted read-write for this, which is the app's only writable path, and
+every upload is decoded and re-encoded by Pillow rather than stored as sent.
+That is what makes it safe to accept: what lands on disk is always something
+Pillow produced, at 2560px or less, with the EXIF gone.
+
+Uploaded pictures live on the host and are not in git. `make deploy` leaves them
+alone (rsync without `--delete`), but nothing backs them up.
+
 There is **no authentication**, on purpose. The app publishes to loopback only
 and `tailscale serve` puts it on port 8446 of the tailnet, where everyone is
 family. Do not bind it to `0.0.0.0` and do not forward it from the router.

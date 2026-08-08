@@ -22,7 +22,7 @@ from datetime import date, datetime, time, timedelta
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -30,7 +30,8 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 import news
-from art import art_for
+from art import (ACCEPT_ATTR, MAX_UPLOAD_BYTES, ArtError, art_for,
+                 remove_month_art, save_month_art)
 from people import PEOPLE, whois
 from holidays import holidays_between
 
@@ -292,6 +293,9 @@ def base_context(request: Request, view: str, month: int) -> dict:
         "view": view,
         "who": who,
         "art": art_for(month, who["key"]),
+        "art_month": month,
+        "art_accept": ACCEPT_ATTR,
+        "art_error": request.query_params.get("art_error"),
         "asset_v": ASSET_V,
         "here": quote(str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")),
     }
@@ -682,3 +686,35 @@ def set_who(who: str = Form(""), back: str = Form("/month")):
         # has done nothing wrong.
         resp.set_cookie("cal_who", who, max_age=31536000, samesite="lax", httponly=True)
     return resp
+
+
+@app.post("/art/upload")
+async def upload_art(request: Request, file: UploadFile = File(...),
+                     month: int = Form(...), back: str = Form("/month"),
+                     scope: str = Form("mine")):
+    """Set the background for one month from the browser.
+
+    It lands in the uploader's own folder by default, so changing your October
+    does not change hers. `scope=shared` writes the level everyone sees, which
+    is the right choice for a picture of the two of them.
+    """
+    if not 1 <= month <= 12:
+        raise HTTPException(status_code=400, detail="month must be 1-12")
+    who = whois(request)
+    person = None if scope == "shared" else who["key"]
+    try:
+        save_month_art(month, person, await file.read(MAX_UPLOAD_BYTES + 1))
+    except ArtError as e:
+        # The message is written for the person, so it is worth showing rather
+        # than swallowing into a 400 page.
+        return RedirectResponse(f"{back}{'&' if '?' in back else '?'}art_error={quote(str(e))}",
+                                status_code=303)
+    return RedirectResponse(back, status_code=303)
+
+
+@app.post("/art/remove")
+def remove_art(request: Request, month: int = Form(...), back: str = Form("/month"),
+               scope: str = Form("mine")):
+    who = whois(request)
+    remove_month_art(month, None if scope == "shared" else who["key"])
+    return RedirectResponse(back, status_code=303)

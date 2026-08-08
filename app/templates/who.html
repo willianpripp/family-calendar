@@ -36,11 +36,24 @@ inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
 <div class="artgrid">
   {% for m, a in months %}
   <figure class="artcell">
-    <img src="/static/art/{{ a.file }}?v={{ asset_v }}" alt="" loading="lazy">
+    <img src="/static/art/{{ a.file }}?v={{ a.v }}" alt="" loading="lazy">
     <figcaption>{{ m }}{% if a.credit %} <span class="hint">painting</span>{% endif %}</figcaption>
+    <form method="post" action="/art/upload" enctype="multipart/form-data">
+      <input type="hidden" name="month" value="{{ m }}">
+      <input type="hidden" name="back" value="/who">
+      <label class="artbar-btn">
+        <input type="file" name="file" accept="{{ art_accept }}" hidden
+               onchange="this.form.submit()">Set</label>
+      {% if a.mine %}
+      <button type="submit" class="artbar-btn" formaction="/art/remove">Clear</button>
+      {% endif %}
+    </form>
   </figure>
   {% endfor %}
 </div>
 {% endblock %}
 
 {% block rail %}{% endblock %}
+{# The grid below carries its own per-month buttons; the floating one would be
+   a second way to do the same thing on the one page that does not need it. #}
+{% block artbar %}{% endblock %}

@@ -422,3 +422,34 @@ button.danger { color: #E5714D; border-color: #E5714D; background: none; }
 .artcell { margin: 0; }
 .artcell img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 9px; display: block; }
 .artcell figcaption { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+
+/* Change the wallpaper from wherever you are. Bottom right, quiet until
+   hovered: it should be findable without competing with the calendar. */
+.artbar {
+  position: fixed; right: 14px; bottom: 12px; z-index: 3;
+  display: flex; gap: 6px; align-items: center;
+  opacity: .45; transition: opacity .15s ease;
+}
+.artbar:hover, .artbar:focus-within { opacity: 1; }
+.artbar-btn {
+  font: inherit; font-size: .78rem; cursor: pointer;
+  color: var(--muted); background: var(--surface);
+  border: 1px solid rgba(255,255,255,.10); border-radius: 999px;
+  padding: 5px 12px; backdrop-filter: blur(8px);
+}
+.artbar-btn:hover { color: var(--text); border-color: var(--accent); }
+.artbar-error {
+  position: fixed; right: 14px; bottom: 46px; z-index: 3; margin: 0;
+  max-width: 320px; font-size: .82rem;
+  background: color-mix(in oklab, #E5484D 22%, var(--surface));
+  border: 1px solid #E5484D; border-radius: var(--radius); padding: 8px 12px;
+}
+
+/* Uploading straight from the year grid, so filling the set is one pass
+   instead of twelve trips to the month view. */
+.artcell form { margin-top: 4px; display: flex; gap: 5px; }
+.artcell .artbar-btn { padding: 3px 9px; font-size: .72rem; }
+
+@media (max-width: 700px) {
+  .artbar { right: 8px; bottom: 8px; opacity: .85; }
+}

@@ -85,8 +85,12 @@ services:
       # the "keep an unpublishable picture off git by copying it to the host"
       # escape hatch silently did not work either.
       #
-      # Read-only: the app renders these and never writes them.
-      - /srv/lab/calendar/app/static/art:/app/static/art:ro
+      # Read-WRITE, because the calendar accepts an uploaded background from the
+      # browser. This is the only writable path the app has, it holds nothing
+      # but wallpapers, and every upload is re-encoded rather than stored as
+      # sent (see art.py), so what lands here is always something Pillow
+      # produced. The container runs as uid 1000 to match the host owner.
+      - /srv/lab/calendar/app/static/art:/app/static/art
     ports:
       # Loopback only. `tailscale serve` exposes it at :8446, and only to the
       # tailnet. Binding 0.0.0.0 here would quietly put it on the LAN.

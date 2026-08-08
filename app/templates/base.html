@@ -10,7 +10,9 @@
 <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
 {# The only thing that varies per page: which picture is behind the calendar.
    It cannot live in the stylesheet, because it changes every month. #}
-<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ asset_v }}"); }</style>
+{# art.v is per-file, not the global asset hash: uploading a new October writes
+   month-10.jpg again, so only the file's own mtime changes. #}
+<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ art.v }}"); }</style>
 </head>
 {# No hx-boost. It swapped the body on navigation and left <head> alone, so the
    picture above kept whatever the first page loaded had: changing month
@@ -43,5 +45,26 @@
   </aside>
   {% endblock %}
 </div>
+
+{# Changing the wallpaper should be as cheap as noticing you are bored of it,
+   so this sits in the corner of every calendar view rather than behind the
+   settings page. The file input is hidden and the form self-submits: pick a
+   picture, and it is the background. #}
+{% block artbar %}
+<form class="artbar" method="post" action="/art/upload" enctype="multipart/form-data">
+  <input type="hidden" name="month" value="{{ art_month }}">
+  <input type="hidden" name="back" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+  <label class="artbar-btn">
+    <input type="file" name="file" accept="{{ art_accept }}" hidden
+           onchange="this.form.submit()">
+    <span aria-hidden="true">🖼</span> Change this month's picture
+  </label>
+  {% if art.mine %}
+  <button type="submit" class="artbar-btn plain" formaction="/art/remove"
+          title="Go back to the picture underneath">Reset</button>
+  {% endif %}
+</form>
+{% if art_error %}<p class="artbar-error">{{ art_error }}</p>{% endif %}
+{% endblock %}
 </body>
 </html>

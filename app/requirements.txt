@@ -5,3 +5,7 @@ psycopg[binary]==3.2.9
 psycopg-pool==3.2.6
 python-multipart==0.0.20
 httpx==0.28.1
+# Uploaded backgrounds are re-encoded rather than stored as sent: it is the only
+# way to be sure the bytes are an image, and it turns a 6 MB phone photo into
+# something a phone can load over the tailnet.
+pillow==11.3.0

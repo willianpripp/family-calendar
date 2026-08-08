@@ -60,6 +60,16 @@ retried. The `/who` page reports the address a device actually arrived with,
 which is the value `CAL_DEVICES` needs when someone reinstalls Tailscale and
 gets a new one.
 
+**Either of them can change a month from the browser** (2026-08-08): the button
+in the bottom right of any calendar view, or the Pictures page for all twelve at
+once. Uploads go into the uploader's own folder, are re-encoded by Pillow to
+2560px JPEG with the EXIF stripped, and are cache-busted per file rather than by
+the global asset hash, because a replacement keeps the same filename.
+
+**Uploaded pictures exist only on the host** and nothing backs them up. That is
+the same gap as the database: there is no backup job for `/srv/lab/calendar` at
+all, which is a homelab repo task.
+
 **Open, and Willian's call:** his October and December are still at the shared
 level, so Aline sees them too. Moving them into `art/willian/` makes them his
 alone; leaving them makes them the house default until she supplies her own.

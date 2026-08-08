@@ -20,7 +20,24 @@ This folder is **bind-mounted from the host**, so a picture dropped into
 `/srv/lab/calendar/app/static/art/` appears on the next page load with no
 rebuild and no restart.
 
-## Adding your own — one per month
+## Adding your own — from the calendar
+
+The quickest way is the **🖼 Change this month's picture** button in the bottom
+right of any calendar view. Pick a JPEG, PNG or WebP and it becomes the
+background for the month on screen, for you and nobody else. **Reset** next to
+it goes back to whatever was underneath. The **Pictures** page does the same for
+all twelve months at once.
+
+Uploads are re-encoded, never stored as sent: rotated upright from the phone's
+EXIF, scaled down to 2560px if larger, and written as JPEG. That also strips the
+EXIF, which on a phone photo carries the GPS coordinates of where it was taken.
+
+**Pictures uploaded that way live on the host only**, at
+`/srv/lab/calendar/app/static/art/`. They are not in git, `make deploy` will not
+remove them, and nothing backs them up yet. Commit the ones you would be sad to
+lose.
+
+## Adding your own — from the repo
 
 Drop a file in the right folder, named for the month:
 
