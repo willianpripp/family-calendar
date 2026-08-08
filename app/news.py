@@ -30,10 +30,25 @@ def configured() -> bool:
     return bool(os.environ.get("CAL_TMDB_KEY", "").strip())
 
 
+def _auth() -> tuple[dict, dict]:
+    """(extra query params, extra headers) for whichever kind of key is set.
+
+    TMDB's settings page offers TWO credentials and it is easy to copy the
+    wrong one: a short v3 "API Key" that goes in the query string, and a long
+    v4 "API Read Access Token" (a JWT, starting `eyJ`) that goes in an
+    Authorization header. Both are accepted here, because "I pasted the one
+    that was on screen" is not a mistake worth debugging twice.
+    """
+    key = os.environ.get("CAL_TMDB_KEY", "").strip()
+    if key.startswith("eyJ"):
+        return {}, {"Authorization": f"Bearer {key}"}
+    return {"api_key": key}, {}
+
+
 def _get(path: str, params: dict) -> dict:
-    key = os.environ["CAL_TMDB_KEY"].strip()
-    with httpx.Client(timeout=6.0) as client:
-        r = client.get(f"{API}{path}", params={**params, "api_key": key})
+    auth_params, headers = _auth()
+    with httpx.Client(timeout=8.0, headers=headers) as client:
+        r = client.get(f"{API}{path}", params={**params, **auth_params})
         r.raise_for_status()
         return r.json()
 
@@ -56,13 +71,17 @@ def _movies(year: int, month: int, limit: int) -> list[dict]:
         },
     )
     out = []
-    for m in data.get("results", [])[:limit]:
+    # No poster is a reliable tell for a listing artefact rather than a film
+    # anyone is going to see, so those are dropped before the limit is applied
+    # instead of after — otherwise they eat the six slots.
+    results = [m for m in data.get("results", []) if m.get("poster_path")]
+    for m in results[:limit]:
         out.append(
             {
                 "kind": "movie",
                 "title": m.get("title") or m.get("original_title") or "Untitled",
                 "date": m.get("release_date") or "",
-                "poster": f"{IMG}{m['poster_path']}" if m.get("poster_path") else None,
+                "poster": f"{IMG}{m['poster_path']}",
                 "url": f"https://www.themoviedb.org/movie/{m['id']}",
                 "score": round(m.get("vote_average") or 0, 1),
             }
@@ -82,13 +101,14 @@ def _series(year: int, month: int, limit: int) -> list[dict]:
         },
     )
     out = []
-    for s in data.get("results", [])[:limit]:
+    results = [s for s in data.get("results", []) if s.get("poster_path")]
+    for s in results[:limit]:
         out.append(
             {
                 "kind": "series",
                 "title": s.get("name") or s.get("original_name") or "Untitled",
                 "date": s.get("first_air_date") or "",
-                "poster": f"{IMG}{s['poster_path']}" if s.get("poster_path") else None,
+                "poster": f"{IMG}{s['poster_path']}",
                 "url": f"https://www.themoviedb.org/tv/{s['id']}",
                 "score": round(s.get("vote_average") or 0, 1),
             }
