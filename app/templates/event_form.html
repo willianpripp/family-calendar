@@ -52,6 +52,7 @@
         <option value="{{ c.id }}" {% if ev and ev.get('category_id') == c.id %}selected{% endif %}>{{ c.name }}</option>
         {% endfor %}
       </select>
+      <a class="sublink" href="/categories?back={{ back | urlencode }}">Add a category, or change its colour →</a>
     </label>
   </div>
 

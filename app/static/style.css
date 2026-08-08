@@ -16,13 +16,13 @@
  */
 
 :root {
-  --ground: #141920;
-  --surface: #1B222C;
-  --surface-2: #222B37;
-  --text: #E8ECF1;
-  --muted: #93A0AD;
-  --line: #2C3540;
-  --line-soft: #232B36;
+  --ground: #1D242E;
+  --surface: #252E3A;
+  --surface-2: #2E3947;
+  --text: #EEF2F7;
+  --muted: #A6B3C1;
+  --line: #3A4655;
+  --line-soft: #313C49;
   --shadow: rgba(0, 0, 0, .35);
   --today: rgba(232, 163, 61, .10);
   --pad-fade: .38;
@@ -47,7 +47,7 @@
 :root[data-lighttheme="1"], .light-preview { color-scheme: light; }
 
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-mode="dark"]) {
     --ground: #F4F6F8;
     --surface: #FFFFFF;
     --surface-2: #EDF1F5;
@@ -73,11 +73,11 @@ body {
     linear-gradient(180deg, var(--wash), var(--ground) 45%);
   background-attachment: fixed;
   color: var(--text);
-  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 17px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
   display: flex; flex-direction: column;
 }
 a { color: var(--accent); text-decoration: none; }
-h1 { font-size: 1.35rem; margin: 0; text-wrap: balance; }
+h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; }
 
 /* --- the dressing ----------------------------------------------------------
  *
@@ -96,7 +96,7 @@ body::before {
      regret. */
   opacity: .09;
 }
-@media (prefers-color-scheme: light) { body::before { opacity: .13; } }
+@media (prefers-color-scheme: light) { :root:not([data-mode="dark"]) body::before { opacity: .13; } }
 .top, .shell { position: relative; z-index: 1; }
 
 .decor {
@@ -169,6 +169,10 @@ body::before {
 .add { background: var(--accent); color: #10151b; }
 .add:hover { filter: brightness(1.08); }
 .ghost { color: var(--muted); border: 1px solid var(--line); }
+.tools .ghost {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+}
 .ghost:hover { color: var(--text); background: var(--surface-2); }
 
 /* On a desktop the app owns the viewport: the page itself never scrolls, and
@@ -228,12 +232,13 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   grid-row: 1;
   background: color-mix(in oklab, var(--accent) 14%, var(--surface-2));
   color: var(--muted);
-  font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
-  text-align: center; padding: 6px 0; font-weight: 600;
+  font-size: .78rem; letter-spacing: .1em; text-transform: uppercase;
+  text-align: center; padding: 7px 0; font-weight: 600;
 }
 .grid.month > .dow:first-of-type ~ .day { }
 .day {
-  background: var(--surface); min-width: 0; padding: 4px 5px 6px;
+  background: color-mix(in oklab, var(--accent) 4%, var(--surface));
+  min-width: 0; padding: 5px 6px 7px;
   display: flex; flex-direction: column; gap: 2px; overflow: hidden;
   transition: background .15s ease;
 }
@@ -242,13 +247,13 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 .dayhead { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .daynum {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 24px; height: 24px; border-radius: 12px;
-  font-size: .82rem; color: var(--text); font-variant-numeric: tabular-nums;
+  min-width: 28px; height: 28px; border-radius: 14px;
+  font-size: .95rem; color: var(--text); font-variant-numeric: tabular-nums;
 }
 .daynum:hover { background: var(--surface-2); }
 .day.today .daynum { background: var(--accent); color: #10151b; font-weight: 700; }
 .holname {
-  font-size: .62rem; color: var(--muted); line-height: 1.2;
+  font-size: .74rem; color: var(--muted); line-height: 1.25;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -257,7 +262,7 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 .event {
   --ev: var(--accent);
   display: flex; align-items: baseline; gap: 4px; min-width: 0;
-  font-size: .74rem; padding: 2px 6px; border-radius: 5px;
+  font-size: .9rem; padding: 3px 7px; border-radius: 5px;
   background: color-mix(in oklab, var(--ev) 26%, var(--surface));
   border-left: 3px solid var(--ev);
   color: var(--text);
@@ -281,7 +286,7 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
    filled pip. */
 .region-OB { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
 .holchip {
-  display: inline-block; font-size: .68rem; color: var(--muted);
+  display: inline-block; font-size: .8rem; color: var(--muted);
   background: var(--surface-2); border-radius: 4px; padding: 1px 6px; margin-right: 4px;
 }
 
@@ -297,7 +302,7 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 }
 .weekhead { border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .wday { text-align: center; padding: 5px 2px; border-left: 1px solid var(--line-soft); min-width: 0; }
-.wdow { display: block; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.wdow { display: block; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .wnum {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 26px; height: 26px; border-radius: 13px; color: var(--text);
@@ -306,20 +311,20 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
 .wday.today .wnum { background: var(--accent); color: #10151b; font-weight: 700; }
 .weekallday { border-bottom: 1px solid var(--line); min-height: 34px; max-height: 120px; overflow-y: auto; }
 .adcell { border-left: 1px solid var(--line-soft); padding: 3px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gutter { font-size: .66rem; color: var(--muted); text-align: right; padding-right: 6px; }
+.gutter { font-size: .76rem; color: var(--muted); text-align: right; padding-right: 6px; }
 .weekallday .gutter { display: flex; align-items: center; justify-content: flex-end; }
 
 .weekgrid { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
 .hours { position: relative; }
 .hourlabel { height: 52px; position: relative; }
-.hourlabel span { position: absolute; right: 6px; top: -7px; font-size: .66rem; color: var(--muted); }
+.hourlabel span { position: absolute; right: 6px; top: -8px; font-size: .78rem; color: var(--muted); }
 .daycol { position: relative; border-left: 1px solid var(--line-soft); min-width: 0; }
 .daycol.today { background: var(--today); }
 .hourline { height: 52px; border-bottom: 1px solid var(--line-soft); }
 .wevent {
   --ev: var(--accent);
   position: absolute; overflow: hidden; padding: 2px 5px; border-radius: 5px;
-  font-size: .72rem; line-height: 1.25; color: var(--text);
+  font-size: .85rem; line-height: 1.3; color: var(--text);
   background: color-mix(in oklab, var(--ev) 32%, var(--surface));
   border-left: 3px solid var(--ev);
   box-shadow: 0 2px 6px -3px var(--shadow);
@@ -342,10 +347,10 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   transition: transform .12s ease;
 }
 .uprow:hover { transform: translateX(3px); }
-.uprow .when { grid-area: when; font-size: .8rem; color: var(--muted); }
+.uprow .when { grid-area: when; font-size: .88rem; color: var(--muted); }
 .uprow .what { grid-area: what; font-weight: 600; }
 .uprow .where { font-weight: 400; color: var(--muted); }
-.uprow .who { grid-area: who; align-self: center; font-size: .78rem; color: var(--muted); text-align: right; }
+.uprow .who { grid-area: who; align-self: center; font-size: .86rem; color: var(--muted); text-align: right; }
 .uprow .cat { display: block; color: var(--ev); font-weight: 600; }
 .empty { color: var(--muted); }
 
@@ -357,9 +362,9 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   border-radius: var(--radius); padding: 12px 14px;
   box-shadow: 0 10px 30px -20px var(--shadow);
 }
-.panel-h { font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
-.panel-sub { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
-.panel-note { font-size: .8rem; color: var(--muted); margin: 4px 0; }
+.panel-h { font-size: .84rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+.panel-sub { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+.panel-note { font-size: .86rem; color: var(--muted); margin: 4px 0; }
 .panel-note code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); border-radius: 4px; padding: 1px 4px; }
 
 .releases { list-style: none; margin: 0; padding: 0; }
@@ -371,10 +376,10 @@ main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
   background: var(--surface-2); border-radius: 4px; flex: none;
 }
 .rel-txt { min-width: 0; display: flex; flex-direction: column; }
-.rel-title { font-size: .82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rel-meta { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rel-title { font-size: .88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rel-meta { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-.legend-list { list-style: none; margin: 0; padding: 0; font-size: .82rem; }
+.legend-list { list-style: none; margin: 0; padding: 0; font-size: .9rem; }
 .legend-list li { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--muted); }
 .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; display: inline-block; }
 
@@ -426,3 +431,56 @@ button.danger { color: #E5484D; border-color: #E5484D; background: none; }
 .catrow .count { font-size: .78rem; color: var(--muted); min-width: 76px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 7px; }
 .bigswatch { width: 30px; height: 30px; border-radius: 7px; display: inline-block; }
+
+/* A category can be made from where you notice you need one, which is while
+   filling in an event, not from a settings page you have to already know
+   about. */
+.sublink { font-size: .8rem; color: var(--accent); margin-top: 2px; }
+
+/* --- light / dark, chosen rather than inherited -----------------------------
+ *
+ * The OS preference is still the default; these two blocks exist so the choice
+ * can be overridden per person. Willian reads this on a dark-mode PC and found
+ * the dark palette heavy, and "make it lighter" and "keep it dark" are both
+ * legitimate answers for two people sharing one calendar — so it is a switch,
+ * not a decision I get to make for them. The value is stored in localStorage
+ * and applied before first paint (see base.html), so there is no flash of the
+ * wrong theme.
+ */
+:root[data-mode="light"] {
+    --ground: #F4F6F8;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1F5;
+    --text: #1D242C;
+    --muted: #5F6B78;
+    --line: #DCE2E9;
+    --line-soft: #E7ECF1;
+    --shadow: rgba(20, 30, 45, .10);
+    --today: rgba(232, 163, 61, .16);
+    --pad-fade: .5;
+    --wash: color-mix(in oklab, var(--accent) 12%, #FFFFFF);
+  color-scheme: light;
+}
+:root[data-mode="light"] body::before { opacity: .13; }
+
+:root[data-mode="dark"] {
+    --ground: #1D242E;
+    --surface: #252E3A;
+    --surface-2: #2E3947;
+    --text: #EEF2F7;
+    --muted: #A6B3C1;
+    --line: #3A4655;
+    --line-soft: #313C49;
+    --shadow: rgba(0, 0, 0, .35);
+    --today: rgba(232, 163, 61, .10);
+    --pad-fade: .38;
+    --wash: var(--theme-tint);
+  color-scheme: dark;
+}
+
+.modetoggle {
+  font: inherit; font-size: 1rem; line-height: 1; cursor: pointer;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+}
+.modetoggle:hover { border-color: var(--accent); }

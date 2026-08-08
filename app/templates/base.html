@@ -19,6 +19,13 @@
     --motif-pattern: url("{{ theme.pattern }}");
   }
 </style>
+<script>
+  (function () {
+    var m = null;
+    try { m = localStorage.getItem('calmode'); } catch (e) {}
+    if (m === 'light' || m === 'dark') { document.documentElement.dataset.mode = m; }
+  })();
+</script>
 <script src="/static/htmx.min.js?v={{ asset_v }}" defer></script>
 </head>
 <body hx-boost="true">
@@ -48,7 +55,8 @@
         {% endfor %}
       </select>
     </form>
-    <a class="ghost" href="/categories?back={{ here }}">Categories</a>
+    <button type="button" class="modetoggle" id="modetoggle" title="Light or dark" aria-label="Light or dark">◐</button>
+    <a class="ghost" href="/categories?back={{ here }}">Categories &amp; colours</a>
     <a class="add" href="/events/new?back={{ here }}">+ Add</a>
   </div>
 </header>
@@ -71,5 +79,30 @@
   </aside>
   {% endblock %}
 </div>
+
+<script>
+  // Cycles system → light → dark → system. "System" has to stay reachable:
+  // once someone pins a mode, the calendar would otherwise ignore their
+  // machine switching to night mode forever.
+  (function () {
+    var btn = document.getElementById('modetoggle');
+    if (!btn) { return; }
+    var order = ['', 'light', 'dark'];
+    function label() {
+      var m = document.documentElement.dataset.mode || '';
+      btn.textContent = m === 'light' ? '☀' : (m === 'dark' ? '☾' : '◐');
+      btn.title = 'Theme: ' + (m || 'follow the system') + ' — click to change';
+    }
+    btn.addEventListener('click', function () {
+      var cur = document.documentElement.dataset.mode || '';
+      var next = order[(order.indexOf(cur) + 1) % order.length];
+      if (next) { document.documentElement.dataset.mode = next; }
+      else { delete document.documentElement.dataset.mode; }
+      try { next ? localStorage.setItem('calmode', next) : localStorage.removeItem('calmode'); } catch (e) {}
+      label();
+    });
+    label();
+  })();
+</script>
 </body>
 </html>
