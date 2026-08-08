@@ -185,7 +185,16 @@ body::before {
   display: grid; grid-template-columns: 96px minmax(0, 1fr) 300px; gap: 14px;
   padding: 14px 18px 18px; align-items: stretch;
 }
-main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+/* `overflow-y: auto` is load-bearing, not tidiness. The desktop layout locks
+   the page (body overflow: hidden) so the week grid can scroll inside its own
+   box; without a scroller here, any view that is simply LONGER than the
+   viewport — Upcoming, the event form, the categories page — gets clipped with
+   no way to reach the rest. Month and week are unaffected: both size
+   themselves to the space rather than overflowing it. */
+main {
+  min-width: 0; display: flex; flex-direction: column; min-height: 0;
+  overflow-y: auto; padding-right: 2px;
+}
 .rail { align-self: start; max-height: 100%; overflow-y: auto; }
 @media (min-width: 1101px) { body { overflow: hidden; } }
 
