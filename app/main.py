@@ -381,7 +381,7 @@ def month_view(request: Request, y: int | None = None, m: int | None = None):
         month_name=date(y, m, 1).strftime("%B"), today=today,
         prev=prev, next=nxt,
         holidays=holidays_between(weeks[0][0], weeks[-1][-1]),
-        releases=news.releases(y, m),
+        releases=news.releases(y, m, today_local()),
         categories=all_categories(),
     )
     return templates.TemplateResponse(request, "month.html", ctx)
@@ -423,7 +423,7 @@ def week_view(request: Request, d: str | None = None):
         next=(start + timedelta(days=7)).isoformat(),
         hours=list(range(24)),
         holidays=holidays_between(week[0], week[-1]),
-        releases=news.releases(focus.year, focus.month),
+        releases=news.releases(focus.year, focus.month, today_local()),
         categories=all_categories(),
         label=(f"{week[0].strftime('%b %-d')} – {week[-1].strftime('%b %-d, %Y')}"),
     )
@@ -446,7 +446,7 @@ def upcoming_view(request: Request):
     ctx.update(
         by_day=sorted(by_day.items()), today=now.date(),
         holidays=holidays_between(now.date(), horizon.date()),
-        releases=news.releases(now.year, now.month),
+        releases=news.releases(now.year, now.month, today_local()),
         categories=all_categories(),
     )
     return templates.TemplateResponse(request, "upcoming.html", ctx)

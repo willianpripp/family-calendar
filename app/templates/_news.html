@@ -1,7 +1,8 @@
-{# Out this month. Exists because of an AMC A-List subscription and a weekly
-   cinema habit, so it is theatrical releases first, new series second. #}
+{# What's on. Exists because of an AMC A-List subscription and a weekly cinema
+   habit, so it leads with what is actually showing rather than with what was
+   released. #}
 <section class="panel">
-  <h2 class="panel-h">Out this month</h2>
+  <h2 class="panel-h">At the cinema</h2>
 
   {% if releases.status == 'no_key' %}
   <p class="panel-note">
@@ -13,15 +14,17 @@
   {% elif releases.status == 'error' %}
   <p class="panel-note">TMDB did not answer. The calendar is unaffected; this box refills on its own.</p>
 
+  {% elif not releases.sections %}
+  <p class="panel-note">Nothing listed for this month yet.</p>
+
   {% else %}
-    {% if releases.movies %}
-    <h3 class="panel-sub">In theaters</h3>
+    {% for section in releases.sections %}
+    <h3 class="panel-sub">{{ section.label }}</h3>
     <ul class="releases">
-      {% for r in releases.movies %}
+      {% for r in section.entries %}
       <li>
         <a href="{{ r.url }}" target="_blank" rel="noopener">
-          {% if r.poster %}<img src="{{ r.poster }}" alt="" loading="lazy" width="34" height="51">
-          {% else %}<span class="noposter" aria-hidden="true">&#127916;</span>{% endif %}
+          <img src="{{ r.poster }}" alt="" loading="lazy" width="34" height="51">
           <span class="rel-txt">
             <span class="rel-title">{{ r.title }}</span>
             <span class="rel-meta">{{ r.date[-5:] if r.date else '' }}{% if r.score %} · ★ {{ r.score }}{% endif %}</span>
@@ -30,28 +33,6 @@
       </li>
       {% endfor %}
     </ul>
-    {% endif %}
-
-    {% if releases.series %}
-    <h3 class="panel-sub">New series</h3>
-    <ul class="releases">
-      {% for r in releases.series %}
-      <li>
-        <a href="{{ r.url }}" target="_blank" rel="noopener">
-          {% if r.poster %}<img src="{{ r.poster }}" alt="" loading="lazy" width="34" height="51">
-          {% else %}<span class="noposter" aria-hidden="true">&#128250;</span>{% endif %}
-          <span class="rel-txt">
-            <span class="rel-title">{{ r.title }}</span>
-            <span class="rel-meta">{{ r.date[-5:] if r.date else '' }}{% if r.score %} · ★ {{ r.score }}{% endif %}</span>
-          </span>
-        </a>
-      </li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-
-    {% if not releases.movies and not releases.series %}
-    <p class="panel-note">Nothing listed for this month yet.</p>
-    {% endif %}
+    {% endfor %}
   {% endif %}
 </section>
