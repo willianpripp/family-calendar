@@ -121,6 +121,34 @@ gubernatorial proclamation each year rather than by fixed rule. `holidays.py`
 encodes the usual pattern and says so. Check them against the state calendar
 before a year matters.
 
+## The rail becomes swipeable: cinema, then concerts, then big events
+
+Willian's idea, 2026-08-08, **explicitly not urgent**. The rail keeps its place
+and its size; arrows (or a swipe) move sideways through panes. Pane one is what
+is already there.
+
+- **Concerts around Atlanta.** The realistic free source is **Ticketmaster's
+  Discovery API**: a free key, generous daily limit, and it filters by city or
+  DMA plus `classificationName=music`, which is exactly the query. Bandsintown
+  needs partner approval and SeatGeek's free tier is thinner. Same shape as
+  `news.py`, so it should be a sibling module, not more branches inside that one.
+- **The handful of events that matter** (Super Bowl, Grammys, Oscars,
+  elections). **Do not look for an API for these.** There are about six a year,
+  the dates are announced months ahead, and every "events" API that covers them
+  is paid. A curated table in the repo, reviewed once a year, is smaller,
+  faster and cannot break. US federal election day is rule-based (the Tuesday
+  after the first Monday in November, even years) and belongs in `holidays.py`
+  alongside the rest.
+- **The panes themselves** need no framework: `scroll-snap-type: x mandatory` on
+  the rail with each pane a snap target, plus two arrow buttons calling
+  `scrollBy`. It degrades to an ordinary scroll if the JavaScript never runs,
+  which is the same bargain the week grid's drag already makes.
+
+The one thing to decide before building: whether an interesting concert should
+be **addable to the calendar in one click**. If yes, each entry needs a link
+that pre-fills the event form, and that is the part worth designing rather than
+bolting on.
+
 ## Ideas raised, not started
 
 - **Recurring events.** The biggest gap: birthdays, rent and trash night all
