@@ -70,9 +70,17 @@ the global asset hash, because a replacement keeps the same filename.
 the same gap as the database: there is no backup job for `/srv/lab/calendar` at
 all, which is a homelab repo task.
 
-**Open, and Willian's call:** his October and December are still at the shared
-level, so Aline sees them too. Moving them into `art/willian/` makes them his
-alone; leaving them makes them the house default until she supplies her own.
+**Where the pictures actually are (2026-08-08):** Willian has August, October and
+December in `art/willian/`, uploaded from the browser and since committed here,
+which is currently their only backup. **The shared level is empty**, so every
+month either of them has not covered falls straight to a painting. Aline has
+none yet.
+
+**A trap this already sprang:** Reset used to appear whenever *a* picture
+existed, not when *yours* did, so clearing October while viewing as Shared
+deleted the shared October for both of them. `art_for` reports the level now and
+the button follows it. If a picture disappears for both of you, this is the
+shape of bug to look for.
 
 ## The pictures
 
