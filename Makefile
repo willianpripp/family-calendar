@@ -20,7 +20,7 @@ DIR  ?= /srv/lab/calendar
 # those with it, and the .env is not recoverable from here.
 deploy:
 	rsync -a \
-	  --exclude='.git/' --exclude='__pycache__/' \
+	  --exclude='.git/' --exclude='.gitignore' --exclude='__pycache__/' \
 	  --exclude='Makefile' --exclude='README.md' --exclude='STATUS.md' \
 	  ./ $(HOST):$(DIR)/
 	ssh $(HOST) 'cd $(DIR) && docker compose up -d --build'
