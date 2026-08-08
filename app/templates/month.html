@@ -3,9 +3,9 @@
 {% block content %}
 <div class="viewhead">
   <div class="pager">
-    <a href="/month?y={{ prev.year }}&m={{ prev.month }}{% if theme_override %}&theme={{ theme_override }}{% endif %}" aria-label="previous month">&larr;</a>
+    <a href="/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">&larr;</a>
     <h1>{{ month_name }} <span class="yr">{{ year }}</span></h1>
-    <a href="/month?y={{ next.year }}&m={{ next.month }}{% if theme_override %}&theme={{ theme_override }}{% endif %}" aria-label="next month">&rarr;</a>
+    <a href="/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">&rarr;</a>
   </div>
   <a class="ghost" href="/month">Today</a>
 </div>
@@ -22,15 +22,12 @@
       <div class="dayhead">
         <a class="daynum" href="/events/new?day={{ d.isoformat() }}&back={{ here }}"
            title="add an event on {{ d.isoformat() }}">{{ d.day }}</a>
-        {% if hol %}
-        <span class="hols">
-          {% for h in hol %}<span class="pip region-{{ h.region }}" title="{{ h.name }} ({{ h.label }})"></span>{% endfor %}
-        </span>
-        {% endif %}
       </div>
 
       {% if hol %}
-      <div class="holname" title="{{ hol | map(attribute='name') | join(' · ') }}">{{ hol[0].name }}</div>
+      {# One colour, one row, no flags. Extra names for the same day go in the
+         tooltip rather than stacking up and pushing the events out of view. #}
+      <div class="holname" title="{{ hol | join(' · ') }}">{{ hol[0] }}</div>
       {% endif %}
 
       {% for e in days[d] %}

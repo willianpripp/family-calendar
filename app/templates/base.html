@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="{{ theme.key }}">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,37 +8,17 @@
 {# ?v= is a content hash of everything in static/. A deploy changes it, which
    changes the URL, which is the only cache-busting a browser cannot ignore. #}
 <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
-{# The theme only overrides colour tokens; layout never changes with it, so a
-   new theme cannot break the grid. #}
-<style>
-  :root {
-    --accent: {{ theme.accent }};
-    --accent-2: {{ theme.accent2 }};
-    --theme-tint: {{ theme.tint }};
-    /* Generated per theme in themes.py, not a shipped file. */
-    --motif-pattern: url("{{ theme.pattern }}");
-    --theme-art: url("/static/art/{{ theme.art_file }}?v={{ asset_v }}");
-  }
-</style>
-<script>
-  (function () {
-    var m = null;
-    try { m = localStorage.getItem('calmode'); } catch (e) {}
-    if (m === 'light' || m === 'dark') { document.documentElement.dataset.mode = m; }
-  })();
-</script>
+{# The only thing that varies per page: which picture is behind the calendar.
+   It cannot live in the stylesheet, because it changes every month. #}
+<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ asset_v }}"); }</style>
 </head>
-{# NO hx-boost, deliberately. It swapped the body on navigation and left
-   <head> alone, so the theme's <style> block — the image, the accent, the
-   whole dressing — kept whatever the FIRST page loaded had. Changing month
-   changed the grid and not the picture. These pages are a few KB over a
-   tailnet; a real navigation costs nothing and cannot desync. #}
+{# No hx-boost. It swapped the body on navigation and left <head> alone, so the
+   picture above kept whatever the first page loaded had: changing month
+   changed the grid but not the image. These pages are a few KB over a tailnet;
+   a real navigation costs nothing and cannot desync. #}
 <body>
 <header class="top">
-  <div class="brand">
-    <span class="motif" aria-hidden="true">{{ theme.motif }}</span>
-    <span class="brandname">Casa</span>
-  </div>
+  <a class="brand" href="/month">Casa</a>
 
   <nav class="views">
     <a href="/month" {% if view == 'month' %}class="active"{% endif %}>Month</a>
@@ -47,20 +27,6 @@
   </nav>
 
   <div class="tools">
-    {# Auto follows the dates on screen; the picker is for overriding it when
-       you just want pumpkins in March. #}
-    <form method="get" class="themepick">
-      {% for k, v in request.query_params.items() if k != 'theme' %}
-      <input type="hidden" name="{{ k }}" value="{{ v }}">
-      {% endfor %}
-      <select name="theme" onchange="this.form.submit()" aria-label="Theme">
-        <option value="">Auto{% if theme.auto %} — {{ theme.name }}{% endif %}</option>
-        {% for key, label in theme_choices %}
-        <option value="{{ key }}" {% if not theme.auto and theme.key == key %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </form>
-    <button type="button" class="modetoggle" id="modetoggle" title="Light or dark" aria-label="Light or dark">◐</button>
     <a class="ghost" href="/categories?back={{ here }}">Categories &amp; colours</a>
     <a class="add" href="/events/new?back={{ here }}">+ Add</a>
   </div>
@@ -71,36 +37,10 @@
 
   {% block rail %}
   <aside class="rail">
-    {% include "_theme.html" %}
     {% include "_news.html" %}
     {% include "_legend.html" %}
   </aside>
   {% endblock %}
 </div>
-
-<script>
-  // Cycles system → light → dark → system. "System" has to stay reachable:
-  // once someone pins a mode, the calendar would otherwise ignore their
-  // machine switching to night mode forever.
-  (function () {
-    var btn = document.getElementById('modetoggle');
-    if (!btn) { return; }
-    var order = ['', 'light', 'dark'];
-    function label() {
-      var m = document.documentElement.dataset.mode || '';
-      btn.textContent = m === 'light' ? '☀' : (m === 'dark' ? '☾' : '◐');
-      btn.title = 'Theme: ' + (m || 'follow the system') + ' — click to change';
-    }
-    btn.addEventListener('click', function () {
-      var cur = document.documentElement.dataset.mode || '';
-      var next = order[(order.indexOf(cur) + 1) % order.length];
-      if (next) { document.documentElement.dataset.mode = next; }
-      else { delete document.documentElement.dataset.mode; }
-      try { next ? localStorage.setItem('calmode', next) : localStorage.removeItem('calmode'); } catch (e) {}
-      label();
-    });
-    label();
-  })();
-</script>
 </body>
 </html>

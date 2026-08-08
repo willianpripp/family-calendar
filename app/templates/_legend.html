@@ -1,5 +1,7 @@
-{# Two legends, because two things carry colour: the category (when set) and
-   the owner (the fallback). Saying so beats leaving it to be inferred. #}
+{# Two things carry colour: the category, when an event has one, and the owner
+   otherwise. Holidays get one colour of their own and no further breakdown —
+   which country a holiday belongs to is not something this household needs the
+   calendar to tell it. #}
 <section class="panel">
   <h2 class="panel-h">Colours</h2>
 
@@ -21,10 +23,12 @@
 
   <h3 class="panel-sub">Holidays</h3>
   <ul class="legend-list">
-    <li><span class="pip region-US"></span>US federal</li>
-    <li><span class="pip region-GA"></span>Georgia</li>
-    <li><span class="pip region-BR"></span>Brasil</li>
-    <li><span class="pip region-RS"></span>Rio Grande do Sul</li>
-    <li><span class="pip region-OB"></span>Dates to remember</li>
+    <li><span class="swatch holiday-swatch"></span>Holiday or date to remember</li>
   </ul>
+
+  {% if art.credit %}
+  {# Only when a fallback painting is showing. Willian's own pictures get no
+     caption, and once all twelve are in this disappears entirely. #}
+  <p class="artcredit">{{ art.credit }}</p>
+  {% endif %}
 </section>

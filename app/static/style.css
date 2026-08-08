@@ -1,79 +1,51 @@
 /* Family calendar.
  *
- * Two rules that the layout hangs on, both learned the hard way:
+ * Dark only, on purpose. There was a light palette and a toggle; Willian uses
+ * one machine in the evening and asked for the choice to go away, and a theme
+ * nobody picks is a second set of colours to keep correct forever.
+ *
+ * Two rules the layout hangs on, both learned the hard way:
  *
  *   Every grid column is minmax(0, 1fr), never plain 1fr. A grid track's
  *   default minimum is min-content, so ONE long event title makes its column
  *   wider than the other six and the whole month goes crooked. minmax(0, ...)
  *   is what makes "adjust one and adjust all" true.
  *
- *   The seasonal theme only ever redefines --accent, --accent-2 and
- *   --theme-tint (set inline by the template). Nothing here reads a theme
- *   name, so a new theme cannot break the grid.
- *
- * Dark-first: the calendar is read in the evening more than at noon, and the
- * light theme is a full palette rather than an inversion.
+ *   The picture is painted by two fixed pseudo-elements on <body>, which live
+ *   in the root stacking context. .top and .shell must be lifted out of it
+ *   explicitly, or the picture covers the calendar.
  */
 
 :root {
-  --ground: #1D242E;
-  --surface: #252E3A;
-  --surface-2: #2E3947;
-  --text: #EEF2F7;
-  --muted: #A6B3C1;
-  --line: #3A4655;
-  --line-soft: #313C49;
-  --shadow: rgba(0, 0, 0, .35);
-  --today: rgba(232, 163, 61, .10);
-  --pad-fade: .38;
+  --ground: #161C24;
+  --surface: #232C38;
+  --surface-2: #2C3644;
+  --text: #F2F5F9;
+  --muted: #A9B6C4;
+  --line: #3C4857;
+  --line-soft: #333E4C;
+  --shadow: rgba(0, 0, 0, .45);
+
   --accent: #E8A33D;
-  --accent-2: #6EC1E4;
-  --theme-tint: #141920;
-  /* The wash behind the page. Dark mode uses the theme's own tint; light mode
-     cannot, because every tint is a dark hex and painting one at the top of a
-     light page puts a mud-coloured band under the header. Light mode washes
-     with the accent instead, so a theme still reads without going dark. */
-  --wash: var(--theme-tint);
+  /* Holidays get one colour and no further breakdown. Which country a holiday
+     belongs to is not something this household needs the calendar to say. */
+  --holiday: #E8C33D;
 
-  --us: #4F86E5;
-  --ga: #B57BE0;
-  --br: #4FBF73;
-  --rs: #E8C33D;
+  /* How much of the picture the calendar hides. One knob: raise it if a photo
+     ever fights the text, lower it to see more of the photo. */
+  --surface-veil: 72%;
+  --hour-h: 54px;
 
-  --surface-veil: 68%;
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
   --radius: 10px;
-}
-
-:root[data-lighttheme="1"], .light-preview { color-scheme: light; }
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-mode="dark"]) {
-    --ground: #F4F6F8;
-    --surface: #FFFFFF;
-    --surface-2: #EDF1F5;
-    --text: #1D242C;
-    --muted: #5F6B78;
-    --line: #DCE2E9;
-    --line-soft: #E7ECF1;
-    --shadow: rgba(20, 30, 45, .10);
-    --today: rgba(232, 163, 61, .16);
-    --pad-fade: .5;
-    --wash: color-mix(in oklab, var(--accent) 12%, #FFFFFF);
-    --surface-veil: 74%;
-  }
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0;
-  /* The wash sits under the ground colour, so a theme reads as a change of
-     light rather than a change of app. */
-  background:
-    radial-gradient(120% 90% at 50% -20%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--wash), var(--ground) 45%);
-  background-attachment: fixed;
+  background: var(--ground);
   color: var(--text);
   font: 17px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
   display: flex; flex-direction: column;
@@ -81,94 +53,55 @@ body {
 a { color: var(--accent); text-decoration: none; }
 h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; }
 
-/* --- the dressing ----------------------------------------------------------
- *
- * Three layers, deliberately in this order of loudness: a tiled wallpaper you
- * notice only if you look, a column of drifting motifs beside the calendar,
- * and a named card in the rail. The calendar itself stays plain — the moment
- * decoration reaches the day cells, reading a Tuesday gets harder, and that is
- * the whole job.
- */
+/* --- the month's picture ---------------------------------------------------- */
+
 body::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: var(--theme-art);
+  background-image: var(--month-art);
   background-size: cover; background-position: center;
-  /* A painting is worth showing, but the calendar is worth READING, so the
-     art gets the margins and the grid keeps its own opaque surface. The scrim
-     below is what lets the picture run this bright without the header and the
-     rail losing contrast against it. */
   opacity: .95;
 }
+/* A light veil so the header and the floating headings keep their contrast
+   over a bright photo. The calendar itself carries its own surface. */
 body::after {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--ground) 45%, transparent), color-mix(in oklab, var(--ground) 10%, transparent) 40%, color-mix(in oklab, var(--ground) 40%, transparent));
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--ground) 45%, transparent),
+    color-mix(in oklab, var(--ground) 10%, transparent) 40%,
+    color-mix(in oklab, var(--ground) 40%, transparent));
 }
-@media (prefers-color-scheme: light) {
-  :root:not([data-mode="dark"]) body::before { opacity: .8; }
-}
-:root[data-mode="light"] body::before { opacity: .8; }
-
-/* Load-bearing, and removing it hides the calendar behind the painting: the
-   two fixed pseudo-elements above are painted in the root stacking context, so
-   the real content has to be lifted out of it explicitly. */
+/* Load-bearing: without it the two layers above cover the calendar. */
 .top, .shell { position: relative; z-index: 1; }
-
-.themecard { text-align: center; }
-.themecard-motifs { font-size: 1.5rem; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; }
-.themecard-name {
-  margin: 8px 0 2px; font-size: 1.05rem; color: var(--text);
-  letter-spacing: .01em;
-}
-.themecard-blurb { margin: 0; color: var(--accent); font-size: .85rem; }
-.themecard .panel-note { margin-top: 6px; font-size: .72rem; }
 
 /* --- chrome ---------------------------------------------------------------- */
 
-/* The theme has to be visible without being loud. Three touches carry it: an
-   accent rule under the header, an accent-mixed grid border, and the motif in
-   the brand. Everything else stays neutral so the calendar is still a
-   calendar. */
 .top {
-  display: flex; align-items: center; gap: 18px;
-  padding: 10px 18px;
-  border-bottom: 2px solid transparent;
-  border-image: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent)) 1;
-  background: color-mix(in oklab, var(--surface) 88%, transparent);
-  backdrop-filter: blur(8px);
+  display: flex; align-items: center; gap: 20px;
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in oklab, var(--ground) 86%, transparent);
+  backdrop-filter: blur(10px);
   position: sticky; top: 0; z-index: 5;
 }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .02em; }
-.brand .motif { font-size: 1.2rem; animation: bob 4.5s ease-in-out infinite; }
-.brand .brandname { color: var(--text); }
-@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-3px) rotate(4deg); } }
-@media (prefers-reduced-motion: reduce) { .brand .motif { animation: none; } }
-
+.brand { font-weight: 700; letter-spacing: .02em; color: var(--text); font-size: 1.05rem; }
 .views { display: flex; gap: 4px; }
 .views a {
-  color: var(--muted); font-weight: 600; padding: 5px 12px; border-radius: 8px;
+  color: var(--muted); font-weight: 600; padding: 6px 14px; border-radius: 8px;
   transition: background .15s ease, color .15s ease;
 }
 .views a:hover { background: var(--surface-2); color: var(--text); }
-.views a.active { background: color-mix(in oklab, var(--accent) 20%, transparent); color: var(--text); }
+.views a.active { background: color-mix(in oklab, var(--accent) 24%, transparent); color: var(--text); }
 
 .tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.tools select {
-  font: inherit; font-size: .85rem; color: var(--text); background: var(--surface-2);
-  border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px;
-}
 .add, .ghost {
-  padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: .9rem;
+  padding: 7px 15px; border-radius: 8px; font-weight: 600; font-size: .92rem;
   white-space: nowrap;
 }
-.add { background: var(--accent); color: #10151b; }
+.add { background: var(--accent); color: #12161c; }
 .add:hover { filter: brightness(1.08); }
 .ghost { color: var(--muted); border: 1px solid var(--line); }
-.tools .ghost {
-  color: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
-}
 .ghost:hover { color: var(--text); background: var(--surface-2); }
+.tools .ghost { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 55%, transparent); }
 
 /* On a desktop the app owns the viewport: the page itself never scrolls, and
  * the week grid scrolls inside its own box. That chain only holds if EVERY
@@ -178,14 +111,10 @@ body::after {
 .shell {
   flex: 1; min-height: 0;
   display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px;
-  padding: 16px 46px 26px; align-items: stretch;
+  padding: 16px 40px 24px; align-items: stretch;
 }
-/* `overflow-y: auto` is load-bearing, not tidiness. The desktop layout locks
-   the page (body overflow: hidden) so the week grid can scroll inside its own
-   box; without a scroller here, any view that is simply LONGER than the
-   viewport — Upcoming, the event form, the categories page — gets clipped with
-   no way to reach the rest. Month and week are unaffected: both size
-   themselves to the space rather than overflowing it. */
+/* overflow-y is load-bearing too: the page is locked, so any view LONGER than
+   the viewport (Upcoming, the event form) needs a scroller of its own. */
 main {
   min-width: 0; display: flex; flex-direction: column; min-height: 0;
   overflow-y: auto; padding-right: 2px;
@@ -193,72 +122,75 @@ main {
 .rail { align-self: start; max-height: 100%; overflow-y: auto; }
 @media (min-width: 1101px) { body { overflow: hidden; } }
 
-/* Below that, hand scrolling back to the page: a phone has no room for two
-   scroll contexts, and a nested one is how a touch drag ends up moving the
-   wrong thing. */
 @media (max-width: 1100px) {
   body { height: auto; overflow: visible; }
   .shell { grid-template-columns: minmax(0, 1fr); padding: 12px 14px 18px; }
   .rail { order: 2; max-height: none; overflow: visible; }
-  main { min-height: auto; }
+  main { min-height: auto; overflow: visible; }
   .grid.month { min-height: 520px; }
   .weekgrid { max-height: 70vh; }
 }
 
 .viewhead {
   display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
-  text-shadow: 0 2px 10px color-mix(in oklab, var(--ground) 90%, transparent);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .9);
 }
 .pager { display: flex; align-items: center; gap: 12px; }
-.pager a { font-size: 1.2rem; padding: 2px 10px; border-radius: 8px; color: var(--muted); }
-.pager a:hover { background: var(--surface-2); color: var(--text); }
+.pager a { font-size: 1.25rem; padding: 2px 10px; border-radius: 8px; color: var(--text); }
+.pager a:hover { background: var(--surface-2); }
 .viewhead .ghost { margin-left: auto; }
 .yr { color: var(--muted); font-weight: 400; }
+.hint-inline { color: var(--muted); font-size: .82rem; }
 
 /* --- month grid ------------------------------------------------------------ */
 
 .grid.month {
   display: grid;
-  /* minmax(0, 1fr): see the note at the top. This is the "same size always". */
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  /* Row 1 is the weekday strip and sizes to its text; the week rows share
-     what is left equally. Without the explicit `auto`, grid-auto-rows applies
-     to the strip too and it takes a full seventh of the calendar's height. */
+  /* Row 1 is the weekday strip and sizes to its text; the week rows share what
+     is left equally. Without the explicit `auto`, grid-auto-rows applies to the
+     strip too and it takes a full seventh of the calendar's height. */
   grid-template-rows: auto;
   grid-auto-rows: minmax(0, 1fr);
   gap: 1px; background: color-mix(in oklab, var(--line-soft) 55%, transparent);
   backdrop-filter: blur(3px);
-  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--line));
-  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
   flex: 1; min-height: 560px;
-  box-shadow: 0 10px 30px -18px var(--shadow);
+  box-shadow: 0 14px 40px -20px var(--shadow);
 }
 .grid.month .dow {
   grid-row: 1;
-  background: color-mix(in oklab, var(--accent) 20%, color-mix(in oklab, var(--surface-2) var(--surface-veil), transparent));
-  color: var(--muted);
-  font-size: .78rem; letter-spacing: .1em; text-transform: uppercase;
-  text-align: center; padding: 7px 0; font-weight: 600;
+  background: color-mix(in oklab, var(--surface-2) 88%, transparent);
+  color: var(--text);
+  font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
+  text-align: center; padding: 8px 0; font-weight: 700;
 }
-.grid.month > .dow:first-of-type ~ .day { }
 .day {
   background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
   min-width: 0; padding: 5px 6px 7px;
   display: flex; flex-direction: column; gap: 2px; overflow: hidden;
-  transition: background .15s ease;
 }
-.day.pad { opacity: var(--pad-fade); }
-.day.today { background: linear-gradient(180deg, var(--today), var(--surface) 70%); }
+.day.pad { opacity: .42; }
 .dayhead { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+
+/* The date is the thing you look for first, so it is the biggest thing in the
+   cell after the events themselves. */
 .daynum {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 28px; height: 28px; border-radius: 14px;
-  font-size: .95rem; color: var(--text); font-variant-numeric: tabular-nums;
+  min-width: 30px; height: 30px; border-radius: 15px;
+  font-size: 1.05rem; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 .daynum:hover { background: var(--surface-2); }
-.day.today .daynum { background: var(--accent); color: #10151b; font-weight: 700; }
+.day.today { background: color-mix(in oklab, var(--accent) 16%, var(--surface)); }
+.day.today .daynum { background: var(--accent); color: #12161c; }
+
+/* Holidays are marked on the day, not just listed beside it. */
+.day.holiday { background: color-mix(in oklab, var(--holiday) 13%, var(--surface)); }
+.day.holiday .daynum { color: var(--holiday); }
+.day.today.holiday .daynum { color: #12161c; }
 .holname {
-  font-size: .74rem; color: var(--muted); line-height: 1.25;
+  font-size: .78rem; font-weight: 600; color: var(--holiday); line-height: 1.25;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -266,33 +198,25 @@ main {
 
 .event {
   --ev: var(--accent);
-  display: flex; align-items: baseline; gap: 4px; min-width: 0;
+  display: flex; align-items: baseline; gap: 5px; min-width: 0;
   font-size: .9rem; padding: 3px 7px; border-radius: 5px;
-  background: color-mix(in oklab, var(--ev) 26%, var(--surface));
+  background: color-mix(in oklab, var(--ev) 32%, var(--surface));
   border-left: 3px solid var(--ev);
   color: var(--text);
   transition: transform .12s ease, background .12s ease;
 }
-.event:hover { transform: translateX(2px); background: color-mix(in oklab, var(--ev) 42%, var(--surface)); }
-.event.allday { background: color-mix(in oklab, var(--ev) 36%, var(--surface)); }
-.event .t { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.event:hover { transform: translateX(2px); background: color-mix(in oklab, var(--ev) 48%, var(--surface)); }
+.event.allday { background: color-mix(in oklab, var(--ev) 42%, var(--surface)); }
+.event .t { color: var(--text); opacity: .8; font-variant-numeric: tabular-nums; flex: none; }
 .event .ttl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stk { flex: none; }
 
-/* --- holiday pips ---------------------------------------------------------- */
-
-.hols { display: inline-flex; gap: 3px; }
-.pip { display: inline-block; width: 7px; height: 7px; border-radius: 4px; }
-.region-US { background: var(--us); }
-.region-GA { background: var(--ga); }
-.region-BR { background: var(--br); }
-.region-RS { background: var(--rs); }
-/* An observance is not a day off, so it reads as an outline rather than a
-   filled pip. */
-.region-OB { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
 .holchip {
-  display: inline-block; font-size: .8rem; color: var(--muted);
-  background: var(--surface-2); border-radius: 4px; padding: 1px 6px; margin-right: 4px;
+  display: inline-block; font-size: .8rem; font-weight: 600;
+  color: var(--holiday);
+  background: color-mix(in oklab, var(--holiday) 18%, transparent);
+  border: 1px solid color-mix(in oklab, var(--holiday) 45%, transparent);
+  border-radius: 5px; padding: 1px 7px; margin-right: 5px;
 }
 
 /* --- week grid ------------------------------------------------------------- */
@@ -301,91 +225,123 @@ main {
   display: flex; flex-direction: column; flex: 1; min-height: 0;
   border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
   background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
-  backdrop-filter: blur(3px); box-shadow: 0 10px 30px -18px var(--shadow);
+  backdrop-filter: blur(3px);
+  box-shadow: 0 14px 40px -20px var(--shadow);
 }
 .weekhead, .weekallday, .weekgrid {
-  display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr));
+  display: grid; grid-template-columns: 68px repeat(7, minmax(0, 1fr));
 }
-.weekhead { border-bottom: 1px solid var(--line); background: var(--surface-2); }
-.wday { text-align: center; padding: 5px 2px; border-left: 1px solid var(--line-soft); min-width: 0; }
-.wdow { display: block; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.weekhead { border-bottom: 1px solid var(--line); background: color-mix(in oklab, var(--surface-2) 88%, transparent); }
+.wday { text-align: center; padding: 6px 2px; border-left: 1px solid var(--line-soft); min-width: 0; }
+.wdow {
+  display: block; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text); font-weight: 700;
+}
 .wnum {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 26px; height: 26px; border-radius: 13px; color: var(--text);
-  font-variant-numeric: tabular-nums;
+  min-width: 32px; height: 32px; border-radius: 16px; color: var(--text);
+  font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.wday.today .wnum { background: var(--accent); color: #10151b; font-weight: 700; }
-.weekallday { border-bottom: 1px solid var(--line); min-height: 34px; max-height: 120px; overflow-y: auto; }
+.wday.today .wnum { background: var(--accent); color: #12161c; }
+.wday.holiday .wnum { color: var(--holiday); }
+.wday.today.holiday .wnum { color: #12161c; }
+
+.weekallday { border-bottom: 1px solid var(--line); min-height: 34px; max-height: 130px; overflow-y: auto; }
 .adcell { border-left: 1px solid var(--line-soft); padding: 3px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.gutter { font-size: .76rem; color: var(--muted); text-align: right; padding-right: 6px; }
+.gutter { font-size: .82rem; color: var(--muted); text-align: right; padding-right: 8px; }
 .weekallday .gutter { display: flex; align-items: center; justify-content: flex-end; }
 
 .weekgrid { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
 .hours { position: relative; }
-.hourlabel { height: 52px; position: relative; }
-.hourlabel span { position: absolute; right: 6px; top: -8px; font-size: .78rem; color: var(--muted); }
-.daycol { position: relative; border-left: 1px solid var(--line-soft); min-width: 0; }
-.daycol.today { background: var(--today); }
+.hourlabel { height: var(--hour-h); position: relative; }
+/* The hour is a label you navigate by, so it is bright and not a whisper. */
+.hourlabel span {
+  position: absolute; right: 8px; top: -9px;
+  font-size: .84rem; font-weight: 600; color: var(--text); opacity: .85;
+  font-variant-numeric: tabular-nums;
+}
+.daycol { position: relative; border-left: 1px solid var(--line-soft); min-width: 0; touch-action: pan-y; }
+.daycol.today { background: color-mix(in oklab, var(--accent) 10%, transparent); }
 .hourline {
-  display: block; height: 52px; border-bottom: 1px solid var(--line-soft);
+  display: block; height: var(--hour-h); border-bottom: 1px solid var(--line-soft);
   transition: background .12s ease;
 }
-/* The affordance only appears on hover: a grid of 168 permanently highlighted
-   boxes would drown the events, which are the actual content. */
+/* The affordance only appears on hover: 168 permanently highlighted boxes would
+   drown the events, which are the actual content. */
 .hourline:hover { background: color-mix(in oklab, var(--accent) 22%, transparent); }
 .hourline:hover::after {
-  content: "+"; display: block; text-align: center; line-height: 52px;
+  content: "+"; display: block; text-align: center; line-height: var(--hour-h);
   color: var(--accent); font-size: 1.1rem; font-weight: 700;
+}
+/* The live range while dragging across hours. */
+.dragsel {
+  position: absolute; left: 2px; right: 2px; z-index: 2; pointer-events: none;
+  background: color-mix(in oklab, var(--accent) 34%, transparent);
+  border: 2px solid var(--accent); border-radius: 6px;
+  color: var(--text); font-weight: 700; font-size: .85rem;
+  display: flex; align-items: center; justify-content: center;
 }
 .wevent {
   --ev: var(--accent);
-  position: absolute; overflow: hidden; padding: 2px 5px; border-radius: 5px;
+  position: absolute; overflow: hidden; padding: 3px 6px; border-radius: 5px;
   font-size: .85rem; line-height: 1.3; color: var(--text);
-  background: color-mix(in oklab, var(--ev) 32%, var(--surface));
+  background: color-mix(in oklab, var(--ev) 42%, var(--surface));
   border-left: 3px solid var(--ev);
-  box-shadow: 0 2px 6px -3px var(--shadow);
+  box-shadow: 0 2px 8px -3px var(--shadow);
   transition: filter .12s ease;
   z-index: 1;
 }
-.wevent:hover { filter: brightness(1.15); z-index: 2; }
-.wevent .wt { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 3px; }
+.wevent:hover { filter: brightness(1.15); z-index: 3; }
+.wevent .wt { color: var(--text); opacity: .8; font-variant-numeric: tabular-nums; margin-right: 4px; }
 .wevent .ttl { font-weight: 600; }
 
 /* --- upcoming -------------------------------------------------------------- */
 
-.upday h2 { font-size: .9rem; margin: 16px 0 6px; color: var(--muted); font-weight: 600; }
+.upday-h {
+  font-size: 1rem; margin: 16px 0 6px; color: var(--text); font-weight: 700;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .85);
+}
+.upday-date { color: var(--text); }
 .uprow {
   --ev: var(--accent);
-  backdrop-filter: blur(3px);
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas: "when who" "what who"; gap: 0 12px;
-  padding: 9px 12px; margin: 6px 0; border-radius: var(--radius);
-  background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
+  padding: 10px 13px; margin: 6px 0; border-radius: var(--radius);
+  /* Nearly opaque, unlike the month cells: this view is a wall of text over a
+     photograph, and text over a photograph is where legibility goes first. */
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  backdrop-filter: blur(6px);
   border: 1px solid var(--line);
   border-left: 4px solid var(--ev); color: var(--text);
   transition: transform .12s ease;
 }
 .uprow:hover { transform: translateX(3px); }
 .uprow .when { grid-area: when; font-size: .88rem; color: var(--muted); }
-.uprow .what { grid-area: what; font-weight: 600; }
+.uprow .what { grid-area: what; font-weight: 600; font-size: 1rem; color: var(--text); }
 .uprow .where { font-weight: 400; color: var(--muted); }
 .uprow .who { grid-area: who; align-self: center; font-size: .86rem; color: var(--muted); text-align: right; }
 .uprow .cat { display: block; color: var(--ev); font-weight: 600; }
-.empty { color: var(--muted); }
+.empty { color: var(--text); }
 
 /* --- right rail ------------------------------------------------------------ */
 
 .rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .panel {
   background: color-mix(in oklab, var(--surface) 92%, transparent);
-  backdrop-filter: blur(6px); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 12px 14px;
-  box-shadow: 0 10px 30px -20px var(--shadow);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 13px 15px;
+  box-shadow: 0 14px 40px -22px var(--shadow);
 }
 .panel-h { font-size: .84rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
 .panel-sub { font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
 .panel-note { font-size: .86rem; color: var(--muted); margin: 4px 0; }
 .panel-note code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); border-radius: 4px; padding: 1px 4px; }
+.artcredit {
+  margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line);
+  font-size: .76rem; color: var(--muted); font-style: italic; line-height: 1.35;
+}
 
 .releases { list-style: none; margin: 0; padding: 0; }
 .releases li { margin: 6px 0; }
@@ -401,12 +357,13 @@ main {
 
 .legend-list { list-style: none; margin: 0; padding: 0; font-size: .9rem; }
 .legend-list li { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--muted); }
-.swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; display: inline-block; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; display: inline-block; }
+.holiday-swatch { background: var(--holiday); }
 
 /* --- forms ----------------------------------------------------------------- */
 
-.event-form { display: flex; flex-direction: column; gap: 12px; max-width: 620px; }
-.event-form label, .catrow label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+.event-form { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.event-form label, .catrow label { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--muted); }
 .event-form label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--text); }
 .event-form .row { display: flex; gap: 12px; }
 .event-form .row > label { flex: 1; min-width: 0; }
@@ -417,8 +374,9 @@ input, select, textarea {
 input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible, button:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
+.sublink { font-size: .82rem; color: var(--accent); margin-top: 2px; }
 .stickerbox { font-size: 1.1rem; max-width: 120px; }
-.stickerpick { display: flex; flex-wrap: wrap; gap: 5px; max-width: 620px; }
+.stickerpick { display: flex; flex-wrap: wrap; gap: 5px; max-width: 640px; }
 .stk-opt {
   font-size: 1.05rem; line-height: 1; background: var(--surface-2); color: var(--text);
   border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; cursor: pointer;
@@ -430,86 +388,24 @@ button {
   font: inherit; border-radius: 8px; cursor: pointer;
   border: 1px solid var(--line); background: var(--surface-2); color: var(--text); padding: 8px 16px;
 }
-button.primary { background: var(--accent); color: #10151b; border-color: transparent; font-weight: 700; padding: 10px 22px; }
+button.primary { background: var(--accent); color: #12161c; border-color: transparent; font-weight: 700; padding: 10px 22px; }
 button.small { padding: 6px 12px; font-size: .85rem; }
-button.danger { color: #E5484D; border-color: #E5484D; background: none; }
+button.danger { color: #E5714D; border-color: #E5714D; background: none; }
 .delete-form { margin-top: 26px; }
 .cancel { color: var(--muted); }
 
-.flash { border-radius: var(--radius); padding: 11px 14px; margin: 10px 0; max-width: 620px; }
-.flash.warn { background: color-mix(in oklab, var(--accent) 16%, var(--surface)); border: 1px solid var(--accent); }
-.flash.error { background: color-mix(in oklab, #E5484D 16%, var(--surface)); border: 1px solid #E5484D; }
+.flash { border-radius: var(--radius); padding: 12px 15px; margin: 10px 0; max-width: 640px; background: var(--surface); }
+.flash.warn { background: color-mix(in oklab, var(--accent) 20%, var(--surface)); border: 1px solid var(--accent); }
+.flash.error { background: color-mix(in oklab, #E5484D 20%, var(--surface)); border: 1px solid #E5484D; }
 .flash ul { margin: 6px 0; padding-left: 18px; }
 .flash li { margin: 3px 0; }
 .flash p { margin: 4px 0 0; color: var(--muted); font-size: .85rem; }
-.hint { color: var(--muted); font-size: .85rem; max-width: 620px; }
+.hint { color: var(--muted); font-size: .88rem; max-width: 640px; }
 
 .catgrid { display: flex; flex-direction: column; gap: 8px; }
 .catrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .catrow input[type=color] { width: 44px; height: 36px; padding: 2px; }
 .catrow input[type=text] { min-width: 160px; }
-.catrow .count { font-size: .78rem; color: var(--muted); min-width: 76px; }
+.catrow .count { font-size: .82rem; color: var(--muted); min-width: 76px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 7px; }
 .bigswatch { width: 30px; height: 30px; border-radius: 7px; display: inline-block; }
-
-/* A category can be made from where you notice you need one, which is while
-   filling in an event, not from a settings page you have to already know
-   about. */
-.sublink { font-size: .8rem; color: var(--accent); margin-top: 2px; }
-
-/* --- light / dark, chosen rather than inherited -----------------------------
- *
- * The OS preference is still the default; these two blocks exist so the choice
- * can be overridden per person. Willian reads this on a dark-mode PC and found
- * the dark palette heavy, and "make it lighter" and "keep it dark" are both
- * legitimate answers for two people sharing one calendar — so it is a switch,
- * not a decision I get to make for them. The value is stored in localStorage
- * and applied before first paint (see base.html), so there is no flash of the
- * wrong theme.
- */
-:root[data-mode="light"] {
-    --surface-veil: 74%;
-    --ground: #F4F6F8;
-    --surface: #FFFFFF;
-    --surface-2: #EDF1F5;
-    --text: #1D242C;
-    --muted: #5F6B78;
-    --line: #DCE2E9;
-    --line-soft: #E7ECF1;
-    --shadow: rgba(20, 30, 45, .10);
-    --today: rgba(232, 163, 61, .16);
-    --pad-fade: .5;
-    --wash: color-mix(in oklab, var(--accent) 12%, #FFFFFF);
-    --surface-veil: 74%;
-  color-scheme: light;
-}
-
-:root[data-mode="dark"] {
-    --surface-veil: 68%;
-    --ground: #1D242E;
-    --surface: #252E3A;
-    --surface-2: #2E3947;
-    --text: #EEF2F7;
-    --muted: #A6B3C1;
-    --line: #3A4655;
-    --line-soft: #313C49;
-    --shadow: rgba(0, 0, 0, .35);
-    --today: rgba(232, 163, 61, .10);
-    --pad-fade: .38;
-    --wash: var(--theme-tint);
-  color-scheme: dark;
-}
-
-.modetoggle {
-  font: inherit; font-size: 1rem; line-height: 1; cursor: pointer;
-  background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
-}
-.modetoggle:hover { border-color: var(--accent); }
-
-/* The painting, named. Half the pleasure of a Bruegel behind your calendar is
-   knowing that it is a Bruegel. */
-.themecard-art {
-  margin: 8px 0 0; font-size: .82rem; color: var(--muted); line-height: 1.35;
-}
-.themecard-art .art-title { color: var(--text); font-style: italic; }

@@ -9,10 +9,9 @@
 
 {% for day, events in by_day %}
 <section class="upday">
-  <h2>
-    {{ 'Today' if day == today else day.strftime('%a, %b %-d') }}
-    {% set hol = holidays.get(day) %}
-    {% if hol %}{% for h in hol %}<span class="holchip" title="{{ h.label }}">{{ h.name }}</span>{% endfor %}{% endif %}
+  <h2 class="upday-h">
+    <span class="upday-date">{{ 'Today' if day == today else day.strftime('%a, %b %-d') }}</span>
+    {% for name in holidays.get(day, []) %}<span class="holchip">{{ name }}</span>{% endfor %}
   </h2>
   {% for e in events %}
   <a class="uprow" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">

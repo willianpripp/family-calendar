@@ -28,8 +28,8 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 import news
+from art import art_for
 from holidays import holidays_between
-from themes import THEMES, theme_choices, theme_for
 
 HOUSEHOLD_TZ = ZoneInfo(os.environ.get("CAL_TZ", "America/New_York"))
 OWNERS = ("Willian", "Aline", "Both")
@@ -277,15 +277,11 @@ def overlapping(starts: datetime, ends: datetime, exclude_id: int | None) -> lis
 # --- shared view context ------------------------------------------------------
 
 
-def base_context(request: Request, view: str, theme_override: str | None,
-                 span: tuple[date, date]) -> dict:
-    theme = theme_for(span[0], span[1], theme_override)
+def base_context(request: Request, view: str, month: int) -> dict:
     return {
         "view": view,
-        "theme": theme,
+        "art": art_for(month),
         "asset_v": ASSET_V,
-        "theme_choices": theme_choices(),
-        "theme_override": theme_override or "",
         "here": quote(str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")),
     }
 
@@ -357,8 +353,7 @@ def root() -> RedirectResponse:
 
 
 @app.get("/month", response_class=HTMLResponse)
-def month_view(request: Request, y: int | None = None, m: int | None = None,
-               theme: str | None = None):
+def month_view(request: Request, y: int | None = None, m: int | None = None):
     today = today_local()
     y, m = y or today.year, m or today.month
     if not (2000 <= y <= 2100 and 1 <= m <= 12):
@@ -380,11 +375,7 @@ def month_view(request: Request, y: int | None = None, m: int | None = None,
     prev = (date(y, m, 1) - timedelta(days=1)).replace(day=1)
     nxt = (date(y, m, 28) + timedelta(days=7)).replace(day=1)
 
-    # The theme follows the MONTH, not the padded grid. The grid runs into the
-    # neighbouring months to fill whole weeks, and using its span made November
-    # look like Christmas because the trailing days reach December.
-    last_day = (date(y, m, 28) + timedelta(days=7)).replace(day=1) - timedelta(days=1)
-    ctx = base_context(request, "month", theme, (date(y, m, 1), last_day))
+    ctx = base_context(request, "month", m)
     ctx.update(
         weeks=weeks, days=days, year=y, month=m,
         month_name=date(y, m, 1).strftime("%B"), today=today,
@@ -397,7 +388,7 @@ def month_view(request: Request, y: int | None = None, m: int | None = None,
 
 
 @app.get("/week", response_class=HTMLResponse)
-def week_view(request: Request, d: str | None = None, theme: str | None = None):
+def week_view(request: Request, d: str | None = None):
     focus = parse_day(d)
     start = focus - timedelta(days=(focus.weekday() + 1) % 7)  # back to Sunday
     week = [start + timedelta(days=i) for i in range(7)]
@@ -423,7 +414,8 @@ def week_view(request: Request, d: str | None = None, theme: str | None = None):
     )
     scroll_minute = max(0, first_minute - 45)
 
-    ctx = base_context(request, "week", theme, (week[0], week[-1]))
+    # The picture follows the month the week mostly sits in.
+    ctx = base_context(request, "week", week[3].month)
     ctx.update(
         week=week, all_day=all_day, timed=timed, today=today_local(),
         scroll_minute=scroll_minute,
@@ -439,7 +431,7 @@ def week_view(request: Request, d: str | None = None, theme: str | None = None):
 
 
 @app.get("/upcoming", response_class=HTMLResponse)
-def upcoming_view(request: Request, theme: str | None = None):
+def upcoming_view(request: Request):
     now = datetime.now(HOUSEHOLD_TZ)
     horizon = now + timedelta(days=60)
     events = events_between(now, horizon)
@@ -450,7 +442,7 @@ def upcoming_view(request: Request, theme: str | None = None):
         key = max(e["starts_local"].date(), now.date())
         by_day.setdefault(key, []).append(e)
 
-    ctx = base_context(request, "upcoming", theme, (now.date(), horizon.date()))
+    ctx = base_context(request, "upcoming", now.month)
     ctx.update(
         by_day=sorted(by_day.items()), today=now.date(),
         holidays=holidays_between(now.date(), horizon.date()),
@@ -464,20 +456,25 @@ def upcoming_view(request: Request, theme: str | None = None):
 
 
 def form_context(request: Request, ev: dict | None, day: date, back: str,
-                 hour: int | None = None) -> dict:
-    # An explicit hour comes from clicking a slot in the week grid; without one
-    # the form guesses the next round hour, which is the sane default when the
-    # click carried no time with it.
+                 hour: int | None = None, until: int | None = None) -> dict:
+    # hour/until come from the week grid: clicking one slot gives an hour,
+    # dragging across several gives a range. Without either, the form guesses
+    # the next round hour, which is the sane default when the click carried no
+    # time with it.
     if hour is None:
         start_hour = (datetime.now(HOUSEHOLD_TZ) + timedelta(hours=1)).hour
     else:
         start_hour = max(0, min(23, hour))
     default_start = datetime.combine(day, time(start_hour, 0), tzinfo=HOUSEHOLD_TZ)
-    ctx = base_context(request, "form", None, (day, day))
+    # `until` is the exclusive end hour, so dragging 6 to 8 means 6:00-9:00.
+    # 24 has to survive as an end, which is why it is not clamped to 23.
+    end_hour = max(start_hour + 1, min(24, until)) if until is not None else start_hour + 1
+    default_end = datetime.combine(day, time.min, tzinfo=HOUSEHOLD_TZ) + timedelta(hours=end_hour)
+    ctx = base_context(request, "form", day.month)
     ctx.update(
         request=request, ev=ev, owners=OWNERS, back=back,
         categories=all_categories(), palette=PALETTE, stickers=STICKERS,
-        default_start=default_start, default_end=default_start + timedelta(hours=1),
+        default_start=default_start, default_end=default_end,
         conflicts=None, error=None,
     )
     return ctx
@@ -485,10 +482,10 @@ def form_context(request: Request, ev: dict | None, day: date, back: str,
 
 @app.get("/events/new", response_class=HTMLResponse)
 def new_event_form(request: Request, day: str | None = None, back: str = "/month",
-                   hour: int | None = None):
+                   hour: int | None = None, until: int | None = None):
     return templates.TemplateResponse(
         request, "event_form.html",
-        form_context(request, None, parse_day(day), back, hour),
+        form_context(request, None, parse_day(day), back, hour, until),
     )
 
 
@@ -598,7 +595,7 @@ def delete_event(event_id: int, back: str = Form("/month")):
 
 @app.get("/categories", response_class=HTMLResponse)
 def categories_view(request: Request, back: str = "/month"):
-    ctx = base_context(request, "categories", None, (today_local(), today_local()))
+    ctx = base_context(request, "categories", today_local().month)
     with pool.connection() as conn:
         counts = {
             r["category_id"]: r["n"]
