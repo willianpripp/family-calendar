@@ -23,69 +23,87 @@ SEASONS = [
     ("fall", (9, 22), (12, 20)),
 ]
 
-# Each theme carries a cast of motifs, not one icon. They are drawn three ways:
-# a tiled wallpaper behind the page, a column of large drifting characters
-# beside the calendar, and a card in the rail. Emoji rather than photographs is
-# a deliberate choice: twelve themes would otherwise mean thirty-odd licensed
-# images in a public repo, every one of them a download on a phone over the
-# tailnet, to decorate a page whose job is to be read in three seconds.
+# Each theme is dressed by a PAINTING, not by clip-art.
+#
+# Every one is PUBLIC DOMAIN — old enough that copyright has lapsed — which is
+# the only reason twelve full images can sit in a public repository at all.
+# They are in static/art/, credited in static/art/ATTRIBUTION.md, and capped at
+# 1800px and roughly half a megabyte each, because this is opened on a phone
+# over a tailnet link.
+#
+# The choices lean moody rather than cute on purpose: Fuseli's incubus for
+# Halloween, Ensor's carnival of masks, Bruegel's frozen hunters. The motifs
+# survive as small accents in the rail card, where a bit of levity costs
+# nothing.
 THEMES = {
     "winter": {
+        "art": ("winter.jpg", "Hunters in the Snow", "Pieter Bruegel the Elder", 1565),
         "name": "Winter", "accent": "#7FB2E5", "accent2": "#B8D8F0", "tint": "#0F1720",
         "motifs": ("❄️", "☃️", "\U0001F328️", "\U0001F9E3", "\U0001F3D4️", "☕"),
         "blurb": "Short days, long evenings.",
     },
     "spring": {
+        "art": ("spring.jpg", "Primavera", "Sandro Botticelli", 1480),
         "name": "Spring", "accent": "#7FC8A9", "accent2": "#E9A6C4", "tint": "#101A16",
         "motifs": ("\U0001F338", "\U0001F337", "\U0001F41D", "\U0001F33F", "\U0001F326️", "\U0001F98B"),
         "blurb": "Everything starts again.",
     },
     "summer": {
+        "art": ("summer.jpg", "Strolling along the Seashore", "Joaquin Sorolla", 1909),
         "name": "Summer", "accent": "#F2B33D", "accent2": "#5FC7D8", "tint": "#171408",
         "motifs": ("☀️", "\U0001F3D6️", "\U0001F576️", "\U0001F349", "\U0001F30A", "\U0001F366"),
         "blurb": "Beach weather, and the AC bill.",
     },
     "fall": {
+        "art": ("fall.jpg", "Golden Autumn", "Isaac Levitan", 1895),
         "name": "Fall", "accent": "#D98E4A", "accent2": "#B5654A", "tint": "#1A1410",
         "motifs": ("\U0001F342", "\U0001F33E", "\U0001F3C8", "☕", "\U0001F343", "\U0001F9E5"),
         "blurb": "Sweater weather.",
     },
     "halloween": {
+        "art": ("halloween.jpg", "The Nightmare", "Henry Fuseli", 1781),
         "name": "Halloween", "accent": "#F0821E", "accent2": "#9B6BD6", "tint": "#150E18",
         "motifs": ("\U0001F383", "\U0001F47B", "\U0001F577️", "\U0001F987", "\U0001F36C", "\U0001F56F️"),
         "blurb": "Candy, and one very good costume.",
     },
     "christmas": {
+        "art": ("christmas.jpg", "The Census at Bethlehem", "Pieter Bruegel the Elder", 1566),
         "name": "Christmas", "accent": "#E5484D", "accent2": "#4FBF73", "tint": "#101812",
         "motifs": ("\U0001F384", "\U0001F381", "\U0001F385", "\U0001F98C", "\U0001F56F️", "⭐"),
         "blurb": "The good month.",
     },
     "newyear": {
+        "art": ("newyear.jpg", "Fireworks at Ryogoku", "Utagawa Hiroshige", 1858),
         "name": "New Year", "accent": "#E8C33D", "accent2": "#7FB2E5", "tint": "#12131C",
         "motifs": ("\U0001F386", "\U0001F942", "\U0001F389", "\U0001F570️", "✨", "\U0001F3C1"),
         "blurb": "Reset the counters.",
     },
     "carnaval": {
+        "art": ("carnaval.jpg", "Christ's Entry into Brussels in 1889", "James Ensor", 1889),
         "name": "Carnaval", "accent": "#F0459B", "accent2": "#F2C53D", "tint": "#1A0F18",
         "motifs": ("\U0001F3AD", "\U0001F941", "\U0001F483", "\U0001F3BA", "\U0001F387", "\U0001F1E7\U0001F1F7"),
         "blurb": "Brasil para.",
     },
     "easter": {
+        "art": ("easter.jpg", "Almond Blossom", "Vincent van Gogh", 1890),
         "name": "Easter", "accent": "#C9A6E9", "accent2": "#8FD3B6", "tint": "#141020",
         "motifs": ("\U0001F430", "\U0001F95A", "\U0001F36B", "\U0001F337", "\U0001F423", "\U0001F338"),
         "blurb": "Chocolate season.",
     },
     "july4": {
+        "art": ("july4.jpg", "Our Banner in the Sky", "Frederic Edwin Church", 1861),
         "name": "4th of July", "accent": "#4F86E5", "accent2": "#E5484D", "tint": "#0E1420",
         "motifs": ("\U0001F1FA\U0001F1F8", "\U0001F386", "\U0001F32D", "\U0001F5FD", "\U0001F389", "\U0001F35F"),
         "blurb": "Fireworks over the neighbourhood.",
     },
     "farroupilha": {
+        "art": ("farroupilha.jpg", "La doma", "Juan Manuel Blanes", 1870),
         "name": "Farroupilha", "accent": "#4FBF73", "accent2": "#E8C33D", "tint": "#101A14",
         "motifs": ("\U0001F1E7\U0001F1F7", "\U0001F40E", "\U0001F969", "\U0001F9C9", "\U0001F525", "\U0001F920"),
         "blurb": "Churrasco e chimarrao.",
     },
     "thanksgiving": {
+        "art": ("thanksgiving.jpg", "Sumptuous Still Life with Fruits, Pie and Goblets", "Jan Davidsz. de Heem", 1655),
         "name": "Thanksgiving", "accent": "#C97B3D", "accent2": "#D9B44A", "tint": "#181209",
         "motifs": ("\U0001F983", "\U0001F967", "\U0001F33D", "\U0001F35E", "\U0001F342", "\U0001F37D️"),
         "blurb": "Eat, then do not move.",
@@ -173,12 +191,17 @@ def theme_for(start: date, end: date, override: str | None = None) -> dict:
 
 def _dress(key: str, auto: bool) -> dict:
     t = THEMES[key]
+    art_file, art_title, art_artist, art_year = t["art"]
     return {
         "key": key,
         "auto": auto,
         # The first motif doubles as the single icon in the header brand.
         "motif": t["motifs"][0],
         "pattern": pattern_uri(t["motifs"]),
+        "art_file": art_file,
+        "art_title": art_title,
+        "art_artist": art_artist,
+        "art_year": art_year,
         **t,
     }
 

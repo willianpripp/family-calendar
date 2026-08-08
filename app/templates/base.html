@@ -17,6 +17,7 @@
     --theme-tint: {{ theme.tint }};
     /* Generated per theme in themes.py, not a shipped file. */
     --motif-pattern: url("{{ theme.pattern }}");
+    --theme-art: url("/static/art/{{ theme.art_file }}?v={{ asset_v }}");
   }
 </style>
 <script>
@@ -62,13 +63,6 @@
 </header>
 
 <div class="shell">
-  {# Decorative only, and hidden from assistive tech: it says nothing the page
-     does not already say, and a screen reader announcing six pumpkins between
-     the nav and the calendar would be actively hostile. #}
-  <aside class="decor" aria-hidden="true">
-    {% for m in theme.motifs %}<span class="decor-item" style="--i: {{ loop.index0 }}">{{ m }}</span>{% endfor %}
-  </aside>
-
   <main>{% block content %}{% endblock %}</main>
 
   {% block rail %}

@@ -7,6 +7,10 @@
   </div>
   <h2 class="themecard-name">{{ theme.name }}</h2>
   <p class="themecard-blurb">{{ theme.blurb }}</p>
+  <p class="themecard-art">
+    <span class="art-title">{{ theme.art_title }}</span><br>
+    {{ theme.art_artist }}, {{ theme.art_year }}
+  </p>
   <p class="panel-note">
     {% if theme.auto %}Picked from the dates on screen.{% else %}Pinned by hand. Set the picker back to Auto to follow the calendar again.{% endif %}
   </p>

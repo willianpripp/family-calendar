@@ -89,35 +89,28 @@ h1 { font-size: 1.5rem; margin: 0; text-wrap: balance; }
  */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: var(--motif-pattern);
-  background-size: 260px 260px;
-  /* Low enough to sit under text without a scrim. Raising this is the first
-     thing to try if a theme ever reads as too subtle, and the first thing to
-     regret. */
-  opacity: .09;
+  background-image: var(--theme-art);
+  background-size: cover; background-position: center;
+  /* A painting is worth showing, but the calendar is worth READING, so the
+     art gets the margins and the grid keeps its own opaque surface. The scrim
+     below is what lets the picture run this bright without the header and the
+     rail losing contrast against it. */
+  opacity: .78;
 }
-@media (prefers-color-scheme: light) { :root:not([data-mode="dark"]) body::before { opacity: .13; } }
-.top, .shell { position: relative; z-index: 1; }
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--ground) 62%, transparent), color-mix(in oklab, var(--ground) 18%, transparent) 40%, color-mix(in oklab, var(--ground) 55%, transparent));
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-mode="dark"]) body::before { opacity: .6; }
+}
+:root[data-mode="light"] body::before { opacity: .6; }
 
-.decor {
-  display: flex; flex-direction: column; justify-content: space-around;
-  align-items: center; overflow: hidden; pointer-events: none;
-  font-size: 2.1rem; line-height: 1;
-}
-.decor-item {
-  opacity: .5;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .35));
-  /* Staggered by index so the column drifts as a loose group rather than
-     pulsing in unison, which reads as a broken loading state. */
-  animation: drift 7s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -1.15s);
-}
-.decor-item:nth-child(even) { font-size: 1.5rem; opacity: .34; }
-@keyframes drift {
-  0%, 100% { transform: translateY(0) rotate(-7deg); }
-  50%      { transform: translateY(-11px) rotate(7deg); }
-}
-@media (prefers-reduced-motion: reduce) { .decor-item { animation: none; } }
+/* Load-bearing, and removing it hides the calendar behind the painting: the
+   two fixed pseudo-elements above are painted in the root stacking context, so
+   the real content has to be lifted out of it explicitly. */
+.top, .shell { position: relative; z-index: 1; }
 
 .themecard { text-align: center; }
 .themecard-motifs { font-size: 1.5rem; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; }
@@ -182,8 +175,8 @@ body::before {
  * full 24-hour height and the whole page scrolls instead. */
 .shell {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: 96px minmax(0, 1fr) 300px; gap: 14px;
-  padding: 14px 18px 18px; align-items: stretch;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px;
+  padding: 16px 46px 26px; align-items: stretch;
 }
 /* `overflow-y: auto` is load-bearing, not tidiness. The desktop layout locks
    the page (body overflow: hidden) so the week grid can scroll inside its own
@@ -203,17 +196,17 @@ main {
    wrong thing. */
 @media (max-width: 1100px) {
   body { height: auto; overflow: visible; }
-  .shell { grid-template-columns: minmax(0, 1fr); }
-  /* The decoration is the first thing to go on a phone: the screen is the
-     calendar, and a column of pumpkins would be taking a third of it. */
-  .decor { display: none; }
+  .shell { grid-template-columns: minmax(0, 1fr); padding: 12px 14px 18px; }
   .rail { order: 2; max-height: none; overflow: visible; }
   main { min-height: auto; }
   .grid.month { min-height: 520px; }
   .weekgrid { max-height: 70vh; }
 }
 
-.viewhead { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.viewhead {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+  text-shadow: 0 2px 10px color-mix(in oklab, var(--ground) 90%, transparent);
+}
 .pager { display: flex; align-items: center; gap: 12px; }
 .pager a { font-size: 1.2rem; padding: 2px 10px; border-radius: 8px; color: var(--muted); }
 .pager a:hover { background: var(--surface-2); color: var(--text); }
@@ -246,7 +239,7 @@ main {
 }
 .grid.month > .dow:first-of-type ~ .day { }
 .day {
-  background: color-mix(in oklab, var(--accent) 4%, var(--surface));
+  background: color-mix(in oklab, var(--accent) 5%, var(--surface));
   min-width: 0; padding: 5px 6px 7px;
   display: flex; flex-direction: column; gap: 2px; overflow: hidden;
   transition: background .15s ease;
@@ -329,7 +322,17 @@ main {
 .hourlabel span { position: absolute; right: 6px; top: -8px; font-size: .78rem; color: var(--muted); }
 .daycol { position: relative; border-left: 1px solid var(--line-soft); min-width: 0; }
 .daycol.today { background: var(--today); }
-.hourline { height: 52px; border-bottom: 1px solid var(--line-soft); }
+.hourline {
+  display: block; height: 52px; border-bottom: 1px solid var(--line-soft);
+  transition: background .12s ease;
+}
+/* The affordance only appears on hover: a grid of 168 permanently highlighted
+   boxes would drown the events, which are the actual content. */
+.hourline:hover { background: color-mix(in oklab, var(--accent) 22%, transparent); }
+.hourline:hover::after {
+  content: "+"; display: block; text-align: center; line-height: 52px;
+  color: var(--accent); font-size: 1.1rem; font-weight: 700;
+}
 .wevent {
   --ev: var(--accent);
   position: absolute; overflow: hidden; padding: 2px 5px; border-radius: 5px;
@@ -338,6 +341,7 @@ main {
   border-left: 3px solid var(--ev);
   box-shadow: 0 2px 6px -3px var(--shadow);
   transition: filter .12s ease;
+  z-index: 1;
 }
 .wevent:hover { filter: brightness(1.15); z-index: 2; }
 .wevent .wt { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 3px; }
@@ -367,7 +371,8 @@ main {
 
 .rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .panel {
-  background: var(--surface); border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  backdrop-filter: blur(6px); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 12px 14px;
   box-shadow: 0 10px 30px -20px var(--shadow);
 }
@@ -470,7 +475,6 @@ button.danger { color: #E5484D; border-color: #E5484D; background: none; }
     --wash: color-mix(in oklab, var(--accent) 12%, #FFFFFF);
   color-scheme: light;
 }
-:root[data-mode="light"] body::before { opacity: .13; }
 
 :root[data-mode="dark"] {
     --ground: #1D242E;
@@ -493,3 +497,10 @@ button.danger { color: #E5484D; border-color: #E5484D; background: none; }
   border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
 }
 .modetoggle:hover { border-color: var(--accent); }
+
+/* The painting, named. Half the pleasure of a Bruegel behind your calendar is
+   knowing that it is a Bruegel. */
+.themecard-art {
+  margin: 8px 0 0; font-size: .82rem; color: var(--muted); line-height: 1.35;
+}
+.themecard-art .art-title { color: var(--text); font-style: italic; }

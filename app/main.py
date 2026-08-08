@@ -444,11 +444,16 @@ def upcoming_view(request: Request, theme: str | None = None):
 # --- create / edit ------------------------------------------------------------
 
 
-def form_context(request: Request, ev: dict | None, day: date, back: str) -> dict:
-    now_local = datetime.now(HOUSEHOLD_TZ)
-    default_start = datetime.combine(
-        day, time(now_local.hour, 0), tzinfo=HOUSEHOLD_TZ
-    ) + timedelta(hours=1)
+def form_context(request: Request, ev: dict | None, day: date, back: str,
+                 hour: int | None = None) -> dict:
+    # An explicit hour comes from clicking a slot in the week grid; without one
+    # the form guesses the next round hour, which is the sane default when the
+    # click carried no time with it.
+    if hour is None:
+        start_hour = (datetime.now(HOUSEHOLD_TZ) + timedelta(hours=1)).hour
+    else:
+        start_hour = max(0, min(23, hour))
+    default_start = datetime.combine(day, time(start_hour, 0), tzinfo=HOUSEHOLD_TZ)
     ctx = base_context(request, "form", None, (day, day))
     ctx.update(
         request=request, ev=ev, owners=OWNERS, back=back,
@@ -460,10 +465,11 @@ def form_context(request: Request, ev: dict | None, day: date, back: str) -> dic
 
 
 @app.get("/events/new", response_class=HTMLResponse)
-def new_event_form(request: Request, day: str | None = None, back: str = "/month"):
+def new_event_form(request: Request, day: str | None = None, back: str = "/month",
+                   hour: int | None = None):
     d = date.fromisoformat(day) if day else today_local()
     return templates.TemplateResponse(
-        request, "event_form.html", form_context(request, None, d, back)
+        request, "event_form.html", form_context(request, None, d, back, hour)
     )
 
 

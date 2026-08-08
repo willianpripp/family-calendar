@@ -49,7 +49,11 @@
     </div>
     {% for d in week %}
     <div class="daycol{% if d == today %} today{% endif %}">
-      {% for h in hours %}<div class="hourline"></div>{% endfor %}
+      {# Every hour is a link, not a div: clicking 3pm on Thursday opens the
+         form already set to Thursday 3-4pm. Plain anchors, so this works with
+         no JavaScript and the target is visible in the status bar. #}
+      {% for h in hours %}<a class="hourline" href="/events/new?day={{ d.isoformat() }}&hour={{ h }}&back={{ here }}"
+         title="new event at {{ '%d%s' | format(12 if h % 12 == 0 else h % 12, 'am' if h < 12 else 'pm') }} on {{ d.strftime('%a %b %-d') }}"></a>{% endfor %}
       {% for e in timed[d] %}
       <a class="wevent" style="--ev: {{ e.color }}; top: {{ '%.3f' | format(e.top_pct) }}%; height: {{ '%.3f' | format(e.height_pct) }}%; left: {{ '%.3f' | format(e.left_pct) }}%; width: {{ '%.3f' | format(e.width_pct) }}%"
          title="{{ e.title }} · {{ e.starts_local.strftime('%-I:%M%p') | lower }}–{{ e.ends_local.strftime('%-I:%M%p') | lower }} · {{ e.owner }}"
