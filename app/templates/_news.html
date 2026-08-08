@@ -1,0 +1,56 @@
+{# Out this month. Exists because of an AMC A-List subscription and a weekly
+   cinema habit, so it is theatrical releases first, new series second. #}
+<section class="panel">
+  <h2 class="panel-h">Out this month</h2>
+
+  {% if releases.status == 'no_key' %}
+  <p class="panel-note">
+    Needs a free TMDB API key. Set <code>CAL_TMDB_KEY</code> in
+    <code>/srv/lab/calendar/.env</code> and restart the stack.
+  </p>
+
+  {% elif releases.status == 'error' %}
+  <p class="panel-note">TMDB did not answer. The calendar is unaffected; this box refills on its own.</p>
+
+  {% else %}
+    {% if releases.movies %}
+    <h3 class="panel-sub">In theaters</h3>
+    <ul class="releases">
+      {% for r in releases.movies %}
+      <li>
+        <a href="{{ r.url }}" target="_blank" rel="noopener">
+          {% if r.poster %}<img src="{{ r.poster }}" alt="" loading="lazy" width="34" height="51">
+          {% else %}<span class="noposter" aria-hidden="true">&#127916;</span>{% endif %}
+          <span class="rel-txt">
+            <span class="rel-title">{{ r.title }}</span>
+            <span class="rel-meta">{{ r.date[-5:] if r.date else '' }}{% if r.score %} · ★ {{ r.score }}{% endif %}</span>
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if releases.series %}
+    <h3 class="panel-sub">New series</h3>
+    <ul class="releases">
+      {% for r in releases.series %}
+      <li>
+        <a href="{{ r.url }}" target="_blank" rel="noopener">
+          {% if r.poster %}<img src="{{ r.poster }}" alt="" loading="lazy" width="34" height="51">
+          {% else %}<span class="noposter" aria-hidden="true">&#128250;</span>{% endif %}
+          <span class="rel-txt">
+            <span class="rel-title">{{ r.title }}</span>
+            <span class="rel-meta">{{ r.date[-5:] if r.date else '' }}{% if r.score %} · ★ {{ r.score }}{% endif %}</span>
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if not releases.movies and not releases.series %}
+    <p class="panel-note">Nothing listed for this month yet.</p>
+    {% endif %}
+  {% endif %}
+</section>

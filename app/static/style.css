@@ -1,141 +1,363 @@
-/* Mobile-first; the primary client is a phone in a pocket. Colors carry the
-   owner field (there is no other identity signal, see main.py), so they must
-   survive both themes. */
+/* Family calendar.
+ *
+ * Two rules that the layout hangs on, both learned the hard way:
+ *
+ *   Every grid column is minmax(0, 1fr), never plain 1fr. A grid track's
+ *   default minimum is min-content, so ONE long event title makes its column
+ *   wider than the other six and the whole month goes crooked. minmax(0, ...)
+ *   is what makes "adjust one and adjust all" true.
+ *
+ *   The seasonal theme only ever redefines --accent, --accent-2 and
+ *   --theme-tint (set inline by the template). Nothing here reads a theme
+ *   name, so a new theme cannot break the grid.
+ *
+ * Dark-first: the calendar is read in the evening more than at noon, and the
+ * light theme is a full palette rather than an inversion.
+ */
 
 :root {
-  --bg: #f7f7f5;
-  --surface: #ffffff;
-  --text: #22272e;
-  --muted: #6a737d;
-  --line: #dfe3e8;
-  --accent: #2f6fed;
-  --willian: #2f6fed;
-  --aline: #c2418f;
-  --both: #2e8b57;
-  --warn-bg: #fff7e0;
-  --warn-line: #e8a33d;
-  --error-bg: #fdeaea;
-  --error-line: #c0392b;
+  --ground: #141920;
+  --surface: #1B222C;
+  --surface-2: #222B37;
+  --text: #E8ECF1;
+  --muted: #93A0AD;
+  --line: #2C3540;
+  --line-soft: #232B36;
+  --shadow: rgba(0, 0, 0, .35);
+  --today: rgba(232, 163, 61, .10);
+  --pad-fade: .38;
+  --accent: #E8A33D;
+  --accent-2: #6EC1E4;
+  --theme-tint: #141920;
+  /* The wash behind the page. Dark mode uses the theme's own tint; light mode
+     cannot, because every tint is a dark hex and painting one at the top of a
+     light page puts a mud-coloured band under the header. Light mode washes
+     with the accent instead, so a theme still reads without going dark. */
+  --wash: var(--theme-tint);
+
+  --us: #4F86E5;
+  --ga: #B57BE0;
+  --br: #4FBF73;
+  --rs: #E8C33D;
+
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --radius: 10px;
 }
-@media (prefers-color-scheme: dark) {
+
+:root[data-lighttheme="1"], .light-preview { color-scheme: light; }
+
+@media (prefers-color-scheme: light) {
   :root {
-    --bg: #141920;
-    --surface: #1b222c;
-    --text: #e8ecf1;
-    --muted: #93a0ad;
-    --line: #2c3540;
-    --accent: #6ea2ff;
-    --willian: #6ea2ff;
-    --aline: #e884c1;
-    --both: #62c68e;
-    --warn-bg: #2b2415;
-    --warn-line: #e8a33d;
-    --error-bg: #321d1d;
-    --error-line: #e06c5f;
+    --ground: #F4F6F8;
+    --surface: #FFFFFF;
+    --surface-2: #EDF1F5;
+    --text: #1D242C;
+    --muted: #5F6B78;
+    --line: #DCE2E9;
+    --line-soft: #E7ECF1;
+    --shadow: rgba(20, 30, 45, .10);
+    --today: rgba(232, 163, 61, .16);
+    --pad-fade: .5;
+    --wash: color-mix(in oklab, var(--accent) 12%, #FFFFFF);
   }
 }
 
 * { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  margin: 0;
+  /* The wash sits under the ground colour, so a theme reads as a change of
+     light rather than a change of app. */
+  background:
+    radial-gradient(120% 90% at 50% -20%, color-mix(in oklab, var(--accent) 14%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--wash), var(--ground) 45%);
+  background-attachment: fixed;
+  color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  display: flex; flex-direction: column;
 }
-main { padding: 0 10px 20px; max-width: 900px; margin: 0 auto; }
-h1 { font-size: 1.25rem; margin: 12px 0; }
-h2 { font-size: 1rem; margin: 14px 0 6px; color: var(--muted); }
 a { color: var(--accent); text-decoration: none; }
+h1 { font-size: 1.35rem; margin: 0; text-wrap: balance; }
+
+/* --- chrome ---------------------------------------------------------------- */
 
 .top {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px; border-bottom: 1px solid var(--line); background: var(--surface);
-  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; gap: 18px;
+  padding: 10px 18px; border-bottom: 1px solid var(--line);
+  background: color-mix(in oklab, var(--surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  position: sticky; top: 0; z-index: 5;
 }
-.top nav a { margin-right: 14px; color: var(--muted); font-weight: 600; }
-.top nav a.active { color: var(--text); }
-.top .add {
-  background: var(--accent); color: #fff; padding: 6px 14px;
-  border-radius: 8px; font-weight: 600;
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .02em; }
+.brand .motif { font-size: 1.2rem; animation: bob 4.5s ease-in-out infinite; }
+.brand .brandname { color: var(--text); }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-3px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .brand .motif { animation: none; } }
+
+.views { display: flex; gap: 4px; }
+.views a {
+  color: var(--muted); font-weight: 600; padding: 5px 12px; border-radius: 8px;
+  transition: background .15s ease, color .15s ease;
+}
+.views a:hover { background: var(--surface-2); color: var(--text); }
+.views a.active { background: color-mix(in oklab, var(--accent) 20%, transparent); color: var(--text); }
+
+.tools { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.tools select {
+  font: inherit; font-size: .85rem; color: var(--text); background: var(--surface-2);
+  border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px;
+}
+.add, .ghost {
+  padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: .9rem;
+  white-space: nowrap;
+}
+.add { background: var(--accent); color: #10151b; }
+.add:hover { filter: brightness(1.08); }
+.ghost { color: var(--muted); border: 1px solid var(--line); }
+.ghost:hover { color: var(--text); background: var(--surface-2); }
+
+/* On a desktop the app owns the viewport: the page itself never scrolls, and
+ * the week grid scrolls inside its own box. That chain only holds if EVERY
+ * ancestor of the scroller has min-height: 0 — a flex or grid item's default
+ * minimum is its content, so one missing min-height and the grid grows to its
+ * full 24-hour height and the whole page scrolls instead. */
+.shell {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px;
+  padding: 14px 18px 18px; align-items: stretch;
+}
+main { min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+.rail { align-self: start; max-height: 100%; overflow-y: auto; }
+@media (min-width: 1101px) { body { overflow: hidden; } }
+
+/* Below that, hand scrolling back to the page: a phone has no room for two
+   scroll contexts, and a nested one is how a touch drag ends up moving the
+   wrong thing. */
+@media (max-width: 1100px) {
+  body { height: auto; overflow: visible; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .rail { order: 2; max-height: none; overflow: visible; }
+  main { min-height: auto; }
+  .grid.month { min-height: 520px; }
+  .weekgrid { max-height: 70vh; }
 }
 
-.month-nav { display: flex; align-items: center; justify-content: space-between; }
-.month-nav h1 { margin: 10px 0; }
-.month-nav a { font-size: 1.4rem; padding: 4px 12px; }
+.viewhead { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.pager { display: flex; align-items: center; gap: 12px; }
+.pager a { font-size: 1.2rem; padding: 2px 10px; border-radius: 8px; color: var(--muted); }
+.pager a:hover { background: var(--surface-2); color: var(--text); }
+.viewhead .ghost { margin-left: auto; }
+.yr { color: var(--muted); font-weight: 400; }
 
-.grid {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
-  background: var(--line); gap: 1px;
+/* --- month grid ------------------------------------------------------------ */
+
+.grid.month {
+  display: grid;
+  /* minmax(0, 1fr): see the note at the top. This is the "same size always". */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 1px; background: var(--line-soft);
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  flex: 1; min-height: 560px;
+  box-shadow: 0 10px 30px -18px var(--shadow);
 }
-.dow {
-  background: var(--surface); color: var(--muted);
-  font-size: .7rem; text-transform: uppercase; text-align: center; padding: 4px 0;
+.grid.month .dow {
+  grid-row: 1; background: var(--surface-2); color: var(--muted);
+  font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+  text-align: center; padding: 6px 0; font-weight: 600;
 }
-.day { background: var(--surface); min-height: 76px; padding: 2px; }
-.day.pad { opacity: .45; }
-.day.today .daynum { background: var(--accent); color: #fff; }
+.grid.month > .dow:first-of-type ~ .day { }
+.day {
+  background: var(--surface); min-width: 0; padding: 4px 5px 6px;
+  display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+  transition: background .15s ease;
+}
+.day.pad { opacity: var(--pad-fade); }
+.day.today { background: linear-gradient(180deg, var(--today), var(--surface) 70%); }
+.dayhead { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .daynum {
-  display: inline-block; min-width: 22px; text-align: center;
-  border-radius: 11px; font-size: .8rem; color: var(--text); padding: 1px 3px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 24px; border-radius: 12px;
+  font-size: .82rem; color: var(--text); font-variant-numeric: tabular-nums;
 }
+.daynum:hover { background: var(--surface-2); }
+.day.today .daynum { background: var(--accent); color: #10151b; font-weight: 700; }
+.holname {
+  font-size: .62rem; color: var(--muted); line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* --- events ---------------------------------------------------------------- */
+
 .event {
-  display: block; font-size: .7rem; margin: 2px 0; padding: 2px 4px;
-  border-radius: 4px; color: #fff; overflow: hidden;
-  white-space: nowrap; text-overflow: ellipsis;
+  --ev: var(--accent);
+  display: flex; align-items: baseline; gap: 4px; min-width: 0;
+  font-size: .74rem; padding: 2px 6px; border-radius: 5px;
+  background: color-mix(in oklab, var(--ev) 26%, var(--surface));
+  border-left: 3px solid var(--ev);
+  color: var(--text);
+  transition: transform .12s ease, background .12s ease;
 }
-.event .t { opacity: .85; margin-right: 2px; }
+.event:hover { transform: translateX(2px); background: color-mix(in oklab, var(--ev) 42%, var(--surface)); }
+.event.allday { background: color-mix(in oklab, var(--ev) 36%, var(--surface)); }
+.event .t { color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.event .ttl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stk { flex: none; }
 
-.owner-willian { background: var(--willian); }
-.owner-aline { background: var(--aline); }
-.owner-both { background: var(--both); }
+/* --- holiday pips ---------------------------------------------------------- */
 
-.upday { margin-bottom: 6px; }
+.hols { display: inline-flex; gap: 3px; }
+.pip { display: inline-block; width: 7px; height: 7px; border-radius: 4px; }
+.region-US { background: var(--us); }
+.region-GA { background: var(--ga); }
+.region-BR { background: var(--br); }
+.region-RS { background: var(--rs); }
+/* An observance is not a day off, so it reads as an outline rather than a
+   filled pip. */
+.region-OB { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
+.holchip {
+  display: inline-block; font-size: .68rem; color: var(--muted);
+  background: var(--surface-2); border-radius: 4px; padding: 1px 6px; margin-right: 4px;
+}
+
+/* --- week grid ------------------------------------------------------------- */
+
+.weekwrap {
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
+  border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+  background: var(--surface); box-shadow: 0 10px 30px -18px var(--shadow);
+}
+.weekhead, .weekallday, .weekgrid {
+  display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr));
+}
+.weekhead { border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.wday { text-align: center; padding: 5px 2px; border-left: 1px solid var(--line-soft); min-width: 0; }
+.wdow { display: block; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.wnum {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 26px; border-radius: 13px; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.wday.today .wnum { background: var(--accent); color: #10151b; font-weight: 700; }
+.weekallday { border-bottom: 1px solid var(--line); min-height: 34px; max-height: 120px; overflow-y: auto; }
+.adcell { border-left: 1px solid var(--line-soft); padding: 3px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gutter { font-size: .66rem; color: var(--muted); text-align: right; padding-right: 6px; }
+.weekallday .gutter { display: flex; align-items: center; justify-content: flex-end; }
+
+.weekgrid { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
+.hours { position: relative; }
+.hourlabel { height: 52px; position: relative; }
+.hourlabel span { position: absolute; right: 6px; top: -7px; font-size: .66rem; color: var(--muted); }
+.daycol { position: relative; border-left: 1px solid var(--line-soft); min-width: 0; }
+.daycol.today { background: var(--today); }
+.hourline { height: 52px; border-bottom: 1px solid var(--line-soft); }
+.wevent {
+  --ev: var(--accent);
+  position: absolute; overflow: hidden; padding: 2px 5px; border-radius: 5px;
+  font-size: .72rem; line-height: 1.25; color: var(--text);
+  background: color-mix(in oklab, var(--ev) 32%, var(--surface));
+  border-left: 3px solid var(--ev);
+  box-shadow: 0 2px 6px -3px var(--shadow);
+  transition: filter .12s ease;
+}
+.wevent:hover { filter: brightness(1.15); z-index: 2; }
+.wevent .wt { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 3px; }
+.wevent .ttl { font-weight: 600; }
+
+/* --- upcoming -------------------------------------------------------------- */
+
+.upday h2 { font-size: .9rem; margin: 16px 0 6px; color: var(--muted); font-weight: 600; }
 .uprow {
-  display: grid; grid-template-columns: 1fr auto; grid-template-areas: "when who" "what who";
-  gap: 0 10px; padding: 8px 10px; margin: 6px 0; border-radius: 8px;
+  --ev: var(--accent);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "when who" "what who"; gap: 0 12px;
+  padding: 9px 12px; margin: 6px 0; border-radius: var(--radius);
   background: var(--surface); border: 1px solid var(--line);
-  border-left-width: 5px; color: var(--text);
+  border-left: 4px solid var(--ev); color: var(--text);
+  transition: transform .12s ease;
 }
-.uprow.owner-willian { background: var(--surface); border-left-color: var(--willian); }
-.uprow.owner-aline { background: var(--surface); border-left-color: var(--aline); }
-.uprow.owner-both { background: var(--surface); border-left-color: var(--both); }
+.uprow:hover { transform: translateX(3px); }
 .uprow .when { grid-area: when; font-size: .8rem; color: var(--muted); }
 .uprow .what { grid-area: what; font-weight: 600; }
 .uprow .where { font-weight: 400; color: var(--muted); }
-.uprow .who { grid-area: who; align-self: center; font-size: .8rem; color: var(--muted); }
+.uprow .who { grid-area: who; align-self: center; font-size: .78rem; color: var(--muted); text-align: right; }
+.uprow .cat { display: block; color: var(--ev); font-weight: 600; }
 .empty { color: var(--muted); }
 
-.event-form { display: flex; flex-direction: column; gap: 10px; max-width: 480px; }
-.event-form label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); }
-.event-form label.check { flex-direction: row; align-items: center; color: var(--text); }
-.event-form input, .event-form select, .event-form textarea {
+/* --- right rail ------------------------------------------------------------ */
+
+.rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 12px 14px;
+  box-shadow: 0 10px 30px -20px var(--shadow);
+}
+.panel-h { font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin: 0 0 8px; }
+.panel-sub { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+.panel-note { font-size: .8rem; color: var(--muted); margin: 4px 0; }
+.panel-note code { font-family: var(--mono); font-size: .9em; background: var(--surface-2); border-radius: 4px; padding: 1px 4px; }
+
+.releases { list-style: none; margin: 0; padding: 0; }
+.releases li { margin: 6px 0; }
+.releases a { display: flex; gap: 9px; align-items: center; color: var(--text); }
+.releases img { border-radius: 4px; flex: none; background: var(--surface-2); object-fit: cover; }
+.noposter {
+  width: 34px; height: 51px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border-radius: 4px; flex: none;
+}
+.rel-txt { min-width: 0; display: flex; flex-direction: column; }
+.rel-title { font-size: .82rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rel-meta { font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.legend-list { list-style: none; margin: 0; padding: 0; font-size: .82rem; }
+.legend-list li { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--muted); }
+.swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; display: inline-block; }
+
+/* --- forms ----------------------------------------------------------------- */
+
+.event-form { display: flex; flex-direction: column; gap: 12px; max-width: 620px; }
+.event-form label, .catrow label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); }
+.event-form label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--text); }
+.event-form .row { display: flex; gap: 12px; }
+.event-form .row > label { flex: 1; min-width: 0; }
+input, select, textarea {
   font: inherit; color: var(--text); background: var(--surface);
-  border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
 }
-.timed, .allday { display: flex; gap: 10px; }
-.timed label, .allday label { flex: 1; }
-.actions { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
-button.primary {
-  font: inherit; font-weight: 600; background: var(--accent); color: #fff;
-  border: 0; border-radius: 8px; padding: 10px 22px;
+input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
 }
-button.danger {
-  font: inherit; background: none; color: var(--error-line);
-  border: 1px solid var(--error-line); border-radius: 8px; padding: 6px 14px;
+.stickerbox { font-size: 1.1rem; max-width: 120px; }
+.stickerpick { display: flex; flex-wrap: wrap; gap: 5px; max-width: 620px; }
+.stk-opt {
+  font-size: 1.05rem; line-height: 1; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; cursor: pointer;
 }
-.delete-form { margin-top: 24px; }
+.stk-opt:hover, .stk-opt.on { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 22%, var(--surface-2)); }
+
+.actions { display: flex; gap: 14px; align-items: center; margin-top: 4px; }
+button {
+  font: inherit; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text); padding: 8px 16px;
+}
+button.primary { background: var(--accent); color: #10151b; border-color: transparent; font-weight: 700; padding: 10px 22px; }
+button.small { padding: 6px 12px; font-size: .85rem; }
+button.danger { color: #E5484D; border-color: #E5484D; background: none; }
+.delete-form { margin-top: 26px; }
 .cancel { color: var(--muted); }
 
-.flash { border-radius: 8px; padding: 10px 12px; margin: 10px 0; max-width: 480px; }
-.flash.warn { background: var(--warn-bg); border: 1px solid var(--warn-line); }
-.flash.error { background: var(--error-bg); border: 1px solid var(--error-line); }
+.flash { border-radius: var(--radius); padding: 11px 14px; margin: 10px 0; max-width: 620px; }
+.flash.warn { background: color-mix(in oklab, var(--accent) 16%, var(--surface)); border: 1px solid var(--accent); }
+.flash.error { background: color-mix(in oklab, #E5484D 16%, var(--surface)); border: 1px solid #E5484D; }
 .flash ul { margin: 6px 0; padding-left: 18px; }
+.flash li { margin: 3px 0; }
 .flash p { margin: 4px 0 0; color: var(--muted); font-size: .85rem; }
+.hint { color: var(--muted); font-size: .85rem; max-width: 620px; }
 
-.legend {
-  display: flex; gap: 8px; align-items: center; justify-content: center;
-  color: var(--muted); font-size: .8rem; padding: 14px 0 24px;
-}
-.dot {
-  display: inline-block; width: 10px; height: 10px; border-radius: 5px;
-  margin-left: 10px;
-}
+.catgrid { display: flex; flex-direction: column; gap: 8px; }
+.catrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.catrow input[type=color] { width: 44px; height: 36px; padding: 2px; }
+.catrow input[type=text] { min-width: 160px; }
+.catrow .count { font-size: .78rem; color: var(--muted); min-width: 76px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 7px; }
+.bigswatch { width: 30px; height: 30px; border-radius: 7px; display: inline-block; }

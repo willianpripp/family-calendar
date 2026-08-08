@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} — Family calendar{% endblock %}
+{% block content %}
+<div class="viewhead">
+  <div class="pager">
+    <a href="/week?d={{ prev }}{% if theme_override %}&theme={{ theme_override }}{% endif %}" aria-label="previous week">&larr;</a>
+    <h1>{{ label }}</h1>
+    <a href="/week?d={{ next }}{% if theme_override %}&theme={{ theme_override }}{% endif %}" aria-label="next week">&rarr;</a>
+  </div>
+  <a class="ghost" href="/week">This week</a>
+</div>
+
+<div class="weekwrap">
+  {# Header and all-day strip sit outside the scrolling hour grid, so they stay
+     put while the hours scroll. The empty first cell lines them up with the
+     hour gutter below. #}
+  <div class="weekhead">
+    <div class="gutter"></div>
+    {% for d in week %}
+    {% set hol = holidays.get(d) %}
+    <div class="wday{% if d == today %} today{% endif %}">
+      <span class="wdow">{{ d.strftime('%a') }}</span>
+      <a class="wnum" href="/events/new?day={{ d.isoformat() }}&back={{ here }}">{{ d.day }}</a>
+      {% if hol %}<span class="hols">{% for h in hol %}<span class="pip region-{{ h.region }}" title="{{ h.name }} ({{ h.label }})"></span>{% endfor %}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="weekallday">
+    <div class="gutter"><span>all day</span></div>
+    {% for d in week %}
+    <div class="adcell">
+      {% set hol = holidays.get(d) %}
+      {% if hol %}<span class="holchip" title="{{ hol | map(attribute='name') | join(' · ') }}">{{ hol[0].name }}</span>{% endif %}
+      {% for e in all_day[d] %}
+      <a class="event allday" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
+        {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}<span class="ttl">{{ e.title }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="weekgrid" id="weekgrid">
+    <div class="gutter hours">
+      {% for h in hours %}
+      <div class="hourlabel"><span>{{ '%d%s' | format(12 if h % 12 == 0 else h % 12, 'am' if h < 12 else 'pm') }}</span></div>
+      {% endfor %}
+    </div>
+    {% for d in week %}
+    <div class="daycol{% if d == today %} today{% endif %}">
+      {% for h in hours %}<div class="hourline"></div>{% endfor %}
+      {% for e in timed[d] %}
+      <a class="wevent" style="--ev: {{ e.color }}; top: {{ '%.3f' | format(e.top_pct) }}%; height: {{ '%.3f' | format(e.height_pct) }}%; left: {{ '%.3f' | format(e.left_pct) }}%; width: {{ '%.3f' | format(e.width_pct) }}%"
+         title="{{ e.title }} · {{ e.starts_local.strftime('%-I:%M%p') | lower }}–{{ e.ends_local.strftime('%-I:%M%p') | lower }} · {{ e.owner }}"
+         href="/events/{{ e.id }}/edit?back={{ here }}">
+        <span class="wt">{{ e.starts_local | shorttime }}</span>
+        {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}
+        <span class="ttl">{{ e.title }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  // Open on the week's first event, not on midnight, or the grid lands at
+  // 00:00 with every real event below the fold. Deferred to the next frame:
+  // run inline, scrollHeight is still the pre-layout value and the scroll is
+  // silently a no-op. Re-run after an htmx swap, since boosted navigation
+  // replaces this grid without a page load.
+  (function () {
+    function openAtFirstEvent() {
+      var g = document.getElementById('weekgrid');
+      if (!g) { return; }
+      requestAnimationFrame(function () {
+        g.scrollTop = g.scrollHeight * ({{ scroll_minute }} / 1440);
+      });
+    }
+    openAtFirstEvent();
+    document.body.addEventListener('htmx:afterSettle', openAtFirstEvent);
+  })();
+</script>
+{% endblock %}

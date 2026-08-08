@@ -1,26 +1,45 @@
 {% extends "base.html" %}
 {% block title %}{{ month_name }} {{ year }} — Family calendar{% endblock %}
 {% block content %}
-<div class="month-nav">
-  <a href="/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">&larr;</a>
-  <h1>{{ month_name }} {{ year }}</h1>
-  <a href="/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">&rarr;</a>
+<div class="viewhead">
+  <div class="pager">
+    <a href="/month?y={{ prev.year }}&m={{ prev.month }}{% if theme_override %}&theme={{ theme_override }}{% endif %}" aria-label="previous month">&larr;</a>
+    <h1>{{ month_name }} <span class="yr">{{ year }}</span></h1>
+    <a href="/month?y={{ next.year }}&m={{ next.month }}{% if theme_override %}&theme={{ theme_override }}{% endif %}" aria-label="next month">&rarr;</a>
+  </div>
+  <a class="ghost" href="/month">Today</a>
 </div>
 
-<div class="grid" role="grid">
+<div class="grid month" role="grid">
   {% for name in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] %}
   <div class="dow">{{ name }}</div>
   {% endfor %}
+
   {% for week in weeks %}
     {% for d in week %}
-    <div class="day {% if d.month != month %}pad{% endif %} {% if d == today %}today{% endif %}">
-      <a class="daynum" href="/events/new?day={{ d.isoformat() }}&back=/month%3Fy%3D{{ year }}%26m%3D{{ month }}"
-         title="add an event on {{ d.isoformat() }}">{{ d.day }}</a>
+    {% set hol = holidays.get(d) %}
+    <div class="day{% if d.month != month %} pad{% endif %}{% if d == today %} today{% endif %}{% if hol %} holiday{% endif %}">
+      <div class="dayhead">
+        <a class="daynum" href="/events/new?day={{ d.isoformat() }}&back={{ here }}"
+           title="add an event on {{ d.isoformat() }}">{{ d.day }}</a>
+        {% if hol %}
+        <span class="hols">
+          {% for h in hol %}<span class="pip region-{{ h.region }}" title="{{ h.name }} ({{ h.label }})"></span>{% endfor %}
+        </span>
+        {% endif %}
+      </div>
+
+      {% if hol %}
+      <div class="holname" title="{{ hol | map(attribute='name') | join(' · ') }}">{{ hol[0].name }}</div>
+      {% endif %}
+
       {% for e in days[d] %}
-      <a class="event owner-{{ e.owner | lower }}" title="{{ e.title }}"
-         href="/events/{{ e.id }}/edit?back=/month%3Fy%3D{{ year }}%26m%3D{{ month }}">
-        {% if not e.all_day and e.starts_local.date() == d %}<span class="t">{{ e.starts_local.strftime('%-I:%M%p') | lower }}</span>{% endif %}
-        {{ e.title }}
+      <a class="event{% if e.all_day %} allday{% endif %}" title="{{ e.title }}{% if e.category_name %} · {{ e.category_name }}{% endif %} · {{ e.owner }}"
+         style="--ev: {{ e.color }}"
+         href="/events/{{ e.id }}/edit?back={{ here }}">
+        {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}
+        {% if not e.all_day and e.starts_local.date() == d %}<span class="t">{{ e.starts_local | shorttime }}</span>{% endif %}
+        <span class="ttl">{{ e.title }}</span>
       </a>
       {% endfor %}
     </div>

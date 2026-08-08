@@ -1,0 +1,30 @@
+{# Two legends, because two things carry colour: the category (when set) and
+   the owner (the fallback). Saying so beats leaving it to be inferred. #}
+<section class="panel">
+  <h2 class="panel-h">Colours</h2>
+
+  <h3 class="panel-sub">Categories</h3>
+  <ul class="legend-list">
+    {% for c in categories %}
+    <li><span class="swatch" style="background: {{ c.color }}"></span>{{ c.name }}</li>
+    {% else %}
+    <li class="panel-note">None yet. <a href="/categories">Add some</a>.</li>
+    {% endfor %}
+  </ul>
+
+  <h3 class="panel-sub">Who, when no category</h3>
+  <ul class="legend-list">
+    <li><span class="swatch" style="background:#4F86E5"></span>Willian</li>
+    <li><span class="swatch" style="background:#E0679E"></span>Aline</li>
+    <li><span class="swatch" style="background:#4FBF73"></span>Both</li>
+  </ul>
+
+  <h3 class="panel-sub">Holidays</h3>
+  <ul class="legend-list">
+    <li><span class="pip region-US"></span>US federal</li>
+    <li><span class="pip region-GA"></span>Georgia</li>
+    <li><span class="pip region-BR"></span>Brasil</li>
+    <li><span class="pip region-RS"></span>Rio Grande do Sul</li>
+    <li><span class="pip region-OB"></span>Dates to remember</li>
+  </ul>
+</section>

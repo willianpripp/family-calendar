@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Upcoming — Family calendar{% endblock %}
 {% block content %}
-<h1>Next 60 days</h1>
+<div class="viewhead"><div class="pager"><h1>Next 60 days</h1></div></div>
+
 {% if not by_day %}
 <p class="empty">Nothing coming up. Enjoy the quiet.</p>
 {% endif %}
+
 {% for day, events in by_day %}
 <section class="upday">
-  <h2>{{ 'Today' if day == today else day.strftime('%a, %b %-d') }}</h2>
+  <h2>
+    {{ 'Today' if day == today else day.strftime('%a, %b %-d') }}
+    {% set hol = holidays.get(day) %}
+    {% if hol %}{% for h in hol %}<span class="holchip" title="{{ h.label }}">{{ h.name }}</span>{% endfor %}{% endif %}
+  </h2>
   {% for e in events %}
-  <a class="uprow owner-{{ e.owner | lower }}" href="/events/{{ e.id }}/edit?back=/upcoming">
+  <a class="uprow" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
     <span class="when">
       {% if e.all_day %}
         all day{% if e.last_day_local != e.starts_local.date() %} → {{ e.last_day_local.strftime('%b %-d') }}{% endif %}
@@ -17,8 +23,14 @@
         {{ e.starts_local.strftime('%-I:%M%p') | lower }}–{{ e.ends_local.strftime('%-I:%M%p') | lower }}{% if e.ends_local.date() != e.starts_local.date() %} ({{ e.ends_local.strftime('%b %-d') }}){% endif %}
       {% endif %}
     </span>
-    <span class="what">{{ e.title }}{% if e.location %} <span class="where">@ {{ e.location }}</span>{% endif %}</span>
-    <span class="who">{{ e.owner }}</span>
+    <span class="what">
+      {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}{{ e.title }}
+      {% if e.location %}<span class="where">@ {{ e.location }}</span>{% endif %}
+    </span>
+    <span class="who">
+      {% if e.category_name %}<span class="cat">{{ e.category_name }}</span>{% endif %}
+      {{ e.owner }}
+    </span>
   </a>
   {% endfor %}
 </section>

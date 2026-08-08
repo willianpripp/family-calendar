@@ -66,6 +66,11 @@ services:
       # the zone is set explicitly rather than inherited from the host.
       CAL_TZ: ${CAL_TZ:-America/New_York}
       TZ: ${CAL_TZ:-America/New_York}
+      # Optional. Free key from themoviedb.org/settings/api; it fills the
+      # "out this month" rail with theatrical releases and new series. Without
+      # it the rail says so and everything else works unchanged, so this is
+      # never a reason for the calendar to be down.
+      CAL_TMDB_KEY: ${CAL_TMDB_KEY:-}
     ports:
       # Loopback only. `tailscale serve` exposes it at :8446, and only to the
       # tailnet. Binding 0.0.0.0 here would quietly put it on the LAN.

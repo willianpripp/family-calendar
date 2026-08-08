@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit event' if ev and ev.get('id') else 'New event' }} — Family calendar{% endblock %}
 {% block content %}
-<h1>{{ 'Edit event' if ev and ev.get('id') else 'New event' }}</h1>
+<div class="viewhead"><div class="pager">
+  <h1>{{ 'Edit event' if ev and ev.get('id') else 'New event' }}</h1>
+</div><a class="ghost" href="{{ back }}">Cancel</a></div>
 
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
 
@@ -11,7 +13,7 @@
   <ul>
     {% for c in conflicts %}
     <li>
-      <span class="dot owner-{{ c.owner | lower }}"></span>
+      <span class="swatch" style="background: {{ c.color }}"></span>
       {{ c.title }} ({{ c.owner }}) —
       {% if c.all_day %}all day {{ c.starts_local.strftime('%b %-d') }}{% if c.last_day_local != c.starts_local.date() %}–{{ c.last_day_local.strftime('%b %-d') }}{% endif %}
       {% else %}{{ c.starts_local.strftime('%b %-d, %-I:%M%p') | lower }}–{{ c.ends_local.strftime('%-I:%M%p') | lower }}{% endif %}
@@ -30,17 +32,28 @@
   <input type="hidden" name="back" value="{{ back }}">
   {% if conflicts %}<input type="hidden" name="confirmed" value="1">{% endif %}
 
-  <label>Title
-    <input name="title" required maxlength="200" value="{{ ev.get('title', '') if ev else '' }}">
+  <label class="wide">Title
+    <input name="title" required maxlength="200" autofocus value="{{ ev.get('title', '') if ev else '' }}">
   </label>
 
-  <label>Who
-    <select name="owner">
-      {% for o in owners %}
-      <option value="{{ o }}" {% if ev and ev.get('owner') == o %}selected{% endif %}>{{ o }}</option>
-      {% endfor %}
-    </select>
-  </label>
+  <div class="row">
+    <label>Who
+      <select name="owner">
+        {% for o in owners %}
+        <option value="{{ o }}" {% if ev and ev.get('owner') == o %}selected{% endif %}>{{ o }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>Category
+      <select name="category_id">
+        <option value="">— none (use the owner colour) —</option>
+        {% for c in categories %}
+        <option value="{{ c.id }}" {% if ev and ev.get('category_id') == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
 
   <label class="check">
     <input type="checkbox" name="all_day" id="all_day" {% if ev and ev.get('all_day') %}checked{% endif %}>
@@ -56,29 +69,32 @@
   {% set ed_val = ev.get('form_end_date') if ev and ev.get('form_end_date') is not none
       else (ev.last_day_local.isoformat() if ev and ev.get('last_day_local') else default_start.date().isoformat()) %}
 
-  <div class="timed">
-    <label>Starts
-      <input type="datetime-local" name="starts" value="{{ starts_val }}">
-    </label>
-    <label>Ends
-      <input type="datetime-local" name="ends" value="{{ ends_val }}">
-    </label>
+  <div class="row timed">
+    <label>Starts <input type="datetime-local" name="starts" value="{{ starts_val }}"></label>
+    <label>Ends <input type="datetime-local" name="ends" value="{{ ends_val }}"></label>
   </div>
 
-  <div class="allday">
-    <label>First day
-      <input type="date" name="start_date" value="{{ sd_val }}">
-    </label>
-    <label>Last day
-      <input type="date" name="end_date" value="{{ ed_val }}">
-    </label>
+  <div class="row allday">
+    <label>First day <input type="date" name="start_date" value="{{ sd_val }}"></label>
+    <label>Last day <input type="date" name="end_date" value="{{ ed_val }}"></label>
   </div>
 
-  <label>Location
-    <input name="location" maxlength="200" value="{{ ev.get('location', '') if ev else '' }}">
+  <label class="wide">Sticker
+    <input type="text" name="sticker" id="sticker" maxlength="8" class="stickerbox"
+           value="{{ ev.get('sticker', '') if ev else '' }}" placeholder="none">
   </label>
+  <div class="stickerpick">
+    <button type="button" class="stk-opt" data-s="" title="none">✕</button>
+    {% for s in stickers %}
+    <button type="button" class="stk-opt" data-s="{{ s }}">{{ s }}</button>
+    {% endfor %}
+  </div>
 
-  <label>Notes
+  <div class="row">
+    <label>Location <input name="location" maxlength="200" value="{{ ev.get('location', '') if ev else '' }}"></label>
+  </div>
+
+  <label class="wide">Notes
     <textarea name="notes" rows="3" maxlength="2000">{{ ev.get('notes', '') if ev else '' }}</textarea>
   </label>
 
@@ -106,5 +122,15 @@
   }
   document.getElementById('all_day').addEventListener('change', syncAllDay);
   syncAllDay();
+
+  document.querySelectorAll('.stk-opt').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.getElementById('sticker').value = b.dataset.s;
+      document.querySelectorAll('.stk-opt').forEach(function (o) { o.classList.remove('on'); });
+      b.classList.add('on');
+    });
+  });
 </script>
 {% endblock %}
+
+{% block rail %}{% endblock %}
