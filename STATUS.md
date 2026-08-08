@@ -1,0 +1,90 @@
+# STATUS
+
+**Where it stands (2026-08-08):** live, in daily use, feature-complete for now.
+Built 2026-08-07, reworked 08-08, split out of the `homelab` repo into its own
+repo on 08-08.
+
+**There is real household data in it** (a Pensacola trip, flights, a Guns N'
+Roses show), so treat the database as production. See the README.
+
+## NEXT SESSION: Phase 2, once the Telegram bot exists
+
+**BLOCKED on Willian**: a bot token from `@BotFather` plus both chat IDs (each
+of them messages the bot once). Then a reminder job sending to both, with lead
+time per event, defaulting to one day before and again two hours before.
+
+Two constraints that still apply. Storage is `timestamptz` and every render
+goes through `CAL_TZ`, so scheduling must too. And there is no per-user
+identity, so reminders route on the event's owner field (Willian / Aline /
+Both), never on anything inferred.
+
+The same bot unblocks backup failure alerts, which live in the `homelab` repo
+(the `finances_backup` role). That is why the calendar was built before
+off-site backup.
+
+## What it does
+
+Month, week and upcoming views; add, edit and delete; categories with colours;
+stickers; holidays; per-month background pictures; and the overlap warning,
+which **warns and offers "Save anyway" rather than blocking**, because some
+overlaps are deliberate.
+
+In the week grid, **clicking an hour** opens the form at that hour and
+**dragging across hours** sets a range (6 to 8 gives 06:00 to 09:00). The hour
+slots are real links, so a plain click still works with JavaScript off; the
+drag only upgrades them.
+
+The rail shows **what is at the cinema**, from TMDB. The key is installed
+(`CAL_TMDB_KEY` in `/srv/lab/calendar/.env`, mode 600, gitignored). The current
+month uses TMDB's curated `/movie/now_playing` for the US; other months use
+that month's wide theatrical releases. That split is not incidental: asking
+`/discover` about a month that has not happened yet sorts by popularity those
+titles have not earned, which put a Korean comedy above Spider-Man.
+
+The six titles are **chosen** by popularity but **ordered** by date, which are
+two different jobs. Anything still to come is earliest first, which is the
+order you plan in; films already showing are newest first, since "what just
+opened" beats "what has been out longest".
+
+## The pictures
+
+`app/static/art/`, named `month-01` through `month-12` (jpg/png/webp/avif),
+then `make deploy`. **October and December are Willian's**; the other ten still
+show a public-domain painting as a fallback, one per month, credited in
+`ATTRIBUTION.md` there.
+
+**Aim for 2560x1440**, under about a megabyte. His first attempt was 740px wide
+and was upscaled 3.4x on his monitor; no setting fixes missing pixels.
+
+**This repo is private**, so a picture that cannot be published is fine to
+commit here. That was not true while the calendar lived in the homelab repo,
+and the old warning about film stills no longer applies.
+
+## Deliberately removed, do not reintroduce
+
+- **The theme engine.** It picked a picture, an accent and motifs from event
+  windows. With one image per month there is nothing left for it to decide,
+  and its date arithmetic was what made two months share a picture. `art.py`
+  maps 1 to 12 onto a file; that is the whole rule.
+- **Light mode**, the theme picker, the mode toggle, the emoji motifs.
+- **Holiday regions on screen.** US federal, Georgia, Brasil and Rio Grande do
+  Sul are still computed separately in `holidays.py` because the rules differ,
+  but nothing says so in the UI: one colour, the name, no flags.
+
+## Known soft spot
+
+**Georgia's state holidays.** The April date and the December pair are set by
+gubernatorial proclamation each year rather than by fixed rule. `holidays.py`
+encodes the usual pattern and says so. Check them against the state calendar
+before a year matters.
+
+## Ideas raised, not started
+
+- **Recurring events.** The biggest gap: birthdays, rent and trash night all
+  have to be retyped.
+- A continuous bar for multi-day trips, instead of the title repeating in each
+  cell.
+- A read-only iCal feed, so Aline's phone subscribes in the app she already
+  opens.
+- Weather on the day cells, and countdowns to the next big thing.
+- Surfacing the next few events on the homelab dashboard.

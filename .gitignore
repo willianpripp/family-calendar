@@ -1,0 +1,22 @@
+# The real .env lives on the host at /srv/lab/calendar/.env, mode 600. It holds
+# the database password and the TMDB key. The .example file is the contract.
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local agent instructions stay local, per convention
+CLAUDE.md
+.cursorrules
+AGENT.md
+
+do_not_commit/
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/

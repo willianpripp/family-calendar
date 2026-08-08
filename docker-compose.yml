@@ -1,10 +1,11 @@
 # The family calendar: view and add household events, warn on the double-booking
 # that triggered this build (a flight and a Guns N' Roses show on the same day).
 #
-# Household infrastructure, not a product, so it lives in the homelab repo and
-# deploys exactly like the dashboard: rsync compose/calendar/ to
-# lab:/srv/lab/calendar/ and `docker compose up -d --build` there. The rsync has
-# no --delete, so the host-only pieces (.env, db/) survive redeploys.
+# Household infrastructure, not a product. It began inside the homelab repo and
+# moved to its own on 2026-08-08, once it had a schema and a UI of its own; the
+# host path did not change. `make deploy` rsyncs this repo to lab:/srv/lab/calendar/
+# and runs `docker compose up -d --build` there. The rsync has no --delete, so
+# the host-only pieces (.env, db/) survive redeploys.
 #
 # NO authentication in the app, deliberately. It is reachable only through
 # `tailscale serve` (loopback publish below), and everyone on the tailnet is
