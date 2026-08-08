@@ -72,6 +72,21 @@ services:
       # it the rail says so and everything else works unchanged, so this is
       # never a reason for the calendar to be down.
       CAL_TMDB_KEY: ${CAL_TMDB_KEY:-}
+      # Which tailnet address belongs to whom, so the calendar can show each
+      # of them their own background pictures without anything resembling a
+      # login: "100.101.102.1=willian,100.101.102.2=aline". Purely cosmetic;
+      # an unlisted device gets the shared pictures. See app/people.py.
+      CAL_DEVICES: ${CAL_DEVICES:-}
+    volumes:
+      # The pictures are DATA, not code, so they are mounted rather than baked
+      # into the image. Without this they arrive only via `docker build`, which
+      # quietly made a liar of both the art README and art.py: dropping a file
+      # in `/srv/lab/calendar/app/static/art/` and reloading did nothing, and
+      # the "keep an unpublishable picture off git by copying it to the host"
+      # escape hatch silently did not work either.
+      #
+      # Read-only: the app renders these and never writes them.
+      - /srv/lab/calendar/app/static/art:/app/static/art:ro
     ports:
       # Loopback only. `tailscale serve` exposes it at :8446, and only to the
       # tailnet. Binding 0.0.0.0 here would quietly put it on the LAN.

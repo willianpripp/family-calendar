@@ -21,10 +21,23 @@ make status
 First time on a fresh host, before the first deploy:
 
 ```
-ssh lab 'mkdir -p /srv/lab/calendar/db'
+ssh lab 'mkdir -p /srv/lab/calendar/db /srv/lab/calendar/app/static/art'
 scp .env.example lab:/srv/lab/calendar/.env
 ssh lab 'chmod 600 /srv/lab/calendar/.env'   # then edit: set CAL_DB_PASSWORD
 ```
+
+The art directory has to exist before the first `up`, because it is bind-mounted
+in; Docker would otherwise create it empty and root-owned, and every month would
+fall back to a painting. `make deploy` fills it.
+
+## Whose pictures, without a login
+
+The calendar is shared, all of it. The only per-person thing is the background:
+`static/art/willian/month-05.jpg` beats `static/art/month-05.jpg` beats the
+painting. Devices are matched to people by tailnet address in `CAL_DEVICES`,
+and the **Pictures** page (`/who`) shows what was decided, reports the address
+it saw, and overrides it per device with a cookie. See `app/people.py` for why
+Tailscale's own identity headers cannot do this job.
 
 There is **no authentication**, on purpose. The app publishes to loopback only
 and `tailscale serve` puts it on port 8446 of the tailnet, where everyone is

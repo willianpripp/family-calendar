@@ -409,3 +409,16 @@ button.danger { color: #E5714D; border-color: #E5714D; background: none; }
 .catrow .count { font-size: .82rem; color: var(--muted); min-width: 76px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 7px; }
 .bigswatch { width: 30px; height: 30px; border-radius: 7px; display: inline-block; }
+
+/* Whose pictures. A settings page, so it borrows the categories page's shapes
+   rather than inventing its own. */
+.whobox { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; max-width: 640px; }
+.whobox p { margin: 0 0 8px; }
+.whobox code { background: rgba(255,255,255,.07); border-radius: 5px; padding: 1px 6px; font-size: .85em; }
+
+/* The year at a glance: twelve thumbnails, so a missing month is obvious at
+   sight rather than by counting files on the host. */
+.artgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.artcell { margin: 0; }
+.artcell img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 9px; display: block; }
+.artcell figcaption { font-size: .78rem; color: var(--muted); margin-top: 4px; }

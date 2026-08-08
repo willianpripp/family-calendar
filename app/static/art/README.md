@@ -1,8 +1,28 @@
 # The pictures behind the calendar
 
+## Whose pictures
+
+Three levels, first match wins:
+
+1. **`willian/` or `aline/`** — that person's own set. Their devices see it and
+   nobody else does.
+2. **this folder** — the shared set, seen by everyone with no set of their own,
+   and by any month the person has not covered.
+3. **the painting** — the last resort, so no month is ever undressed.
+
+Who a device belongs to is decided by its tailnet address, listed in
+`CAL_DEVICES` in the host's `.env`. There is no login. The **Pictures** page in
+the app shows what it decided, reports the address it saw, and can override the
+guess per device. That page is also the fastest way to see the whole year at a
+glance and spot which months are still missing.
+
+This folder is **bind-mounted from the host**, so a picture dropped into
+`/srv/lab/calendar/app/static/art/` appears on the next page load with no
+rebuild and no restart.
+
 ## Adding your own — one per month
 
-Drop a file in this folder named for the month and redeploy:
+Drop a file in the right folder, named for the month:
 
 | Month | Filename | | Month | Filename |
 |---|---|---|---|---|
@@ -13,15 +33,10 @@ Drop a file in this folder named for the month and redeploy:
 | May | `month-05.…` | | November | `month-11.…` |
 | June | `month-06.…` | | December | `month-12.…` |
 
-`.jpg`, `.jpeg`, `.png`, `.webp` and `.avif` all work. Then:
-
-```
-make deploy
-```
-
-A month with no picture of its own falls back to a public-domain painting, one
-per month (see `ATTRIBUTION.md`), so the calendar is never undressed while the
-set is being filled in.
+`.jpg`, `.jpeg`, `.png`, `.webp` and `.avif` all work, and the folder decides
+who sees it: `aline/month-05.jpg` is hers alone, `month-05.jpg` here is
+everyone's. Commit it and `make deploy`, or copy it straight to the host for a
+picture that should stay out of git (see Licensing below).
 
 ## What makes a good one
 

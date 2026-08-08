@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Pictures — Family calendar{% endblock %}
+{% block content %}
+<div class="viewhead"><div class="pager"><h1>Whose pictures</h1></div>
+  <a class="ghost" href="{{ back }}">Back</a></div>
+
+<p class="hint">The calendar itself is shared: same events, same categories, on
+every device. The only thing this changes is which picture sits behind it.</p>
+
+<div class="whobox">
+  <p>{% if who.key %}This device is showing <strong>{{ who.name }}</strong>'s
+  pictures{% else %}This device is showing the <strong>shared</strong>
+  pictures{% endif %}, {{ who.source }}.</p>
+  <p class="hint">Seen as <code>{{ who.addr or 'no address' }}</code> on the
+  tailnet. That is the value to put in <code>CAL_DEVICES</code> if this device
+  should be recognised on its own.</p>
+
+  <form method="post" action="/who" class="catrow new">
+    <input type="hidden" name="back" value="{{ back }}">
+    {% for key, name in people.items() %}
+    <button type="submit" name="who" value="{{ key }}"
+            class="small {% if who.key == key %}primary{% endif %}">{{ name }}</button>
+    {% endfor %}
+    <button type="submit" name="who" value="shared"
+            class="small {% if who.key is none %}primary{% endif %}">Shared</button>
+    <button type="submit" name="who" value="auto" class="small ghost">Forget the choice</button>
+  </form>
+  <p class="hint">Choosing here sticks to this device for a year. "Forget the
+  choice" goes back to recognising it by its address.</p>
+</div>
+
+<h2 class="panel-sub">The year as this device sees it</h2>
+<p class="hint">A month with no picture of its own falls back to the shared one,
+and then to a painting. Add yours as <code>month-01</code> … <code>month-12</code>
+inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
+<div class="artgrid">
+  {% for m, a in months %}
+  <figure class="artcell">
+    <img src="/static/art/{{ a.file }}?v={{ asset_v }}" alt="" loading="lazy">
+    <figcaption>{{ m }}{% if a.credit %} <span class="hint">painting</span>{% endif %}</figcaption>
+  </figure>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block rail %}{% endblock %}

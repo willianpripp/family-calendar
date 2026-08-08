@@ -11,8 +11,9 @@ import pathlib
 
 ART_DIR = pathlib.Path("static/art")
 
-# Willian's own images, dropped in as month-01 … month-12. Any of these
-# extensions works; the first match wins.
+# Their own images, dropped in as month-01 … month-12, either at the top level
+# (shared by everyone) or inside a person's folder: static/art/willian/,
+# static/art/aline/. Any of these extensions works; the first match wins.
 MONTH_ART_EXT = ("jpg", "jpeg", "png", "webp", "avif")
 
 # Shown for a month that has no picture of its own yet. All public domain, all
@@ -36,24 +37,33 @@ FALLBACK_ART = {
 }
 
 
-def own_art(month: int) -> str | None:
-    """Willian's picture for this month, if he has supplied one.
+def own_art(month: int, person: str | None = None) -> str | None:
+    """The supplied picture for this month, if there is one.
+
+    With a person, looks in that person's folder first: `art/aline/month-05.jpg`
+    beats `art/month-05.jpg`, which beats the painting. The shared level in the
+    middle is the useful part of the arrangement, because it means a month
+    neither of them has covered still looks deliberate rather than falling all
+    the way back to a Bruegel.
 
     Checked on every request rather than cached at startup, so adding a picture
     is "copy the file in and reload" rather than "copy it in and remember to
     restart".
     """
-    for ext in MONTH_ART_EXT:
-        name = f"month-{month:02d}.{ext}"
-        if (ART_DIR / name).exists():
-            return name
+    folders = [f"{person}/"] if person else []
+    folders.append("")
+    for folder in folders:
+        for ext in MONTH_ART_EXT:
+            name = f"{folder}month-{month:02d}.{ext}"
+            if (ART_DIR / name).exists():
+                return name
     return None
 
 
-def art_for(month: int) -> dict:
-    """{file, credit} for a month. `credit` is None for Willian's own pictures,
+def art_for(month: int, person: str | None = None) -> dict:
+    """{file, credit} for a month. `credit` is None for their own pictures,
     because captioning a family photo with a painter's name would be daft."""
-    own = own_art(month)
+    own = own_art(month, person)
     if own:
         return {"file": own, "credit": None}
     art_file, title, artist, year = FALLBACK_ART[month]

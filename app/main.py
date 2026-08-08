@@ -10,8 +10,10 @@
 #   silently four hours out is worse than none.
 #
 #   Ownership is an explicit field. Every family device signs in as the same
-#   Tailscale account, so no header can tell one of us from the other. The
-#   event says whose it is; the infrastructure cannot.
+#   Tailscale account, so no identity header can tell one of us from the other.
+#   The event says whose it is; the infrastructure cannot. The device address
+#   *can* (see people.py), but that is used only to choose a background picture
+#   and must never be given a job where being wrong matters.
 
 import os
 from calendar import Calendar
@@ -29,6 +31,7 @@ from psycopg_pool import ConnectionPool
 
 import news
 from art import art_for
+from people import PEOPLE, whois
 from holidays import holidays_between
 
 HOUSEHOLD_TZ = ZoneInfo(os.environ.get("CAL_TZ", "America/New_York"))
@@ -152,8 +155,14 @@ def _asset_version() -> str:
     import pathlib
 
     h = hashlib.sha256()
-    for p in sorted(pathlib.Path("static").glob("*")):
+    # rglob, not glob: the pictures live in static/art/ and now in per-person
+    # folders below that. A top-level-only hash covered style.css and nothing
+    # else, so *replacing* month-10.jpg with a different picture of the same
+    # name left the URL and the version unchanged, and the browser kept the old
+    # one. The name is part of the hash so a rename counts as a change too.
+    for p in sorted(pathlib.Path("static").rglob("*")):
         if p.is_file():
+            h.update(str(p).encode())
             h.update(p.read_bytes())
     return h.hexdigest()[:10]
 
@@ -278,9 +287,11 @@ def overlapping(starts: datetime, ends: datetime, exclude_id: int | None) -> lis
 
 
 def base_context(request: Request, view: str, month: int) -> dict:
+    who = whois(request)
     return {
         "view": view,
-        "art": art_for(month),
+        "who": who,
+        "art": art_for(month, who["key"]),
         "asset_v": ASSET_V,
         "here": quote(str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")),
     }
@@ -639,3 +650,35 @@ def delete_category(category_id: int):
     with pool.connection() as conn:
         conn.execute("delete from categories where id = %s", (category_id,))
     return RedirectResponse("/categories", status_code=303)
+
+
+# --- who is looking -----------------------------------------------------------
+
+
+@app.get("/who", response_class=HTMLResponse)
+def who_view(request: Request, back: str = "/month"):
+    """Shows what the app thinks it is looking at, and lets that be overridden.
+
+    This doubles as the diagnostic for the whole arrangement: if someone's
+    pictures are wrong, this page reports the tailnet address the request
+    arrived with, which is the value that has to appear in CAL_DEVICES.
+    """
+    ctx = base_context(request, "who", today_local().month)
+    months = [(m, art_for(m, ctx["who"]["key"])) for m in range(1, 13)]
+    ctx.update(people=PEOPLE, months=months, back=back)
+    return templates.TemplateResponse(request, "who.html", ctx)
+
+
+@app.post("/who")
+def set_who(who: str = Form(""), back: str = Form("/month")):
+    """A cookie, not a session: it decides which pictures to draw and nothing
+    else, so there is nothing in it worth protecting."""
+    who = who.strip().lower()
+    resp = RedirectResponse(back, status_code=303)
+    if who == "auto":
+        resp.delete_cookie("cal_who")
+    elif who in PEOPLE or who == "shared":
+        # A year, because the alternative is being asked again on a phone that
+        # has done nothing wrong.
+        resp.set_cookie("cal_who", who, max_age=31536000, samesite="lax", httponly=True)
+    return resp
