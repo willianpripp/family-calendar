@@ -46,6 +46,24 @@ two different jobs. Anything still to come is earliest first, which is the
 order you plan in; films already showing are newest first, since "what just
 opened" beats "what has been out longest".
 
+## Whose pictures (2026-08-08)
+
+Each of them has their own set, resolved as `art/<person>/month-NN` then
+`art/month-NN` then the painting. Devices are matched to people by tailnet
+address in `CAL_DEVICES` on the host, and **all five browsing devices are
+mapped**: `Aline's Z Flip6` and `Alien` to her, `Pixel 10`, `Willian_PC` and
+`workspace` to him. `pve` and `lab` are servers and are deliberately absent.
+
+Tailscale's identity headers cannot do this, because every device signs in as
+Willian's one account. `app/people.py` explains it at length so the idea is not
+retried. The `/who` page reports the address a device actually arrived with,
+which is the value `CAL_DEVICES` needs when someone reinstalls Tailscale and
+gets a new one.
+
+**Open, and Willian's call:** his October and December are still at the shared
+level, so Aline sees them too. Moving them into `art/willian/` makes them his
+alone; leaving them makes them the house default until she supplies her own.
+
 ## The pictures
 
 `app/static/art/`, named `month-01` through `month-12` (jpg/png/webp/avif),
