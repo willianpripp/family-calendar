@@ -120,9 +120,45 @@ async def lifespan(_: FastAPI):
     pool.close()
 
 
+class RevalidatingStatic(StaticFiles):
+    """Static files that must be revalidated, never served blind from cache.
+
+    FastAPI's StaticFiles sends ETag and Last-Modified but no Cache-Control.
+    With no directive at all a browser is free to apply heuristic caching, and
+    Chrome does: it kept the first-ever style.css for hours and rendered the
+    calendar as an unstyled bullet list on a machine that had loaded the page
+    once before. The versioned URLs below fix that on their own; this header is
+    the belt to their braces, and costs one conditional request on a LAN.
+    """
+
+    def file_response(self, *args, **kwargs):
+        resp = super().file_response(*args, **kwargs)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", RevalidatingStatic(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+
+def _asset_version() -> str:
+    """A short hash of the static assets, appended to their URLs.
+
+    Deploying changes the hash, which changes the URL, which is the only
+    cache-busting a browser cannot ignore.
+    """
+    import hashlib
+    import pathlib
+
+    h = hashlib.sha256()
+    for p in sorted(pathlib.Path("static").glob("*")):
+        if p.is_file():
+            h.update(p.read_bytes())
+    return h.hexdigest()[:10]
+
+
+ASSET_V = _asset_version()
 
 
 def shorttime(dt: datetime) -> str:
@@ -232,6 +268,7 @@ def base_context(request: Request, view: str, theme_override: str | None,
     return {
         "view": view,
         "theme": theme,
+        "asset_v": ASSET_V,
         "theme_choices": theme_choices(),
         "theme_override": theme_override or "",
         "here": quote(str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")),

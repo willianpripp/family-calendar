@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Family calendar{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📅</text></svg>">
-<link rel="stylesheet" href="/static/style.css">
+{# ?v= is a content hash of everything in static/. A deploy changes it, which
+   changes the URL, which is the only cache-busting a browser cannot ignore. #}
+<link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
 {# The theme only overrides colour tokens; layout never changes with it, so a
    new theme cannot break the grid. #}
 <style>
@@ -15,7 +17,7 @@
     --theme-tint: {{ theme.tint }};
   }
 </style>
-<script src="/static/htmx.min.js" defer></script>
+<script src="/static/htmx.min.js?v={{ asset_v }}" defer></script>
 </head>
 <body hx-boost="true">
 <header class="top">
