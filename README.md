@@ -5,7 +5,7 @@ with categories and colours, US and Brazilian holidays, a picture per month,
 and the overlap warning that was the reason for building it (a flight and a
 Guns N' Roses show booked on the same evening).
 
-Live at **https://lab.example.ts.net:8446**, tailnet only.
+Live at **https://home.example.ts.net:8446**, tailnet only.
 
 ## Running it
 
