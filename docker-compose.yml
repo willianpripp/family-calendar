@@ -77,6 +77,12 @@ services:
       # login: "100.101.102.1=willian,100.101.102.2=aline". Purely cosmetic;
       # an unlisted device gets the shared pictures. See app/people.py.
       CAL_DEVICES: ${CAL_DEVICES:-}
+      # The reminder channel. Token from @BotFather; chats as Name=id pairs
+      # whose names MUST match the event owner values (Willian, Aline), because
+      # reminders route on the event's owner field. Both unset simply means the
+      # reminder loop never starts, and the app says so once at startup.
+      CAL_TELEGRAM_TOKEN: ${CAL_TELEGRAM_TOKEN:-}
+      CAL_TELEGRAM_CHATS: ${CAL_TELEGRAM_CHATS:-}
     volumes:
       # The pictures are DATA, not code, so they are mounted rather than baked
       # into the image. Without this they arrive only via `docker build`, which

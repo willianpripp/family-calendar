@@ -15,6 +15,7 @@
 #   *can* (see people.py), but that is used only to choose a background picture
 #   and must never be given a job where being wrong matters.
 
+import asyncio
 import os
 from calendar import Calendar
 from contextlib import asynccontextmanager
@@ -30,6 +31,7 @@ from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 import news
+import reminders
 from art import (ACCEPT_ATTR, MAX_UPLOAD_BYTES, ArtError, art_for,
                  remove_month_art, save_month_art)
 from people import PEOPLE, whois
@@ -86,6 +88,16 @@ create index if not exists events_starts_at_idx on events (starts_at);
 alter table events add column if not exists category_id bigint
   references categories(id) on delete set null;
 alter table events add column if not exists sticker text not null default '';
+
+-- One row per reminder actually delivered, so a restart cannot send it twice.
+-- `on delete cascade` because a deleted event should take its history with it,
+-- and because without it a re-used id could inherit someone else's reminders.
+create table if not exists reminders_sent (
+  event_id bigint not null references events(id) on delete cascade,
+  kind text not null,
+  sent_at timestamptz not null default now(),
+  primary key (event_id, kind)
+);
 """
 
 SEED_CATEGORIES = [
@@ -106,6 +118,58 @@ pool = ConnectionPool(
 )
 
 
+def reminder_tick() -> int:
+    """One pass: find what is due, send it, record it. Returns messages sent.
+
+    Synchronous and short. It is run in a thread from the loop below because the
+    connection pool is psycopg's blocking one, and a blocking call on the event
+    loop would stall every page render for the duration.
+    """
+    if not reminders.configured():
+        return 0
+    now = datetime.now(HOUSEHOLD_TZ)
+    # Wide enough to cover both reminder kinds plus the grace window, narrow
+    # enough that this never walks the whole table.
+    window_end = now + timedelta(days=1, hours=2)
+    sent = 0
+    with pool.connection() as conn:
+        rows = conn.execute(
+            EVENT_SELECT + " where e.starts_at > %s and e.starts_at < %s",
+            (now - reminders.GRACE - timedelta(days=1), window_end),
+        ).fetchall()
+        already = {
+            (r["event_id"], r["kind"])
+            for r in conn.execute("select event_id, kind from reminders_sent").fetchall()
+        }
+        for ev, kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
+            text = reminders.compose(ev, kind, HOUSEHOLD_TZ)
+            delivered = [c for c in reminders.recipients(ev["owner"]) if reminders.send(c, text)]
+            if not delivered:
+                # Left unrecorded on purpose, so the next tick retries. If
+                # Telegram is down for hours, GRACE eventually gives up.
+                continue
+            conn.execute(
+                "insert into reminders_sent (event_id, kind) values (%s, %s)"
+                " on conflict do nothing",
+                (ev["id"], kind),
+            )
+            sent += len(delivered)
+    return sent
+
+
+async def reminder_loop():
+    while True:
+        try:
+            n = await asyncio.to_thread(reminder_tick)
+            if n:
+                print(f"reminders: sent {n}", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            # Never let one bad tick end the loop. A calendar that stops
+            # reminding silently is worse than one that logs and carries on.
+            print(f"reminders: tick failed: {exc!r}", flush=True)
+        await asyncio.sleep(reminders.TICK_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     pool.open()
@@ -120,7 +184,18 @@ async def lifespan(_: FastAPI):
                 "insert into categories (name, color, sort_order) values (%s, %s, %s)",
                 SEED_CATEGORIES,
             )
+    # In-process rather than a systemd timer on the host: it needs the same
+    # database, the same timezone handling and the same event query the rest of
+    # this module already has, and a second process would duplicate all three.
+    # The cost is that reminders stop when the app does, which is acceptable
+    # because an app that is down is the larger problem, and the grace window
+    # delivers anything that came due during a short outage.
+    task = asyncio.create_task(reminder_loop()) if reminders.configured() else None
+    if task is None:
+        print("reminders: no token or no chats configured, loop not started", flush=True)
     yield
+    if task:
+        task.cancel()
     pool.close()
 
 
@@ -591,6 +666,11 @@ def save_event(
                 " owner=%s, location=%s, notes=%s, category_id=%s, sticker=%s,"
                 " updated_at=now() where id=%s", values + (eid,),
             )
+            # Re-arm the reminders. An edit is usually a reschedule or a change
+            # of owner, and both make the reminder that was already sent wrong:
+            # without this, moving a dinner from Tuesday to Friday means nobody
+            # is ever told about Friday.
+            conn.execute("delete from reminders_sent where event_id = %s", (eid,))
 
     # Land on the month the event is in, which is not necessarily the one the
     # form was opened from.
