@@ -125,13 +125,20 @@ def due_at(ev: dict, kind: str, tz) -> datetime | None:
 
 
 def pending(events: list[dict], already: set[tuple[int, str]], now: datetime, tz):
-    """Yield (event, kind) for everything due, not yet sent, and not too late."""
+    """Yield (event, kind, stored_kind) for everything due and unsent.
+
+    `stored_kind` is what goes in reminders_sent. For a yearly occurrence it
+    carries the year ("day@2027"), because the same event id must remind again
+    every year, and a bare (id, "day") row would suppress it forever after the
+    first one.
+    """
     for ev in events:
         for kind in ("day", "hour"):
-            if (ev["id"], kind) in already:
+            stored = f"{kind}@{ev['starts_at'].year}" if ev.get("occurrence") else kind
+            if (ev["id"], stored) in already:
                 continue
             due = due_at(ev, kind, tz)
             if due is None:
                 continue
             if due <= now <= due + GRACE:
-                yield ev, kind
+                yield ev, kind, stored

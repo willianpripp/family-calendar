@@ -61,6 +61,11 @@
     All day
   </label>
 
+  <label class="check">
+    <input type="checkbox" name="repeats_yearly" {% if ev and ev.get('repeats_yearly') %}checked{% endif %}>
+    Repeats every year <span class="hint-inline">birthdays, anniversaries</span>
+  </label>
+
   {% set starts_val = ev.get('form_starts') if ev and ev.get('form_starts') is not none
       else (ev.starts_local.strftime('%Y-%m-%dT%H:%M') if ev and ev.get('starts_local') else default_start.strftime('%Y-%m-%dT%H:%M')) %}
   {% set ends_val = ev.get('form_ends') if ev and ev.get('form_ends') is not none

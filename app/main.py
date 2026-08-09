@@ -89,6 +89,12 @@ alter table events add column if not exists category_id bigint
   references categories(id) on delete set null;
 alter table events add column if not exists sticker text not null default '';
 
+-- Yearly repetition, scoped to birthdays and anniversaries by Willian's
+-- decision of 2026-08-08 (bills and rent live in the finances app). This is a
+-- boolean, not an RRULE column: the household has exactly one recurrence
+-- pattern, and general recurrence machinery for it would be all cost.
+alter table events add column if not exists repeats_yearly boolean not null default false;
+
 -- One row per reminder actually delivered, so a restart cannot send it twice.
 -- `on delete cascade` because a deleted event should take its history with it,
 -- and because without it a re-used id could inherit someone else's reminders.
@@ -132,16 +138,26 @@ def reminder_tick() -> int:
     # enough that this never walks the whole table.
     window_end = now + timedelta(days=1, hours=2)
     sent = 0
+    window_start = now - reminders.GRACE - timedelta(days=1)
     with pool.connection() as conn:
         rows = conn.execute(
-            EVENT_SELECT + " where e.starts_at > %s and e.starts_at < %s",
-            (now - reminders.GRACE - timedelta(days=1), window_end),
+            EVENT_SELECT + " where e.starts_at > %s and e.starts_at < %s"
+            " and not e.repeats_yearly",
+            (window_start, window_end),
         ).fetchall()
+        # A birthday stored in 1990 never matches a date window, so the yearly
+        # events are fetched whole and projected into it, exactly as the views
+        # do. The projected rows carry occurrence=True, which is what makes
+        # pending() key their sent-record by year: next year must remind again.
+        yearly = conn.execute(EVENT_SELECT + " where e.repeats_yearly").fetchall()
+        rows = list(rows) + [
+            occ for occ in project_yearly(yearly, window_start, window_end)
+        ]
         already = {
             (r["event_id"], r["kind"])
             for r in conn.execute("select event_id, kind from reminders_sent").fetchall()
         }
-        for ev, kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
+        for ev, kind, stored_kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
             text = reminders.compose(ev, kind, HOUSEHOLD_TZ)
             delivered = [c for c in reminders.recipients(ev["owner"]) if reminders.send(c, text)]
             if not delivered:
@@ -151,7 +167,7 @@ def reminder_tick() -> int:
             conn.execute(
                 "insert into reminders_sent (event_id, kind) values (%s, %s)"
                 " on conflict do nothing",
-                (ev["id"], kind),
+                (ev["id"], stored_kind),
             )
             sent += len(delivered)
     return sent
@@ -323,14 +339,54 @@ from events e left join categories c on c.id = e.category_id
 """
 
 
+def shift_years(ev: dict, years: int) -> dict:
+    """This event's occurrence `years` later, same shape as the original.
+
+    The id is kept, so clicking a projected birthday edits the series, which is
+    the only sensible meaning of editing a birthday. February 29th lands on the
+    28th in a non-leap year rather than raising, because a birthday that
+    crashes the calendar one year in four is not a feature.
+    """
+    out = dict(ev)
+    for key in ("starts_at", "ends_at"):
+        dt = ev[key]
+        try:
+            out[key] = dt.replace(year=dt.year + years)
+        except ValueError:
+            out[key] = dt.replace(year=dt.year + years, day=28)
+    out["occurrence"] = True
+    return out
+
+
+def project_yearly(rows: list[dict], start: datetime, end: datetime) -> list[dict]:
+    """Every occurrence of the yearly events that touches [start, end)."""
+    out = []
+    for ev in rows:
+        # The stored date is the first occurrence; nothing repeats backwards.
+        for year in range(max(start.year, ev["starts_at"].year), end.year + 1):
+            occ = shift_years(ev, year - ev["starts_at"].year)
+            if occ["starts_at"] < end and occ["ends_at"] > start:
+                out.append(occ)
+    return out
+
+
 def events_between(start: datetime, end: datetime) -> list[dict]:
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where e.starts_at < %s and e.ends_at > %s"
+            " and not e.repeats_yearly"
             " order by e.all_day desc, e.starts_at, e.id",
             (end, start),
         ).fetchall()
-    return [decorate(r) for r in rows]
+        # Fetched without a date filter, deliberately: a birthday stored in
+        # 1990 must surface in 2026, so no starts_at window can find it. The
+        # set is small (it is the family's birthdays) and projection is cheap.
+        yearly = conn.execute(
+            EVENT_SELECT + " where e.repeats_yearly",
+        ).fetchall()
+    both = [decorate(r) for r in rows] + [decorate(r) for r in project_yearly(yearly, start, end)]
+    both.sort(key=lambda e: (not e["all_day"], e["starts_at"], e["id"]))
+    return both
 
 
 def get_event(event_id: int) -> dict:
@@ -362,11 +418,28 @@ def overlapping(starts: datetime, ends: datetime, exclude_id: int | None) -> lis
 # --- shared view context ------------------------------------------------------
 
 
+# How much of the calendar's surface hides the picture. In display order per
+# click: default, three steps of more picture, nearly invisible, then one
+# extra-solid stop for reading in sunlight, and back around. Values, not free
+# input, so the cookie cannot render the calendar unreadable in a way that has
+# no obvious way back: one more click always returns to a sane state.
+VEIL_STEPS = (72, 52, 32, 14, 4, 88)
+
+
+def veil_from(request: Request) -> int:
+    try:
+        v = int(request.cookies.get("cal_veil", ""))
+    except ValueError:
+        return VEIL_STEPS[0]
+    return v if v in VEIL_STEPS else VEIL_STEPS[0]
+
+
 def base_context(request: Request, view: str, month: int) -> dict:
     who = whois(request)
     return {
         "view": view,
         "who": who,
+        "veil": veil_from(request),
         "art": art_for(month, who["key"]),
         "art_month": month,
         "art_accept": ACCEPT_ATTR,
@@ -597,6 +670,7 @@ def save_event(
     category_id: str = Form(""),
     sticker: str = Form(""),
     all_day: str = Form(""),
+    repeats_yearly: str = Form(""),
     starts: str = Form(""),
     ends: str = Form(""),
     start_date: str = Form(""),
@@ -609,11 +683,13 @@ def save_event(
     eid = int(event_id) if event_id else None
     cid = int(category_id) if category_id else None
     is_all_day = all_day == "on"
+    is_yearly = repeats_yearly == "on"
 
     def rerender(error: str | None, conflicts: list[dict] | None):
         """Re-show the form with what was typed, not what is stored."""
         ev = {
             "id": eid, "title": title, "owner": owner, "all_day": is_all_day,
+            "repeats_yearly": is_yearly,
             "location": location, "notes": notes, "category_id": cid,
             "sticker": sticker,
             "form_starts": starts, "form_ends": ends,
@@ -652,19 +728,19 @@ def save_event(
             return rerender(None, conflicts)
 
     values = (title.strip(), starts_at, ends_at, is_all_day, owner,
-              location.strip(), notes.strip(), cid, sticker.strip()[:8])
+              location.strip(), notes.strip(), cid, sticker.strip()[:8], is_yearly)
     with pool.connection() as conn:
         if eid is None:
             conn.execute(
                 "insert into events (title, starts_at, ends_at, all_day, owner,"
-                " location, notes, category_id, sticker)"
-                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
+                " location, notes, category_id, sticker, repeats_yearly)"
+                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
             )
         else:
             conn.execute(
                 "update events set title=%s, starts_at=%s, ends_at=%s, all_day=%s,"
                 " owner=%s, location=%s, notes=%s, category_id=%s, sticker=%s,"
-                " updated_at=now() where id=%s", values + (eid,),
+                " repeats_yearly=%s, updated_at=now() where id=%s", values + (eid,),
             )
             # Re-arm the reminders. An edit is usually a reschedule or a change
             # of owner, and both make the reminder that was already sent wrong:
@@ -751,6 +827,19 @@ def who_view(request: Request, back: str = "/month"):
     months = [(m, art_for(m, ctx["who"]["key"])) for m in range(1, 13)]
     ctx.update(people=PEOPLE, months=months, back=back)
     return templates.TemplateResponse(request, "who.html", ctx)
+
+
+@app.post("/veil")
+def cycle_veil(request: Request, back: str = Form("/month")):
+    """One button, one direction: each press shows more of the picture, through
+    nearly invisible, then a solid stop, then back to the default. Per device
+    via cookie, same reasoning as the pictures: what reads well on a monitor is
+    unreadable on a phone in the sun, and the two should not have to agree."""
+    current = veil_from(request)
+    nxt = VEIL_STEPS[(VEIL_STEPS.index(current) + 1) % len(VEIL_STEPS)]
+    resp = RedirectResponse(back, status_code=303)
+    resp.set_cookie("cal_veil", str(nxt), max_age=31536000, samesite="lax", httponly=True)
+    return resp
 
 
 @app.post("/who")

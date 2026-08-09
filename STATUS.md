@@ -1,28 +1,37 @@
 # STATUS
 
-**Where it stands (2026-08-08):** live, in daily use, feature-complete for now.
-Built 2026-08-07, reworked 08-08, split out of the `homelab` repo into its own
-repo on 08-08.
+**Where it stands (2026-08-08, end of day):** live, in daily use. Built
+2026-08-07; split out of `homelab`, given per-person pictures, browser uploads,
+Telegram reminders, yearly repetition and the veil control on 08-08. Next up,
+from Willian's approved plan: the swipeable rail (below), then nothing until he
+asks.
 
 **There is real household data in it** (a Pensacola trip, flights, a Guns N'
 Roses show), so treat the database as production. See the README.
 
-## NEXT SESSION: Phase 2, once the Telegram bot exists
-
-**BLOCKED on Willian**: a bot token from `@BotFather` plus both chat IDs (each
-of them messages the bot once). Then a reminder job sending to both, with lead
-time per event, defaulting to one day before and again two hours before.
-
-Two constraints that still apply. Storage is `timestamptz` and every render
-goes through `CAL_TZ`, so scheduling must too. And there is no per-user
-identity, so reminders route on the event's owner field (Willian / Aline /
-Both), never on anything inferred.
-
-The same bot unblocks backup failure alerts, which live in the `homelab` repo
-(the `finances_backup` role). That is why the calendar was built before
-off-site backup.
-
 ## What it does
+
+**Reminders by Telegram** (2026-08-08, bot `@Home_nanacios_bot`): 18:00 the
+evening before, and two hours ahead for timed events. Routed on the event's
+owner; Both goes to both phones. Sent once per event and kind
+(`reminders_sent`), re-armed by any edit, retried within a six-hour grace on
+Telegram failure, and yearly events re-remind every year (`day@2027` keys).
+Config is `CAL_TELEGRAM_TOKEN` + `CAL_TELEGRAM_CHATS` in the host `.env`; chat
+names must equal the owner values. The loop lives in the app process and says
+so at startup if unconfigured.
+
+**Yearly repetition** (same day): a checkbox on the event form, for birthdays
+and anniversaries by Willian's scoping (bills live in the finances app). One
+boolean, not RRULE: stored once at its first occurrence, projected into every
+view at render time, Feb 29 lands on the 28th off-years, nothing repeats
+backwards, and clicking an occurrence edits the series. Deleting deletes the
+series.
+
+**The veil control** (same day): the ◐ button bottom right cycles the calendar's
+transparency 72 → 52 → 32 → 14 → 4 → 88 and around, per device by cookie, so
+near-invisible on the monitor does not blind the phone in the sun. Fixed steps
+rather than free input, so one more click always returns to readable.
+
 
 Month, week and upcoming views; add, edit and delete; categories with colours;
 stickers; holidays; per-month background pictures; and the overlap warning,
@@ -66,9 +75,9 @@ once. Uploads go into the uploader's own folder, are re-encoded by Pillow to
 2560px JPEG with the EXIF stripped, and are cache-busted per file rather than by
 the global asset hash, because a replacement keeps the same filename.
 
-**Uploaded pictures exist only on the host** and nothing backs them up. That is
-the same gap as the database: there is no backup job for `/srv/lab/calendar` at
-all, which is a homelab repo task.
+**Backed up nightly since 2026-08-08** by the homelab repo's `service_backup`
+role: the database AND the pictures (`art.tar.gz`), 07:30 UTC, restore-rehearsed
+the same day. A failed run alerts both phones through the bot.
 
 **Where the pictures actually are (2026-08-08):** Willian has August, October and
 December in `art/willian/`, uploaded from the browser and since committed here,
@@ -85,9 +94,8 @@ shape of bug to look for.
 ## The pictures
 
 `app/static/art/`, named `month-01` through `month-12` (jpg/png/webp/avif),
-then `make deploy`. **October and December are Willian's**; the other ten still
-show a public-domain painting as a fallback, one per month, credited in
-`ATTRIBUTION.md` there.
+person folders beat the shared level beats the painting (credits in
+`ATTRIBUTION.md`). Upload from the browser, or commit and `make deploy`.
 
 **Aim for 2560x1440**, under about a megabyte. His first attempt was 740px wide
 and was upscaled 3.4x on his monitor; no setting fixes missing pixels.

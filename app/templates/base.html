@@ -11,8 +11,9 @@
 {# The only thing that varies per page: which picture is behind the calendar.
    It cannot live in the stylesheet, because it changes every month. #}
 {# art.v is per-file, not the global asset hash: uploading a new October writes
-   month-10.jpg again, so only the file's own mtime changes. #}
-<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ art.v }}"); }</style>
+   month-10.jpg again, so only the file's own mtime changes. The veil is the
+   device's chosen transparency, cycled by the ◐ button; stylesheet default 72. #}
+<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; }</style>
 </head>
 {# No hx-boost. It swapped the body on navigation and left <head> alone, so the
    picture above kept whatever the first page loaded had: changing month
@@ -62,6 +63,8 @@
   {# Only offered when the picture on screen is at YOUR level. Offering it for
      the shared picture is how the shared October got deleted by someone who
      meant to clear their own. #}
+  <button type="submit" class="artbar-btn plain" formaction="/veil"
+          title="How much the calendar hides the picture: each press shows more, then cycles">◐ {{ veil }}%</button>
   {% if art.level == 'own' %}
   <button type="submit" class="artbar-btn plain" formaction="/art/remove"
           title="Go back to the picture underneath">Reset</button>
