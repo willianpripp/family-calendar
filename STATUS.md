@@ -103,6 +103,27 @@ never committed at all. See the README in that folder.
 travel. Whatever the publishing mechanism turns out to be, this file needs a
 pass before the repo is public.
 
+## Considered and declined
+
+**Syncing Aline's work Outlook calendar into this one** (2026-08-08). She asked
+whether an invite could arrive here as a proposal she accepts or dismisses,
+since she does not attend all of them. Technically fine: a `proposals` table, an
+inbox, dedupe on the invite `UID` plus sequence, and the Telegram bot as the
+prompt. The feed was the problem, not the app.
+
+Every route out of a corporate Microsoft 365 tenant costs something she should
+not have to pay: Graph API needs her IT to approve an app registration and puts
+a refresh token for her work account on a mini PC at home; a published ICS link
+is usually blocked and, when it is not, leaves her work calendar readable by
+anyone with the URL; forwarding invites to a mailbox is what DLP exists to
+block. Power Automate inside her own tenant was the least bad option.
+
+**Willian's call, same day: she will do it manually.** Do not rebuild this
+unless she asks. If it ever comes back, the notes above are the starting point,
+and the two open questions were whether her employer permits it at all, and
+whether meeting titles should default to "Busy" given this calendar is shared
+and has no per-user login.
+
 ## Deliberately removed, do not reintroduce
 
 - **The theme engine.** It picked a picture, an accent and motifs from event
