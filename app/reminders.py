@@ -27,6 +27,7 @@
 # business hours, and an evening nag arrives after the day that could have
 # absorbed it is gone.
 
+import colorsys
 import os
 import json
 import urllib.parse
@@ -103,6 +104,37 @@ def recipients(owner: str) -> list[int]:
     return [chat] if chat else []
 
 
+def swatch(hex_color: str) -> str:
+    """The category's colour as the nearest emoji square.
+
+    Telegram has no coloured text, full stop; a coloured square is the whole
+    vocabulary. Matched by hue rather than by a table of the palette, because
+    category colours come from a free colour picker and any hex can arrive.
+    """
+    h = (hex_color or "").lstrip("#")
+    if len(h) != 6:
+        return ""
+    try:
+        r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    except ValueError:
+        return ""
+    hue, light, sat = colorsys.rgb_to_hls(r, g, b)
+    if sat < 0.15:
+        return "⬜" if light > 0.5 else "⬛"
+    deg = hue * 360
+    if deg < 12 or deg >= 335:
+        return "🟥"
+    if deg < 40:
+        return "🟧"
+    if deg < 65:
+        return "🟨"
+    if deg < 160:
+        return "🟩"
+    if deg < 260:
+        return "🟦"
+    return "🟪"
+
+
 def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     """Deliberately almost no chrome.
 
@@ -150,7 +182,8 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     if notes:
         lines.append(f"Notes: {notes if len(notes) <= 200 else notes[:200] + '…'}")
     if ev.get("category_name"):
-        lines.append(f"Category: {ev['category_name']}")
+        sq = swatch(ev.get("category_color") or "")
+        lines.append(f"Category: {sq} {ev['category_name']}".replace("  ", " "))
     if ev["owner"] == "Both":
         lines.append("(both of you)")
     return "\n".join(lines)
