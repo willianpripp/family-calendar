@@ -31,6 +31,20 @@ building.
    already: Playwright's device emulation (viewport, touch, user agent) covers
    Pixel/Z Flip testing without new infrastructure.
 
+## Ordered by Willian 2026-08-14: login for non-tailnet visitors
+
+The calendar is now reachable from the public internet
+(`https://home.example.ts.net:10000`, Tailscale Funnel) for Aline's
+work MacBook, which cannot run Tailscale. Today that path is guarded by a
+Caddy basic_auth gate in the homelab repo (`compose/calgate/`), which means a
+browser popup. **Willian wants a real login page, styled like the app, the
+way House Finances does it.** Scope he set: auth only where the trust
+boundary is, so tailnet (`:8446`) and home-LAN visitors are never asked.
+The device-identity system already covers "who is this" after entry (the
+`/who` override cookie); this is only about the front door. When it ships,
+tell the homelab side so calgate is retired and the funnel points straight
+at the app. See `docs/REMOTE-ACCESS.md` in the homelab repo for the tiers.
+
 ## Next, when Willian asks
 
 1. **The rail becomes swipeable: cinema, then concerts, then big events.**
