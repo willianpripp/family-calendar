@@ -57,11 +57,16 @@
   </div>
 
   <label class="check">
+    <input type="checkbox" name="reminder" id="reminder" {% if ev and ev.get('item_kind') == 'reminder' %}checked{% endif %}>
+    Reminder / to-do <span class="hint-inline">a due date and a daily nag until it is done, no booked time</span>
+  </label>
+
+  <label class="check" id="alldayrow">
     <input type="checkbox" name="all_day" id="all_day" {% if ev and ev.get('all_day') %}checked{% endif %}>
     All day
   </label>
 
-  <label class="check">
+  <label class="check" id="yearlyrow">
     <input type="checkbox" name="repeats_yearly" {% if ev and ev.get('repeats_yearly') %}checked{% endif %}>
     Repeats every year <span class="hint-inline">birthdays, anniversaries</span>
   </label>
@@ -81,8 +86,8 @@
   </div>
 
   <div class="row allday">
-    <label>First day <input type="date" name="start_date" value="{{ sd_val }}"></label>
-    <label>Last day <input type="date" name="end_date" value="{{ ed_val }}"></label>
+    <label><span id="firstdaylabel">First day</span> <input type="date" name="start_date" value="{{ sd_val }}"></label>
+    <label id="lastdayrow">Last day <input type="date" name="end_date" value="{{ ed_val }}"></label>
   </div>
 
   <label class="wide">Sticker
@@ -127,7 +132,22 @@
     document.querySelector('.allday').style.display = on ? '' : 'none';
   }
   document.getElementById('all_day').addEventListener('change', syncAllDay);
-  syncAllDay();
+
+  // A reminder is the third shape of the form: one due date, nothing else
+  // about time. It rides the all-day fields (forced on, hidden) and hides the
+  // yearly checkbox, which the server refuses for reminders anyway; hiding is
+  // courtesy, the server-side force is the rule.
+  function syncKind() {
+    var rem = document.getElementById('reminder').checked;
+    if (rem) { document.getElementById('all_day').checked = true; }
+    document.getElementById('alldayrow').style.display = rem ? 'none' : '';
+    document.getElementById('yearlyrow').style.display = rem ? 'none' : '';
+    document.getElementById('lastdayrow').style.display = rem ? 'none' : '';
+    document.getElementById('firstdaylabel').textContent = rem ? 'Due date' : 'First day';
+    syncAllDay();
+  }
+  document.getElementById('reminder').addEventListener('change', syncKind);
+  syncKind();
 
   document.querySelectorAll('.stk-opt').forEach(function (b) {
     b.addEventListener('click', function () {

@@ -33,9 +33,13 @@
       <span class="holchip">{{ name }}</span>
       {% endfor %}
       {% for e in all_day[d] %}
+      {% if e.item_kind == 'reminder' %}
+      {% include "_reminder_chip.html" %}
+      {% else %}
       <a class="event allday" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
         {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}<span class="ttl">{{ e.title }}</span>
       </a>
+      {% endif %}
       {% endfor %}
     </div>
     {% endfor %}

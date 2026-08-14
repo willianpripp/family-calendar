@@ -1,0 +1,14 @@
+{# A to-do in a day cell (month grid and the week's all-day strip). A <div>
+   carrying a form and an anchor where the real events are one <a>, because a
+   form cannot legally nest inside an anchor: the OK box posts, the title
+   edits. Expects e, d, today, here and here_plain from the including view. #}
+<div class="event reminder{% if e.acknowledged_at %} done{% elif d < today %} overdue{% endif %}"
+     style="--ev: {{ e.color }}"
+     title="{{ e.title }} · to-do{% if e.category_name %} · {{ e.category_name }}{% endif %} · {{ e.owner }}">
+  <form method="post" action="/events/{{ e.id }}/ack" class="ack-form">
+    <input type="hidden" name="back" value="{{ here_plain }}">
+    <button type="submit" class="ack-box"
+            title="{{ 'done, press to reopen' if e.acknowledged_at else 'press when done' }}">{{ '☑' if e.acknowledged_at else '☐' }}</button>
+  </form>
+  <a class="ttl" href="/events/{{ e.id }}/edit?back={{ here }}">{% if e.sticker %}<span class="stk">{{ e.sticker }}</span> {% endif %}{{ e.title }}</a>
+</div>

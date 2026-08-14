@@ -3,7 +3,19 @@
 {% block content %}
 <div class="viewhead"><div class="pager"><h1>Next 60 days</h1></div></div>
 
-{% if not by_day %}
+{% if overdue %}
+{# To-dos past their due date and still not OK'd. They have left the 60-day
+   window below, so this is the one place their OK box remains reachable
+   without paging the month view back to the day they were due. #}
+<section class="upday">
+  <h2 class="upday-h"><span class="upday-date">Needs attention</span></h2>
+  {% for e in overdue %}
+  {% include "_reminder_uprow.html" %}
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if not by_day and not overdue %}
 <p class="empty">Nothing coming up. Enjoy the quiet.</p>
 {% endif %}
 
@@ -14,6 +26,9 @@
     {% for name in holidays.get(day, []) %}<span class="holchip">{{ name }}</span>{% endfor %}
   </h2>
   {% for e in events %}
+  {% if e.item_kind == 'reminder' %}
+  {% include "_reminder_uprow.html" %}
+  {% else %}
   <a class="uprow" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
     <span class="when">
       {% if e.all_day %}
@@ -31,6 +46,7 @@
       {{ e.owner }}
     </span>
   </a>
+  {% endif %}
   {% endfor %}
 </section>
 {% endfor %}

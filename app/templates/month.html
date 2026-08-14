@@ -31,6 +31,9 @@
       {% endif %}
 
       {% for e in days[d] %}
+      {% if e.item_kind == 'reminder' %}
+      {% include "_reminder_chip.html" %}
+      {% else %}
       <a class="event{% if e.all_day %} allday{% endif %}" title="{{ e.title }}{% if e.category_name %} · {{ e.category_name }}{% endif %} · {{ e.owner }}"
          style="--ev: {{ e.color }}"
          href="/events/{{ e.id }}/edit?back={{ here }}">
@@ -38,6 +41,7 @@
         {% if not e.all_day and e.starts_local.date() == d %}<span class="t">{{ e.starts_local | shorttime }}</span>{% endif %}
         <span class="ttl">{{ e.title }}</span>
       </a>
+      {% endif %}
       {% endfor %}
     </div>
     {% endfor %}

@@ -219,6 +219,39 @@ main {
   border-radius: 5px; padding: 1px 7px; margin-right: 5px;
 }
 
+/* --- reminders (to-dos with a nag) ------------------------------------------ */
+
+/* The chip is a <div> around a form and an anchor where a real event is one
+   <a>, because a form cannot nest inside an anchor. It keeps the .event look;
+   these rules cover only what the split structure adds. */
+.event.reminder { align-items: center; }
+.event.reminder .ttl { color: var(--text); flex: 1; min-width: 0; }
+.event.reminder .ttl:hover { text-decoration: underline; }
+.ack-form { display: inline-flex; flex: none; margin: 0; }
+.ack-box {
+  font: inherit; font-size: 1.05rem; line-height: 1; cursor: pointer;
+  background: none; border: none; padding: 0; color: var(--text);
+}
+.ack-box:hover { color: var(--accent); }
+.event.reminder.done { opacity: .68; }
+.event.reminder.done .ttl { text-decoration: line-through; }
+/* Overdue borrows the error red, not the accent: an unmet deadline is the one
+   thing on the calendar allowed to shout. */
+.event.reminder.overdue {
+  border-left-color: #E5484D;
+  background: color-mix(in oklab, #E5484D 30%, var(--surface));
+}
+
+/* The Upcoming rows, including the Needs attention section for overdue ones. */
+.uprow.reminder .what a { color: var(--text); }
+.uprow.reminder .who { display: flex; align-items: center; gap: 10px; }
+.uprow.reminder .ack-box { font-size: 1.35rem; }
+.uprow.reminder .cat { display: inline; }
+.uprow.reminder.done { opacity: .68; }
+.uprow.reminder.done .what { text-decoration: line-through; }
+.uprow.reminder.overdue { border-left-color: #E5484D; }
+.uprow.reminder.overdue .when { color: #E5714D; font-weight: 600; }
+
 /* --- week grid ------------------------------------------------------------- */
 
 .weekwrap {
