@@ -42,6 +42,13 @@ English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
 says which of the two it is (Willian's ask, same day). Titles stay in
 whatever language they were written in.
 
+**Richer messages** (2026-08-14, item 2): the message reads like the calendar
+entry: when-line, sticker riding the title, location, notes (capped at 200
+characters), category, "(both of you)" for Both. Empty fields simply do not
+appear, so a bare to-do is still two lines. Colour is the one field left
+behind: a plain-text Telegram message has nowhere to put it, and the sticker
+plus category already carry the identity.
+
 **The front door for the internet** (2026-08-14, evening): the calendar is on
 the public internet (`https://home.example.ts.net:10000`, Tailscale
 Funnel) for Aline's work MacBook, and a visitor whose real address is public

@@ -132,9 +132,21 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
         # The same clock the app writes: 7:00pm, meridiem always present.
         at = f"{start:%-I:%M%p}".lower()
         lines = [f"{when}, {at}" if not ev["all_day"] else f"{when}"]
-    lines.append(ev["title"])
+    # The enrichment, Willian's item 2 ("enriquecer legal msm"): the message
+    # reads like the calendar entry. Sticker rides the title, then location,
+    # notes (capped so an essay in the notes field stays an essay in the app,
+    # not on the phone), then the category. Colour is the one thing that stays
+    # behind: a plain-text Telegram message has nowhere to put it, and the
+    # sticker plus category already carry the identity.
+    sticker = (ev.get("sticker") or "").strip()
+    lines.append(f"{sticker} {ev['title']}" if sticker else ev["title"])
     if ev.get("location"):
         lines.append(ev["location"])
+    notes = (ev.get("notes") or "").strip()
+    if notes:
+        lines.append(notes if len(notes) <= 200 else notes[:200] + "…")
+    if ev.get("category_name"):
+        lines.append(ev["category_name"])
     if ev["owner"] == "Both":
         lines.append("(both of you)")
     return "\n".join(lines)
