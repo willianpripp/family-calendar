@@ -26,12 +26,13 @@ delivered 2026-08-14; see `STATUS.md`. Of what remains, he has not said which
 
 ## Delegated to the homelab repo 2026-08-14
 
-- **App-down alerting for all household apps, calendar first** (Willian: "for
-  all apps, but the calendar is the most critical one"). A probe outside the
-  app hitting `/health`, alerting both phones through the existing bot after
-  consecutive failures. Lives in the homelab because the reminder loop cannot
-  self-report its own death; requested via the homelab session the same
-  night.
+- **App-down alerting: DELIVERED by the homelab the same night.** Every
+  household app probed every 2 minutes (this calendar first); 3 consecutive
+  failures page both phones through the bot, re-alert every 4 hours, recovery
+  message on the way back; proven with a real down/up cycle. Standing
+  obligation on this repo: `GET /health` stays cheap and auth-free on
+  loopback, it is load-bearing now (noted on the route). Residual gap (the
+  lab VM itself dying) is the homelab's dead-man's-switch item, theirs.
 
 ## Login for non-tailnet visitors: DELIVERED 2026-08-14
 

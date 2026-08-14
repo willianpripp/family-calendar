@@ -663,6 +663,11 @@ def _assign_lanes(cluster: list[dict]) -> None:
 
 @app.get("/health")
 def health() -> JSONResponse:
+    """LOAD-BEARING and deliberately cheap: the homelab's app_health role
+    probes this every 2 minutes (2026-08-14) and pages both phones when it
+    fails three times running. It must stay auth-free (the front_door
+    middleware exempts it) and must not grow work: its one job is proving the
+    app and its database are alive."""
     with pool.connection() as conn:
         conn.execute("select 1")
     return JSONResponse({"status": "ok"})
