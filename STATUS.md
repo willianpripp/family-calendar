@@ -84,10 +84,13 @@ appear, so a bare to-do is still two lines. Colour is the one field left
 behind: a plain-text Telegram message has nowhere to put it, and the sticker
 plus category already carry the identity.
 
-**The app is subpath-aware (2026-08-15)**: the homelab's router fronts the
-funnel and announces a mount prefix in `X-Forwarded-Prefix` ("/calendar" on
-the public hostname, nothing on tailnet :8446 or LAN :3002, so those are
-byte-identical to before). Every emitted URL (links, redirects, static, the
+**The app is subpath-aware and the portal is LIVE (2026-08-15)**: the
+homelab's router fronts the funnel; on the public hostname `/` is the family
+portal, `/calendar` is this app, and old public deep links 308-redirect to
+their new home, all verified from the true public ingress the same day.
+The router announces the mount prefix in `X-Forwarded-Prefix` ("/calendar"
+publicly, nothing on tailnet :8446 or LAN :3002, so those are byte-identical
+to before). Every emitted URL (links, redirects, static, the
 week view's drag JS) carries `{{ base }}`; the PWA manifest is generated per
 request so a public install opens at /calendar/, not at the portal. THREE
 THINGS TO REMEMBER: (1) `CAL_GATE_SECRET`/`CAL_GATE_USERS` are shared with
