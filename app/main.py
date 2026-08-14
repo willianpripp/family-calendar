@@ -95,6 +95,16 @@ alter table events add column if not exists sticker text not null default '';
 -- pattern, and general recurrence machinery for it would be all cost.
 alter table events add column if not exists repeats_yearly boolean not null default false;
 
+-- Standalone reminders, Willian's order of 2026-08-14: to-dos with a due date
+-- ("matricula until the 19th"), not appointments with an hour. They reuse the
+-- events table because every view and the reminder loop already know how to
+-- carry an all-day row; a second table would mean a second copy of all of it.
+-- acknowledged_at is the nag's off switch: null means still owed, and the
+-- 09:00 daily nag keeps coming (even past the due date) until it is set.
+alter table events add column if not exists item_kind text not null default 'event'
+  check (item_kind in ('event','reminder'));
+alter table events add column if not exists acknowledged_at timestamptz;
+
 -- One row per reminder actually delivered, so a restart cannot send it twice.
 -- `on delete cascade` because a deleted event should take its history with it,
 -- and because without it a re-used id could inherit someone else's reminders.
