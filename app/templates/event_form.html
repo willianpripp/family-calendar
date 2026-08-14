@@ -5,6 +5,7 @@
   <h1>{{ 'Edit event' if ev and ev.get('id') else 'New event' }}</h1>
 </div><a class="ghost" href="{{ back }}">Cancel</a></div>
 
+<div class="pagebox">
 {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
 
 {% if conflicts %}
@@ -122,6 +123,7 @@
   <button type="submit" class="danger">Delete</button>
 </form>
 {% endif %}
+</div>
 
 <script>
   // Show the timed or the whole-day fields, never both. Plain JS on purpose:

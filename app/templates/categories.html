@@ -4,6 +4,7 @@
 <div class="viewhead"><div class="pager"><h1>Categories</h1></div>
   <a class="ghost" href="{{ back }}">Back</a></div>
 
+<div class="pagebox">
 <p class="hint">A category's colour wins over the owner colour on the calendar.
 Deleting one never deletes events: they keep their place and fall back to the
 owner colour.</p>
@@ -37,6 +38,7 @@ common form of colour blindness.</p>
   {% for hex, name in palette %}
   <span class="bigswatch" style="background: {{ hex }}" title="{{ name }} {{ hex }}"></span>
   {% endfor %}
+</div>
 </div>
 {% endblock %}
 

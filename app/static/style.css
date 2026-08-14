@@ -365,7 +365,7 @@ main {
 .uprow .where { font-weight: 400; color: var(--muted); }
 .uprow .who { grid-area: who; align-self: center; font-size: .86rem; color: var(--muted); text-align: right; }
 .uprow .cat { display: block; color: var(--ev); font-weight: 600; }
-.empty { color: var(--text); }
+.empty { color: var(--text); text-shadow: 0 2px 10px rgba(0, 0, 0, .85); }
 
 /* --- right rail ------------------------------------------------------------ */
 
@@ -406,6 +406,19 @@ main {
 .holiday-swatch { background: var(--holiday); }
 
 /* --- forms ----------------------------------------------------------------- */
+
+/* Every page that is mostly text or form fields sits on this panel. Bare
+   labels over the month's photograph are unreadable (Willian, 2026-08-14,
+   with arrows drawn on a screenshot); the calendar views carry their own
+   surfaces, these pages borrow one here. */
+.pagebox {
+  background: color-mix(in oklab, var(--surface) 94%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  max-width: 700px;
+}
 
 .event-form { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
 .event-form label, .catrow label { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--muted); }
