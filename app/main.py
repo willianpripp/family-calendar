@@ -201,6 +201,13 @@ def reminder_tick() -> int:
             if not delivered:
                 # Left unrecorded on purpose, so the next tick retries. If
                 # Telegram is down for hours, GRACE eventually gives up.
+                # Loudly, though: a silent retry loop reads exactly like a
+                # loop that is not running, and on 2026-08-14 that cost an
+                # hour of debugging pointed at the wrong suspect. A missed
+                # delivery of a reminder is the one failure this app exists
+                # to prevent; it does not get to be quiet about it.
+                print(f"reminders: delivery FAILED for event {ev['id']}"
+                      f" kind {kind} owner {ev['owner']}", flush=True)
                 continue
             conn.execute(
                 "insert into reminders_sent (event_id, kind) values (%s, %s)"
