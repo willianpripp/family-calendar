@@ -1,9 +1,10 @@
 # STATUS
 
-**Where it stands (2026-08-13):** live, in daily use. Built 2026-08-07; split
+**Where it stands (2026-08-14):** live, in daily use. Built 2026-08-07; split
 out of `homelab`, given per-person pictures, browser uploads, Telegram
-reminders, yearly repetition and the veil control on 08-08. **The plan lives in
-`OBJECTIVES.md`**; nothing is being built until Willian orders it.
+reminders, yearly repetition and the veil control on 08-08; standalone
+reminders with the daily nag on 08-14. **The plan lives in `OBJECTIVES.md`**;
+nothing is being built until Willian orders it.
 
 **There is real household data in it** (a Pensacola trip, flights, a Guns N'
 Roses show), so treat the database as production. See the README.
@@ -18,6 +19,22 @@ Telegram failure, and yearly events re-remind every year (`day@2027` keys).
 Config is `CAL_TELEGRAM_TOKEN` + `CAL_TELEGRAM_CHATS` in the host `.env`; chat
 names must equal the owner values. The loop lives in the app process and says
 so at startup if unconfigured.
+
+**Standalone reminders with a daily nag** (2026-08-14, Willian's items 1 and 4
+of 08-13): a "Reminder / to-do" checkbox on the event form for things that are
+owed rather than scheduled ("matricula until the 19th"). One due date, no hour.
+The item sits on its due day only and never takes part in the overlap warning
+in either direction: a to-do does not double-book a day. The bot nags at 09:00
+every day from creation until someone presses the checkbox next to the title
+(any view has it), and passing the due date does not silence it: the item turns
+red, surfaces in a "Needs attention" section at the top of Upcoming, and keeps
+nagging. The OK is a toggle, so a misclick is undone by one more click; edits
+re-arm reminders as usual but never touch the acknowledgement. Sent-keys are
+per day (`nag@2026-08-19`), the same idea as the yearly `day@2027` keys.
+Yearly repetition is refused for reminders, in the form and in the handler: a
+projected occurrence copies `acknowledged_at` forward, so a yearly to-do
+acknowledged once would silently never nag again. The nag text stays Portuguese
+like its siblings until the move to English happens as its own step.
 
 **Yearly repetition** (same day): a checkbox on the event form, for birthdays
 and anniversaries by Willian's scoping (bills live in the finances app). One
