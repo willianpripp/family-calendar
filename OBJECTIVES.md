@@ -13,16 +13,9 @@ messages, English bot messages, nag until acknowledged) were ordered and
 delivered 2026-08-14; see `STATUS.md`. Of what remains, he has not said which
 (or the rail below) goes first; ask before building.
 
-4. **The OK inside Telegram**, the deferred half of the nag decision: inline
-   keyboard, the bot starts receiving. The calendar-UI OK shipped 2026-08-14
-   as v1. Willian asked for it again the same evening ("a button to answer
-   the bot that I already did that"), so it is next in line among the bot
-   items. Shape: nag messages carry one inline "Done" button
-   (callback_data = event id); the reminder loop polls getUpdates on its own
-   tick, accepts callbacks only from the two known chat ids, sets
-   acknowledged_at exactly like the calendar's OK toggle, then confirms in
-   the chat and strikes the button from the message. Worst-case confirmation
-   lag is one tick.
+4. **The OK inside Telegram: DELIVERED 2026-08-14 (night)**, together with the
+   "Not yet" button. See `STATUS.md` ("The nag answers back") for the shape
+   and for why long polling is load-bearing there.
 5. **A real phone experience** (shared requirement with House Finances, and
    likely future apps). The web version is good on a monitor and clumsy on the
    phones. Possibly a separate phone-shaped UI for the same app, chosen by
@@ -81,13 +74,9 @@ and aline, the hashes in the host `.env` are the only place to touch.
 
 ## Ideas raised, not ordered
 
-- **A "Not yet" button beside Done on the nags** (Willian, 2026-08-14 evening,
-  not ratified). Behaviourally identical to ignoring the message (the nag
-  returns tomorrow regardless); its value is closure and telling "seen and
-  deferred" apart from "never saw it". Stateless v1: toast "asking again
-  tomorrow", strip the buttons, change nothing in the database. Real snoozing
-  ("remind me Monday") is a separate, stateful design, deliberately not this.
-
+- Real snoozing for the nags ("remind me Monday"): stateful, needs a date
+  column and its own design. The stateless "Not yet" button shipped
+  2026-08-14 is deliberately not this.
 - A continuous bar for multi-day trips, instead of the title repeating in each
   cell.
 - A read-only iCal feed, so Aline's phone subscribes in the app she already

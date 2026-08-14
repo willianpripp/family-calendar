@@ -42,6 +42,19 @@ English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
 says which of the two it is (Willian's ask, same day). Titles stay in
 whatever language they were written in.
 
+**The nag answers back** (2026-08-14, night): every nag message carries two
+inline buttons. **Done** runs the same acknowledgement as the calendar's
+checkbox, one direction only (un-acknowledging stays in the calendar UI, so a
+mispress in chat is always visible and reversible there). **Not yet** changes
+nothing on purpose, tomorrow's 09:00 nag was coming anyway; its toast is the
+entire feature, telling "seen and deferred" apart from "never saw it". The
+app long-polls getUpdates (`bot_loop`/`bot_tick`, offset persisted in
+`bot_state` so a restart cannot replay presses) and accepts callbacks only
+from the two chats in `CAL_TELEGRAM_CHATS`. Long polling is load-bearing:
+Telegram expires a press's toast about 30 seconds after the finger, and the
+first build polled every 60 seconds, which answered into the void and read
+as "nothing happened" on the phone. Learned live.
+
 **Richer messages** (2026-08-14, item 2): the message reads like the calendar
 entry: when-line, sticker riding the title, location, notes (capped at 200
 characters), category, "(both of you)" for Both. Empty fields simply do not
