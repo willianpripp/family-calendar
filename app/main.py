@@ -189,9 +189,12 @@ def reminder_tick() -> int:
         }
         for ev, kind, stored_kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
             text = reminders.compose(ev, kind, HOUSEHOLD_TZ, now)
-            # A nag carries its Done button; pressing it is the same act as
-            # the calendar's checkbox (see bot_tick).
-            buttons = ([[{"text": "Done", "callback_data": f"ack:{ev['id']}"}]]
+            # A nag carries its buttons: Done is the calendar's checkbox, and
+            # "Not yet" is deliberately a no-op with a voice (see bot_tick);
+            # ignoring the message means the same thing, but a pressed answer
+            # feels answered and says somebody actually saw it.
+            buttons = ([[{"text": "Done", "callback_data": f"ack:{ev['id']}"},
+                         {"text": "Not yet", "callback_data": f"later:{ev['id']}"}]]
                        if kind == "nag" else None)
             delivered = [c for c in reminders.recipients(ev["owner"])
                          if reminders.send(c, text, buttons)]
@@ -251,20 +254,28 @@ def bot_tick() -> int:
             msg = cb.get("message") or {}
             chat = (msg.get("chat") or {}).get("id")
             data = cb.get("data") or ""
-            if chat not in known or not data.startswith("ack:"):
+            if chat not in known:
+                continue
+            action, _, raw_id = data.partition(":")
+            if action not in ("ack", "later"):
                 continue
             try:
-                event_id = int(data[4:])
+                event_id = int(raw_id)
             except ValueError:
                 continue
-            done = conn.execute(
-                "update events set acknowledged_at = now()"
-                " where id = %s and item_kind = 'reminder'"
-                " and acknowledged_at is null",
-                (event_id,),
-            ).rowcount
-            acked += done
-            reminders.answer_callback(cb.get("id", ""), "Done ✓")
+            if action == "ack":
+                acked += conn.execute(
+                    "update events set acknowledged_at = now()"
+                    " where id = %s and item_kind = 'reminder'"
+                    " and acknowledged_at is null",
+                    (event_id,),
+                ).rowcount
+                reminders.answer_callback(cb.get("id", ""), "Done ✓")
+            else:
+                # "Not yet" changes nothing on purpose: tomorrow's 09:00 nag
+                # was coming anyway. The toast is the entire feature.
+                reminders.answer_callback(
+                    cb.get("id", ""), "OK, asking again tomorrow at 9")
             reminders.strip_buttons(chat, msg.get("message_id", 0))
         if new_offset != offset:
             conn.execute(
