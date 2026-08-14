@@ -327,6 +327,18 @@ async def lifespan(_: FastAPI):
                 "insert into categories (name, color, sort_order) values (%s, %s, %s)",
                 SEED_CATEGORIES,
             )
+        # Popcorn (the movie diary, 2026-08-15) watches /api/cinema for events
+        # in this category, so it must exist for Willian to pick. Checked
+        # case-insensitively because the unique index is not, and idempotent
+        # like everything else in here.
+        has_cinema = conn.execute(
+            "select 1 from categories where lower(name) = 'cinema'"
+        ).fetchone()
+        if not has_cinema:
+            conn.execute(
+                "insert into categories (name, color, sort_order) values"
+                " ('Cinema', '#B57BE0', 70) on conflict (name) do nothing"
+            )
     # In-process rather than a systemd timer on the host: it needs the same
     # database, the same timezone handling and the same event query the rest of
     # this module already has, and a second process would duplicate all three.
@@ -675,6 +687,30 @@ def _assign_lanes(cluster: list[dict]) -> None:
 
 
 # --- views --------------------------------------------------------------------
+
+
+@app.get("/api/cinema")
+def api_cinema() -> JSONResponse:
+    """Popcorn's feed (2026-08-15): events in the Cinema category, 60 days
+    back through the future. The id is Popcorn's dedupe key, so it must stay
+    stable; owner is the column verbatim. To-dos are excluded on purpose
+    ("buy the tickets" is not a movie you watched), and so are yearly
+    projections (same id every year would collide in a diary). Public
+    visitors meet the gate like any route; the LAN poller walks in."""
+    since = datetime.now(HOUSEHOLD_TZ) - timedelta(days=60)
+    with pool.connection() as conn:
+        rows = conn.execute(
+            EVENT_SELECT + " where lower(c.name) = 'cinema'"
+            " and e.item_kind = 'event' and not e.repeats_yearly"
+            " and e.starts_at >= %s order by e.starts_at, e.id",
+            (since,),
+        ).fetchall()
+    return JSONResponse([
+        {"id": r["id"], "title": r["title"],
+         "date": to_local(r["starts_at"]).date().isoformat(),
+         "owner": r["owner"]}
+        for r in rows
+    ])
 
 
 @app.get("/manifest.webmanifest")

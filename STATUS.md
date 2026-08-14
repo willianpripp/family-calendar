@@ -84,6 +84,13 @@ appear, so a bare to-do is still two lines. Colour is the one field left
 behind: a plain-text Telegram message has nowhere to put it, and the sticker
 plus category already carry the identity.
 
+**Feeds Popcorn (2026-08-15)**: `GET /api/cinema` returns the events in the
+Cinema category (created at startup if absent), 60 days back through the
+future, as `{id, title, date, owner}`. The id is Popcorn's dedupe key: stable
+forever. To-dos and yearly projections are excluded on purpose. Deleting an
+event here does not retro-delete a diary entry there; that is Popcorn's rule,
+not ours. The gate applies to public visitors; Popcorn polls over the LAN.
+
 **The app is subpath-aware and the portal is LIVE (2026-08-15)**: the
 homelab's router fronts the funnel; on the public hostname `/` is the family
 portal, `/calendar` is this app, and old public deep links 308-redirect to
