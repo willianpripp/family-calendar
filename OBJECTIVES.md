@@ -33,6 +33,14 @@ building.
 
 ## Ordered by Willian 2026-08-14: login for non-tailnet visitors
 
+**Built 2026-08-14, not yet live**: `app/gate.py`, the login page and the
+middleware are committed and unit-checked. What remains is host-side only:
+CAL_GATE_SECRET and CAL_GATE_USERS in the lab `.env` (hashes via
+`python3 app/gate.py 'the-password'`), then `make deploy`. Held back on
+purpose: deploying unconfigured fails closed and would wall off the funnel
+while calgate's popup still stands in front of it. calgate retires only after
+the gate is live and tested.
+
 The calendar is now reachable from the public internet
 (`https://home.example.ts.net:10000`, Tailscale Funnel) for Aline's
 work MacBook, which cannot run Tailscale. Today that path is guarded by a
