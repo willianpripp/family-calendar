@@ -68,11 +68,24 @@ files. Storage is `timestamptz`; every render converts through `CAL_TZ`
 ```
 app/main.py          routes, schema, event and category CRUD
 app/art.py           month number to background picture
+app/gate.py          the login for public (funnel) visitors; tailnet never sees it
 app/holidays.py      US federal + Georgia, Brasil + Rio Grande do Sul, all computed
 app/news.py          TMDB client for the cinema rail
-app/templates/       Jinja2, server-rendered, no JS framework
+app/reminders.py     Telegram: reminders, nags, the Done/Not yet buttons
+app/ui.py            which UI a device gets (desktop or phone)
+app/templates/       Jinja2, server-rendered, no JS framework (desktop UI)
+app/templates/phone/ the phone UI: same routes, same data, phone-shaped screens
 app/static/art/      the pictures, one per month (see the README there)
 ```
+
+## The two UIs are one app (Willian's rule, 2026-08-14)
+
+There is a desktop UI and a phone UI (chosen per device, overridable by
+cookie), and they are the same app: same routes, same context, two template
+sets. **Every new feature ships on BOTH UIs in the same change, and is tested
+on both** (Playwright device emulation covers the phones). A feature that
+exists only on the desktop is not done; do not merge it, do not deploy it.
+The phone UI is not a second product to fall behind: it is half of this one.
 
 ## Traps that have already cost a round each
 

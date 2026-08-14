@@ -42,6 +42,14 @@ English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
 says which of the two it is (Willian's ask, same day). Titles stay in
 whatever language they were written in.
 
+**The phone UI is being built (2026-08-14, night), option B by Willian's
+call**: a purpose-built phone experience (bottom tabs: Hoje, Mês, Cinema,
+Fotos; a today-first home; the month as stacked weeks; the floating + at the
+thumb), chosen per device with a cookie override, same routes and data as the
+desktop. **The standing rule that came with the decision: every new feature
+ships on both UIs in the same change and is tested on both.** It is written
+in the README as a convention; a desktop-only feature is not done.
+
 **What "on time" means here:** a reminder may arrive up to about five minutes
 after its nominal moment, the reminder loop's tick interval, by design. On
 2026-08-14 that tolerance was mistaken for a dead loop mid-demo (the check
