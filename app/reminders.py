@@ -28,6 +28,7 @@
 # absorbed it is gone.
 
 import colorsys
+import html
 import os
 import json
 import urllib.parse
@@ -81,9 +82,13 @@ def configured() -> bool:
 
 
 def send(chat_id: int, text: str) -> bool:
+    # HTML parse mode carries the bold first line compose() writes. Everything
+    # user-written in the message is escaped there; a title containing "<3"
+    # must never be able to break its own reminder.
     data = urllib.parse.urlencode({
         "chat_id": chat_id,
         "text": text,
+        "parse_mode": "HTML",
         "disable_web_page_preview": "true",
     }).encode()
     try:
@@ -174,16 +179,21 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     # phone. Colour is the one field left behind: a plain-text Telegram
     # message has nowhere to put it, and the sticker plus category already
     # carry the identity.
+    # The first line is bold (Willian, 2026-08-14) and send() speaks HTML for
+    # it, so every user-written field below is escaped: a "<3" in a title must
+    # never eat its own reminder.
+    lines[0] = f"<b>{lines[0]}</b>"
     sticker = (ev.get("sticker") or "").strip()
-    lines.append(f"{sticker} {ev['title']}" if sticker else ev["title"])
+    title = html.escape(ev["title"])
+    lines.append(f"{sticker} {title}" if sticker else title)
     if ev.get("location"):
-        lines.append(f"Location: {ev['location']}")
+        lines.append(f"Location: {html.escape(ev['location'])}")
     notes = (ev.get("notes") or "").strip()
     if notes:
-        lines.append(f"Notes: {notes if len(notes) <= 200 else notes[:200] + '…'}")
+        lines.append(f"Notes: {html.escape(notes if len(notes) <= 200 else notes[:200] + '…')}")
     if ev.get("category_name"):
         sq = swatch(ev.get("category_color") or "")
-        lines.append(f"Category: {sq} {ev['category_name']}".replace("  ", " "))
+        lines.append(f"Category: {sq} {html.escape(ev['category_name'])}".replace("  ", " "))
     if ev["owner"] == "Both":
         lines.append("(both of you)")
     return "\n".join(lines)
