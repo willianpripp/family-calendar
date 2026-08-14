@@ -107,35 +107,36 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     """Deliberately almost no chrome.
 
     The event's own title carries the meaning and it is written in whichever
-    language the household wrote it in. Wrapping it in a paragraph of English or
-    Portuguese would only add something to disagree with.
+    language the household wrote it in. The chrome around it is English, like
+    the app, since 2026-08-14 (Willian's item 3: it opened Portuguese and he
+    asked for the switch the first time he read one).
 
-    The nag line stays Portuguese like its siblings; the move to English is a
-    separate ratified item and will take all of them at once.
+    A nag opens with "Reminder:", his ask of the same day: the phone shows one
+    line, and that line must already say whether this is something scheduled
+    or something owed. Scheduled kinds carry no prefix, so the absence is the
+    other half of the signal.
     """
     start = ev["starts_at"].astimezone(tz)
     if kind == "nag":
-        # "Lembrete:" up front, Willian's ask of 2026-08-14: the phone shows
-        # one line, and that line must already say whether this is something
-        # scheduled or something owed. Scheduled kinds carry no prefix, so the
-        # absence is the other half of the signal.
         due_day = start.date()
         today = now.astimezone(tz).date()
         if today == due_day:
-            when = "Lembrete: hoje"
+            when = "Reminder: due today"
         elif today > due_day:
-            when = f"Lembrete: atrasado desde {due_day:%d/%m}"
+            when = f"Reminder: overdue since {due_day:%b %-d}"
         else:
-            when = f"Lembrete: ate {due_day:%d/%m}"
+            when = f"Reminder: due by {due_day:%b %-d}"
         lines = [when]
     else:
-        when = "Amanha" if kind == "day" else "Em 2 horas"
-        lines = [f"{when}, {start:%H:%M}" if not ev["all_day"] else f"{when}"]
+        when = "Tomorrow" if kind == "day" else "In 2 hours"
+        # The same clock the app writes: 7:00pm, meridiem always present.
+        at = f"{start:%-I:%M%p}".lower()
+        lines = [f"{when}, {at}" if not ev["all_day"] else f"{when}"]
     lines.append(ev["title"])
     if ev.get("location"):
         lines.append(ev["location"])
     if ev["owner"] == "Both":
-        lines.append("(os dois)")
+        lines.append("(both of you)")
     return "\n".join(lines)
 
 

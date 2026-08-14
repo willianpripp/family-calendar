@@ -33,8 +33,14 @@ re-arm reminders as usual but never touch the acknowledgement. Sent-keys are
 per day (`nag@2026-08-19`), the same idea as the yearly `day@2027` keys.
 Yearly repetition is refused for reminders, in the form and in the handler: a
 projected occurrence copies `acknowledged_at` forward, so a yearly to-do
-acknowledged once would silently never nag again. The nag text stays Portuguese
-like its siblings until the move to English happens as its own step.
+acknowledged once would silently never nag again.
+
+**Bot messages in English** (2026-08-14, item 3): everything the bot sends is
+English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
+"(both of you)"), same clock style as the app. A nag always opens with
+"Reminder:" and scheduled kinds never do, so one line on the phone already
+says which of the two it is (Willian's ask, same day). Titles stay in
+whatever language they were written in.
 
 **Yearly repetition** (same day): a checkbox on the event form, for birthdays
 and anniversaries by Willian's scoping (bills live in the finances app). One

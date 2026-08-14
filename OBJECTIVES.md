@@ -8,19 +8,15 @@ raised once and not yet ratified.
 
 ## Requested by Willian 2026-08-13, not yet ordered
 
-Items 1 and 4 of the original five (standalone reminders, nag until
-acknowledged) were ordered and delivered 2026-08-14; see `STATUS.md`. Of what
-remains, he has not said which (or the rail below) goes first; ask before
-building.
+Items 1, 3 and 4 of the original five (standalone reminders, English bot
+messages, nag until acknowledged) were ordered and delivered 2026-08-14; see
+`STATUS.md`. Of what remains, he has not said which (or the rail below) goes
+first; ask before building.
 
-2. **Richer Telegram messages.** Today the bot sends title and time only;
-   include the notes, the location, the category, and the event's sticker and
+2. **Richer Telegram messages.** Today the bot sends title, time and location
+   only; include the notes, the category, and the event's sticker and
    colour, so the message reads like the calendar entry. Confirmed 2026-08-13:
    "enriquecer legal msm".
-3. **Bot messages in English.** The app is English; the bot still says
-   "Amanha" / "Em 2 horas". Everything it sends moves to English. The new nag
-   lines ("Hoje", "Atrasado desde", "Ate") joined the Portuguese set on
-   2026-08-14 and move with the rest.
 4. **The OK inside Telegram**, the deferred half of the nag decision: inline
    keyboard, the bot starts receiving. The calendar-UI OK shipped 2026-08-14
    as v1.
