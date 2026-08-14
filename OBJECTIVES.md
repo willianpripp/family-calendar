@@ -81,6 +81,13 @@ and aline, the hashes in the host `.env` are the only place to touch.
 
 ## Ideas raised, not ordered
 
+- **A "Not yet" button beside Done on the nags** (Willian, 2026-08-14 evening,
+  not ratified). Behaviourally identical to ignoring the message (the nag
+  returns tomorrow regardless); its value is closure and telling "seen and
+  deferred" apart from "never saw it". Stateless v1: toast "asking again
+  tomorrow", strip the buttons, change nothing in the database. Real snoozing
+  ("remind me Monday") is a separate, stateful design, deliberately not this.
+
 - A continuous bar for multi-day trips, instead of the title repeating in each
   cell.
 - A read-only iCal feed, so Aline's phone subscribes in the app she already
