@@ -115,14 +115,18 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     """
     start = ev["starts_at"].astimezone(tz)
     if kind == "nag":
+        # "Lembrete:" up front, Willian's ask of 2026-08-14: the phone shows
+        # one line, and that line must already say whether this is something
+        # scheduled or something owed. Scheduled kinds carry no prefix, so the
+        # absence is the other half of the signal.
         due_day = start.date()
         today = now.astimezone(tz).date()
         if today == due_day:
-            when = "Hoje"
+            when = "Lembrete: hoje"
         elif today > due_day:
-            when = f"Atrasado desde {due_day:%d/%m}"
+            when = f"Lembrete: atrasado desde {due_day:%d/%m}"
         else:
-            when = f"Ate {due_day:%d/%m}"
+            when = f"Lembrete: ate {due_day:%d/%m}"
         lines = [when]
     else:
         when = "Amanha" if kind == "day" else "Em 2 horas"
