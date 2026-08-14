@@ -128,5 +128,5 @@
 .phone-ui .prel:last-child { border-bottom: 0; }
 .phone-ui .prel img { border-radius: 6px; flex: none; background: var(--surface-2); object-fit: cover; }
 .phone-ui .prel .t { min-width: 0; }
-.phone-ui .prel .t .name { font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.phone-ui .prel .t .meta { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.phone-ui .prel .t .name { display: block; font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-ui .prel .t .meta { display: block; color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }

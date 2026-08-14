@@ -35,6 +35,8 @@
   <div class="tools">
     <a class="ghost" href="/categories?back={{ here }}">Categories &amp; colours</a>
     <a class="ghost" href="/who?back={{ here }}">Pictures</a>
+    {# The door to the other UI; its twin lives at the phone UI's foot. #}
+    <form method="post" action="/ui" class="uiswitch"><input type="hidden" name="back" value="/today"><button type="submit" name="choice" value="phone" class="ghost" title="switch this device to the phone UI">📱</button></form>
     <a class="add" href="/events/new?back={{ here }}">+ Add</a>
   </div>
 </header>

@@ -102,6 +102,8 @@ body::after {
 .ghost { color: var(--muted); border: 1px solid var(--line); }
 .ghost:hover { color: var(--text); background: var(--surface-2); }
 .tools .ghost { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 55%, transparent); }
+.uiswitch { display: inline; margin: 0; }
+.uiswitch button { font: inherit; cursor: pointer; background: none; }
 
 /* On a desktop the app owns the viewport: the page itself never scrolls, and
  * the week grid scrolls inside its own box. That chain only holds if EVERY

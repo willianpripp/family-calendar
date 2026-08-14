@@ -42,13 +42,20 @@ English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
 says which of the two it is (Willian's ask, same day). Titles stay in
 whatever language they were written in.
 
-**The phone UI is being built (2026-08-14, night), option B by Willian's
-call**: a purpose-built phone experience (bottom tabs: Hoje, Mês, Cinema,
-Fotos; a today-first home; the month as stacked weeks; the floating + at the
-thumb), chosen per device with a cookie override, same routes and data as the
-desktop. **The standing rule that came with the decision: every new feature
-ships on both UIs in the same change and is tested on both.** It is written
-in the README as a convention; a desktop-only feature is not done.
+**The phone UI, v1 LIVE (2026-08-14, night), option B by Willian's call**: a
+purpose-built phone experience, chosen by user agent with a cookie override
+in both directions (`/ui`; the 📱 button on the desktop, "Desktop version" at
+the phone UI's foot). Bottom tabs Hoje / Mês / Cinema / Fotos; the home is
+today-first (open to-dos with their ☐ up top, then the days); the month is a
+tap-a-day grid with colour bars; the + floats at the thumb; installable from
+the browser (web manifest + icons), full-screen with its own icon. Same
+routes and context as the desktop, second template set under
+`templates/phone/`. **The standing rule that came with the decision: every
+new feature ships on both UIs in the same change and is tested on both.** It
+is written in the README as a convention; a desktop-only feature is not done.
+Still on the desktop templates for everyone, phone screens pending: the event
+form, Fotos (/who), categories, and there is deliberately no phone week view
+(the month's day-tap covers it).
 
 **What "on time" means here:** a reminder may arrive up to about five minutes
 after its nominal moment, the reminder loop's tick interval, by design. On
