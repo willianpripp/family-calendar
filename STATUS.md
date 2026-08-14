@@ -84,6 +84,20 @@ appear, so a bare to-do is still two lines. Colour is the one field left
 behind: a plain-text Telegram message has nowhere to put it, and the sticker
 plus category already carry the identity.
 
+**The app is subpath-aware (2026-08-15)**: the homelab's router fronts the
+funnel and announces a mount prefix in `X-Forwarded-Prefix` ("/calendar" on
+the public hostname, nothing on tailnet :8446 or LAN :3002, so those are
+byte-identical to before). Every emitted URL (links, redirects, static, the
+week view's drag JS) carries `{{ base }}`; the PWA manifest is generated per
+request so a public install opens at /calendar/, not at the portal. THREE
+THINGS TO REMEMBER: (1) `CAL_GATE_SECRET`/`CAL_GATE_USERS` are shared with
+the Groceries app (same values, same `cal_gate` cookie, one login for both,
+Willian's decision): rotating a password or the secret means updating BOTH
+hosts' `.env`s. (2) The router pins `trusted_proxies static 127.0.0.1/8` in
+caddy, or caddy REPLACES X-Forwarded-For and the gate sees loopback for
+everyone. (3) The manifest and the two icons are gate-exempt so the
+home-screen install works before sign-in; the family photos stay gated.
+
 **The front door for the internet** (2026-08-14, evening): the calendar is on
 the public internet (`https://home.example.ts.net:10000`, Tailscale
 Funnel) for Aline's work MacBook, and a visitor whose real address is public

@@ -5,18 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Family calendar{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📅</text></svg>">
-<link rel="manifest" href="/static/manifest.webmanifest?v={{ asset_v }}">
-<link rel="apple-touch-icon" href="/static/icon-192.png?v={{ asset_v }}">
+<link rel="manifest" href="{{ base }}/manifest.webmanifest">
+<link rel="apple-touch-icon" href="{{ base }}/static/icon-192.png?v={{ asset_v }}">
 <meta name="theme-color" content="#161C24">
 {# ?v= is a content hash of everything in static/. A deploy changes it, which
    changes the URL, which is the only cache-busting a browser cannot ignore. #}
-<link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
+<link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_v }}">
 {# The only thing that varies per page: which picture is behind the calendar.
    It cannot live in the stylesheet, because it changes every month. #}
 {# art.v is per-file, not the global asset hash: uploading a new October writes
    month-10.jpg again, so only the file's own mtime changes. The veil is the
    device's chosen transparency, cycled by the ◐ button; stylesheet default 72. #}
-<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; }</style>
+<style>:root { --month-art: url("{{ base }}/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; }</style>
 </head>
 {# No hx-boost. It swapped the body on navigation and left <head> alone, so the
    picture above kept whatever the first page loaded had: changing month
@@ -24,20 +24,20 @@
    a real navigation costs nothing and cannot desync. #}
 <body>
 <header class="top">
-  <a class="brand" href="/month">Casa</a>
+  <a class="brand" href="{{ base }}/month">Casa</a>
 
   <nav class="views">
-    <a href="/month" {% if view == 'month' %}class="active"{% endif %}>Month</a>
-    <a href="/week" {% if view == 'week' %}class="active"{% endif %}>Week</a>
-    <a href="/upcoming" {% if view == 'upcoming' %}class="active"{% endif %}>Upcoming</a>
+    <a href="{{ base }}/month" {% if view == 'month' %}class="active"{% endif %}>Month</a>
+    <a href="{{ base }}/week" {% if view == 'week' %}class="active"{% endif %}>Week</a>
+    <a href="{{ base }}/upcoming" {% if view == 'upcoming' %}class="active"{% endif %}>Upcoming</a>
   </nav>
 
   <div class="tools">
-    <a class="ghost" href="/categories?back={{ here }}">Categories &amp; colours</a>
-    <a class="ghost" href="/who?back={{ here }}">Pictures</a>
+    <a class="ghost" href="{{ base }}/categories?back={{ here }}">Categories &amp; colours</a>
+    <a class="ghost" href="{{ base }}/who?back={{ here }}">Pictures</a>
     {# The door to the other UI; its twin lives at the phone UI's foot. #}
-    <form method="post" action="/ui" class="uiswitch"><input type="hidden" name="back" value="/today"><button type="submit" name="choice" value="phone" class="ghost" title="switch this device to the phone UI">📱</button></form>
-    <a class="add" href="/events/new?back={{ here }}">+ Add</a>
+    <form method="post" action="{{ base }}/ui" class="uiswitch"><input type="hidden" name="back" value="/today"><button type="submit" name="choice" value="phone" class="ghost" title="switch this device to the phone UI">📱</button></form>
+    <a class="add" href="{{ base }}/events/new?back={{ here }}">+ Add</a>
   </div>
 </header>
 
@@ -58,7 +58,7 @@
    settings page. The file input is hidden and the form self-submits: pick a
    picture, and it is the background. #}
 {% block artbar %}
-<form class="artbar" method="post" action="/art/upload" enctype="multipart/form-data">
+<form class="artbar" method="post" action="{{ base }}/art/upload" enctype="multipart/form-data">
   <input type="hidden" name="month" value="{{ art_month }}">
   <input type="hidden" name="back" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
   <label class="artbar-btn">
@@ -69,13 +69,13 @@
   {# Only offered when the picture on screen is at YOUR level. Offering it for
      the shared picture is how the shared October got deleted by someone who
      meant to clear their own. #}
-  <button type="submit" class="artbar-btn plain" formaction="/veil"
+  <button type="submit" class="artbar-btn plain" formaction="{{ base }}/veil"
           title="How much the calendar hides the picture: each press shows more, then cycles">◐ {{ veil }}%</button>
   {% if art.level == 'own' %}
-  <button type="submit" class="artbar-btn plain" formaction="/art/remove"
+  <button type="submit" class="artbar-btn plain" formaction="{{ base }}/art/remove"
           title="Go back to the picture underneath">Reset</button>
   {% elif art.level == 'shared' and who.key is none %}
-  <button type="submit" class="artbar-btn plain" formaction="/art/remove"
+  <button type="submit" class="artbar-btn plain" formaction="{{ base }}/art/remove"
           onclick="return confirm('Remove the shared picture for this month? Everyone loses it, not just you.')"
           title="This is the shared picture: removing it affects both of you">Remove shared</button>
   {% endif %}

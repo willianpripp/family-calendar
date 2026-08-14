@@ -9,11 +9,11 @@
     {%- else %}to-do, due {{ 'today' if e.starts_local.date() == today else e.starts_local.strftime('%b %-d') }}{% endif %}
   </span>
   <span class="what">
-    <a href="/events/{{ e.id }}/edit?back={{ here }}">{% if e.sticker %}<span class="stk">{{ e.sticker }}</span> {% endif %}{{ e.title }}</a>
+    <a href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">{% if e.sticker %}<span class="stk">{{ e.sticker }}</span> {% endif %}{{ e.title }}</a>
     {% if e.location %}<span class="where">@ {{ e.location }}</span>{% endif %}
   </span>
   <span class="who">
-    <form method="post" action="/events/{{ e.id }}/ack" class="ack-form">
+    <form method="post" action="{{ base }}/events/{{ e.id }}/ack" class="ack-form">
       <input type="hidden" name="back" value="{{ here_plain }}">
       <button type="submit" class="ack-box"
               title="{{ 'done, press to reopen' if e.acknowledged_at else 'press when done' }}">{{ '☑' if e.acknowledged_at else '☐' }}</button>

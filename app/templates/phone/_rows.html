@@ -5,16 +5,16 @@
 {% for e in rows_events %}
 {% if e.item_kind == 'reminder' %}
 <div class="prow{% if e.acknowledged_at %} done{% elif e.starts_local.date() < today %} overdue{% endif %}" style="--ev: {{ e.color }}">
-  <form method="post" action="/events/{{ e.id }}/ack" class="ack-form">
+  <form method="post" action="{{ base }}/events/{{ e.id }}/ack" class="ack-form">
     <input type="hidden" name="back" value="{{ here_plain }}">
     <button type="submit" class="ack-box"
             title="{{ 'done, press to reopen' if e.acknowledged_at else 'press when done' }}">{{ '☑' if e.acknowledged_at else '☐' }}</button>
   </form>
-  <a class="grow" href="/events/{{ e.id }}/edit?back={{ here }}">{% if e.sticker %}{{ e.sticker }} {% endif %}{{ e.title }}</a>
+  <a class="grow" href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">{% if e.sticker %}{{ e.sticker }} {% endif %}{{ e.title }}</a>
   <span class="when">{% if e.acknowledged_at %}done{% elif e.starts_local.date() < today %}late {{ e.starts_local.strftime('%b %-d') }}{% elif e.starts_local.date() == today %}today{% else %}{{ e.starts_local.strftime('%b %-d') }}{% endif %}</span>
 </div>
 {% else %}
-<a class="prow" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
+<a class="prow" style="--ev: {{ e.color }}" href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">
   <span class="dot"></span>
   <span class="grow">{% if e.sticker %}{{ e.sticker }} {% endif %}{{ e.title }}{% if e.location %} <span class="loc">· {{ e.location }}</span>{% endif %}</span>
   <span class="when">{% if e.all_day %}all day{% else %}{{ e.starts_local | shorttime }}{% endif %}</span>

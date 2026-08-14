@@ -3,12 +3,12 @@
 {% block content %}
 <div class="viewhead">
   <div class="pager">
-    <a href="/week?d={{ prev }}" aria-label="previous week">&larr;</a>
+    <a href="{{ base }}/week?d={{ prev }}" aria-label="previous week">&larr;</a>
     <h1>{{ label }}</h1>
-    <a href="/week?d={{ next }}" aria-label="next week">&rarr;</a>
+    <a href="{{ base }}/week?d={{ next }}" aria-label="next week">&rarr;</a>
   </div>
   <span class="hint-inline">Click an hour, or drag across several, to add an event</span>
-  <a class="ghost" href="/week">This week</a>
+  <a class="ghost" href="{{ base }}/week">This week</a>
 </div>
 
 <div class="weekwrap">
@@ -20,7 +20,7 @@
     {% for d in week %}
     <div class="wday{% if d == today %} today{% endif %}{% if holidays.get(d) %} holiday{% endif %}">
       <span class="wdow">{{ d.strftime('%a') }}</span>
-      <a class="wnum" href="/events/new?day={{ d.isoformat() }}&back={{ here }}">{{ d.day }}</a>
+      <a class="wnum" href="{{ base }}/events/new?day={{ d.isoformat() }}&back={{ here }}">{{ d.day }}</a>
     </div>
     {% endfor %}
   </div>
@@ -36,7 +36,7 @@
       {% if e.item_kind == 'reminder' %}
       {% include "_reminder_chip.html" %}
       {% else %}
-      <a class="event allday" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
+      <a class="event allday" style="--ev: {{ e.color }}" href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">
         {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}<span class="ttl">{{ e.title }}</span>
       </a>
       {% endif %}
@@ -55,12 +55,12 @@
     <div class="daycol{% if d == today %} today{% endif %}" data-day="{{ d.isoformat() }}">
       {# Every hour is a link, so a plain click still works with no JavaScript
          at all. The drag handler below upgrades that to a range. #}
-      {% for h in hours %}<a class="hourline" href="/events/new?day={{ d.isoformat() }}&hour={{ h }}&back={{ here }}"
+      {% for h in hours %}<a class="hourline" href="{{ base }}/events/new?day={{ d.isoformat() }}&hour={{ h }}&back={{ here }}"
          title="new event at {{ '%d%s' | format(12 if h % 12 == 0 else h % 12, 'am' if h < 12 else 'pm') }} on {{ d.strftime('%a %b %-d') }}"></a>{% endfor %}
       {% for e in timed[d] %}
       <a class="wevent" style="--ev: {{ e.color }}; top: {{ '%.3f' | format(e.top_pct) }}%; height: {{ '%.3f' | format(e.height_pct) }}%; left: {{ '%.3f' | format(e.left_pct) }}%; width: {{ '%.3f' | format(e.width_pct) }}%"
          title="{{ e.title }} · {{ e.starts_local.strftime('%-I:%M%p') | lower }}–{{ e.ends_local.strftime('%-I:%M%p') | lower }} · {{ e.owner }}"
-         href="/events/{{ e.id }}/edit?back={{ here }}">
+         href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">
         <span class="wt">{{ e.starts_local | shorttime }}</span>
         {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}
         <span class="ttl">{{ e.title }}</span>
@@ -90,6 +90,7 @@
   var HOUR = parseFloat(getComputedStyle(document.documentElement)
                           .getPropertyValue('--hour-h')) || 52;
   var BACK = {{ here | tojson }};
+  var APP = {{ base | tojson }};
 
   grid.querySelectorAll('.daycol').forEach(function (col) {
     var box = null, anchorHour = null, dragged = false;
@@ -140,7 +141,7 @@
       clear();
       if (!wasDrag) { dragged = false; return; }  // a click: let the anchor work
       ev.preventDefault();
-      window.location.href = '/events/new?day=' + col.dataset.day +
+      window.location.href = APP + '/events/new?day=' + col.dataset.day +
         '&hour=' + lo + '&until=' + (hi + 1) + '&back=' + encodeURIComponent(BACK);
     });
 

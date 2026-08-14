@@ -11,20 +11,20 @@ owner colour.</p>
 
 <div class="catgrid">
   {% for c in categories %}
-  <form method="post" action="/categories/save" class="catrow">
+  <form method="post" action="{{ base }}/categories/save" class="catrow">
     <input type="hidden" name="category_id" value="{{ c.id }}">
     <input type="color" name="color" value="{{ c.color }}" aria-label="colour for {{ c.name }}">
     <input type="text" name="name" value="{{ c.name }}" maxlength="40" aria-label="name">
     <span class="count">{{ counts.get(c.id, 0) }} event{{ '' if counts.get(c.id, 0) == 1 else 's' }}</span>
     <button type="submit" class="small">Save</button>
-    <button type="submit" class="small danger" formaction="/categories/{{ c.id }}/delete"
+    <button type="submit" class="small danger" formaction="{{ base }}/categories/{{ c.id }}/delete"
             onclick="return confirm('Delete the category {{ c.name }}? Its events stay.')">Delete</button>
   </form>
   {% endfor %}
 </div>
 
 <h2 class="panel-sub">Add one</h2>
-<form method="post" action="/categories/save" class="catrow new">
+<form method="post" action="{{ base }}/categories/save" class="catrow new">
   <input type="color" name="color" value="#7A82E0" aria-label="colour">
   <input type="text" name="name" placeholder="Name" maxlength="40" required aria-label="name">
   <button type="submit" class="small primary">Add</button>

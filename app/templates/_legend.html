@@ -10,7 +10,7 @@
     {% for c in categories %}
     <li><span class="swatch" style="background: {{ c.color }}"></span>{{ c.name }}</li>
     {% else %}
-    <li class="panel-note">None yet. <a href="/categories">Add some</a>.</li>
+    <li class="panel-note">None yet. <a href="{{ base }}/categories">Add some</a>.</li>
     {% endfor %}
   </ul>
 

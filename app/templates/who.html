@@ -20,7 +20,7 @@
   tailnet. That is the value to put in <code>CAL_DEVICES</code> if this device
   should be recognised on its own.</p>
 
-  <form method="post" action="/who" class="catrow new">
+  <form method="post" action="{{ base }}/who" class="catrow new">
     <input type="hidden" name="back" value="{{ back }}">
     {% for key, name in people.items() %}
     <button type="submit" name="who" value="{{ key }}"
@@ -42,18 +42,18 @@ inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
 <div class="artgrid">
   {% for m, month_name, a in months %}
   <figure class="artcell">
-    <img src="/static/art/{{ a.file }}?v={{ a.v }}" alt="" loading="lazy">
+    <img src="{{ base }}/static/art/{{ a.file }}?v={{ a.v }}" alt="" loading="lazy">
     <figcaption>{{ m }}. {{ month_name }}{% if a.credit %} <span class="hint">painting</span>{% endif %}</figcaption>
-    <form method="post" action="/art/upload" enctype="multipart/form-data">
+    <form method="post" action="{{ base }}/art/upload" enctype="multipart/form-data">
       <input type="hidden" name="month" value="{{ m }}">
-      <input type="hidden" name="back" value="/who">
+      <input type="hidden" name="back" value="{{ base }}/who">
       <label class="artbar-btn">
         <input type="file" name="file" accept="{{ art_accept }}" hidden
                onchange="this.form.submit()">Set</label>
       {% if a.level == 'own' %}
-      <button type="submit" class="artbar-btn" formaction="/art/remove">Clear</button>
+      <button type="submit" class="artbar-btn" formaction="{{ base }}/art/remove">Clear</button>
       {% elif a.level == 'shared' and who.key is none %}
-      <button type="submit" class="artbar-btn" formaction="/art/remove"
+      <button type="submit" class="artbar-btn" formaction="{{ base }}/art/remove"
               onclick="return confirm('Remove the shared picture for month {{ m }}? Everyone loses it.')">Clear shared</button>
       {% endif %}
     </form>

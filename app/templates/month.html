@@ -3,11 +3,11 @@
 {% block content %}
 <div class="viewhead">
   <div class="pager">
-    <a href="/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">&larr;</a>
+    <a href="{{ base }}/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">&larr;</a>
     <h1>{{ month_name }} <span class="yr">{{ year }}</span></h1>
-    <a href="/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">&rarr;</a>
+    <a href="{{ base }}/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">&rarr;</a>
   </div>
-  <a class="ghost" href="/month">Today</a>
+  <a class="ghost" href="{{ base }}/month">Today</a>
 </div>
 
 <div class="grid month" role="grid">
@@ -20,7 +20,7 @@
     {% set hol = holidays.get(d) %}
     <div class="day{% if d.month != month %} pad{% endif %}{% if d == today %} today{% endif %}{% if hol %} holiday{% endif %}">
       <div class="dayhead">
-        <a class="daynum" href="/events/new?day={{ d.isoformat() }}&back={{ here }}"
+        <a class="daynum" href="{{ base }}/events/new?day={{ d.isoformat() }}&back={{ here }}"
            title="add an event on {{ d.isoformat() }}">{{ d.day }}</a>
       </div>
 
@@ -40,7 +40,7 @@
       {% else %}
       <a class="event{% if e.all_day %} allday{% endif %}" title="{{ e.title }}{% if e.category_name %} · {{ e.category_name }}{% endif %} · {{ e.owner }}"
          style="--ev: {{ e.color }}"
-         href="/events/{{ e.id }}/edit?back={{ here }}">
+         href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">
         {% if e.sticker %}<span class="stk">{{ e.sticker }}</span>{% endif %}
         {% if not e.all_day and e.starts_local.date() == d %}<span class="t">{{ e.starts_local | shorttime }}</span>{% endif %}
         <span class="ttl">{{ e.title }}</span>

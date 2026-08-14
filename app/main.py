@@ -375,14 +375,18 @@ async def front_door(request: Request, call_next):
     the healthcheck and the homelab monitor, and answers "ok" to anyone."""
     path = request.url.path
     if (
-        path in ("/login", "/health")
-        or path == "/static/style.css"
+        path in ("/login", "/health", "/manifest.webmanifest")
+        # The stylesheet dresses the login page; the icons and manifest make
+        # the home-screen install work before sign-in. None of them reveal a
+        # thing; the family photos under the rest of /static stay gated.
+        or path in ("/static/style.css", "/static/icon-192.png", "/static/icon-512.png")
         or gate.trusted(request)
         or gate.session_user(request)
     ):
         return await call_next(request)
     q = f"?{request.url.query}" if request.url.query else ""
-    return RedirectResponse(f"/login?next={quote(path + q)}", status_code=303)
+    base = prefix(request)
+    return RedirectResponse(f"{base}/login?next={quote(base + path + q)}", status_code=303)
 
 
 def _asset_version() -> str:
@@ -587,10 +591,21 @@ def veil_from(request: Request) -> int:
     return v if v in VEIL_STEPS else VEIL_STEPS[0]
 
 
+def prefix(request: Request) -> str:
+    """The path this app is mounted under, as announced by the homelab's
+    router (2026-08-15): empty on the tailnet and LAN, "/calendar" behind the
+    public portal. The router strips it before proxying, so routes never see
+    it; every URL we EMIT (links, redirects, the manifest) must carry it, or
+    a public visitor's click walks out of the app."""
+    return request.headers.get("x-forwarded-prefix", "").rstrip("/")
+
+
 def base_context(request: Request, view: str, month: int) -> dict:
     who = whois(request)
-    path_q = str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")
+    base = prefix(request)
+    path_q = base + str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")
     return {
+        "base": base,
         "view": view,
         "who": who,
         "veil": veil_from(request),
@@ -662,6 +677,24 @@ def _assign_lanes(cluster: list[dict]) -> None:
 # --- views --------------------------------------------------------------------
 
 
+@app.get("/manifest.webmanifest")
+def manifest(request: Request) -> JSONResponse:
+    """The PWA manifest, generated rather than static, because start_url must
+    carry the mount prefix: a phone that installed the app from the public
+    portal must open at /calendar/, not at the portal's front page."""
+    base = prefix(request)
+    return JSONResponse({
+        "name": "Casa", "short_name": "Casa",
+        "description": "The family calendar",
+        "start_url": f"{base}/", "display": "standalone",
+        "background_color": "#161C24", "theme_color": "#161C24",
+        "icons": [
+            {"src": f"{base}/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": f"{base}/static/icon-512.png", "sizes": "512x512", "type": "image/png"},
+        ],
+    }, media_type="application/manifest+json")
+
+
 @app.get("/health")
 def health() -> JSONResponse:
     """LOAD-BEARING and deliberately cheap: the homelab's app_health role
@@ -691,7 +724,7 @@ def render(request: Request, name: str, ctx: dict):
 def root(request: Request) -> RedirectResponse:
     # The phone opens on today; the monitor opens on the month. Each device
     # lands on the view it is actually held in front of.
-    return RedirectResponse("/today" if ui.is_phone(request) else "/month",
+    return RedirectResponse(prefix(request) + ("/today" if ui.is_phone(request) else "/month"),
                             status_code=307)
 
 
@@ -819,7 +852,7 @@ def today_view(request: Request):
     """The phone's home: what is owed, what is today, what is next. A desktop
     asking for it gets Upcoming, its nearest relative."""
     if not ui.is_phone(request):
-        return RedirectResponse("/upcoming", status_code=307)
+        return RedirectResponse(prefix(request) + "/upcoming", status_code=307)
     now = datetime.now(HOUSEHOLD_TZ)
     by_day, overdue = agenda(now, 14)
     # Every open to-do in one card up top, wherever its due date lives:
@@ -841,7 +874,7 @@ def cinema_view(request: Request):
     """The rail as a phone tab. A desktop asking gets the month, where the
     rail already lives."""
     if not ui.is_phone(request):
-        return RedirectResponse("/month", status_code=307)
+        return RedirectResponse(prefix(request) + "/month", status_code=307)
     today = today_local()
     ctx = base_context(request, "cinema", today.month)
     ctx.update(releases=news.releases(today.year, today.month, today))
@@ -1016,7 +1049,8 @@ def save_event(
     # Land on the month the event is in, which is not necessarily the one the
     # form was opened from.
     local = to_local(starts_at)
-    return RedirectResponse(f"/month?y={local.year}&m={local.month}", status_code=303)
+    return RedirectResponse(f"{prefix(request)}/month?y={local.year}&m={local.month}",
+                            status_code=303)
 
 
 @app.post("/events/{event_id}/delete")
@@ -1049,16 +1083,18 @@ def toggle_ack(event_id: int, back: str = Form("/month")):
 # --- the front door (funnel visitors only; see gate.py) ------------------------
 
 
-def _safe_next(n: str) -> str:
+def _safe_next(request: Request, n: str) -> str:
     """Only same-app paths: a full URL or scheme-relative //host in `next`
-    would turn the login into an open redirect."""
-    return n if n.startswith("/") and not n.startswith("//") else "/month"
+    would turn the login into an open redirect. `next` values built by the
+    middleware already carry the mount prefix; only the fallback needs it."""
+    return n if n.startswith("/") and not n.startswith("//") else prefix(request) + "/month"
 
 
 def _login_ctx(request: Request, nxt: str, error: str | None) -> dict:
     return {
         "request": request,
-        "next": _safe_next(nxt),
+        "base": prefix(request),
+        "next": _safe_next(request, nxt),
         "error": error,
         "configured": gate.configured(),
         "people": PEOPLE,
@@ -1070,7 +1106,7 @@ def _login_ctx(request: Request, nxt: str, error: str | None) -> dict:
 def login_form(request: Request, next: str = "/month"):
     # A tailnet device or an existing session has no business at the door.
     if gate.trusted(request) or gate.session_user(request):
-        return RedirectResponse(_safe_next(next), status_code=303)
+        return RedirectResponse(_safe_next(request, next), status_code=303)
     return templates.TemplateResponse(request, "login.html", _login_ctx(request, next, None))
 
 
@@ -1087,7 +1123,7 @@ def login_submit(request: Request, who: str = Form(""), password: str = Form("")
         systime.sleep(1)
         return templates.TemplateResponse(
             request, "login.html", _login_ctx(request, next, "Wrong name or password."))
-    resp = RedirectResponse(_safe_next(next), status_code=303)
+    resp = RedirectResponse(_safe_next(request, next), status_code=303)
     resp.set_cookie(gate.COOKIE, gate.mint(who), max_age=gate.SESSION_DAYS * 86400,
                     httponly=True, samesite="lax", secure=True)
     # Logging in also says whose pictures these are, same contract as /who.
@@ -1115,11 +1151,11 @@ def categories_view(request: Request, back: str = "/month"):
 
 
 @app.post("/categories/save")
-def save_category(name: str = Form(""), color: str = Form("#4F86E5"),
+def save_category(request: Request, name: str = Form(""), color: str = Form("#4F86E5"),
                   category_id: str = Form("")):
     name = name.strip()[:40]
     if not name:
-        return RedirectResponse("/categories", status_code=303)
+        return RedirectResponse(prefix(request) + "/categories", status_code=303)
     with pool.connection() as conn:
         if category_id:
             conn.execute(
@@ -1134,17 +1170,17 @@ def save_category(name: str = Form(""), color: str = Form("#4F86E5"),
                 " on conflict (name) do update set color = excluded.color",
                 (name, color),
             )
-    return RedirectResponse("/categories", status_code=303)
+    return RedirectResponse(prefix(request) + "/categories", status_code=303)
 
 
 @app.post("/categories/{category_id}/delete")
-def delete_category(category_id: int):
+def delete_category(request: Request, category_id: int):
     # Events keep their place and fall back to the owner colour, because
     # `on delete set null` is on the column. Deleting a category must never
     # delete anything from the calendar itself.
     with pool.connection() as conn:
         conn.execute("delete from categories where id = %s", (category_id,))
-    return RedirectResponse("/categories", status_code=303)
+    return RedirectResponse(prefix(request) + "/categories", status_code=303)
 
 
 # --- who is looking -----------------------------------------------------------

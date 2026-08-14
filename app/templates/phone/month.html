@@ -3,9 +3,9 @@
 {% block content %}
 
 <div class="pmonth-nav">
-  <a href="/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">‹</a>
+  <a href="{{ base }}/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">‹</a>
   {{ month_name }} <span class="yr">{{ year }}</span>
-  <a href="/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">›</a>
+  <a href="{{ base }}/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">›</a>
 </div>
 
 <div class="pdow">
@@ -18,7 +18,7 @@
   {# Tap a day, it opens below. Up to three colour bars then a +n; the full
      stack is one tap away, which on this screen size beats squeezing text. #}
   <a class="pday{% if d.month != month %} pad{% endif %}{% if d == today %} today{% endif %}{% if d == sel %} sel{% endif %}{% if holidays.get(d) %} holiday{% endif %}"
-     href="/month?y={{ year }}&m={{ month }}&sel={{ d.isoformat() }}">
+     href="{{ base }}/month?y={{ year }}&m={{ month }}&sel={{ d.isoformat() }}">
     <span class="n">{{ d.day }}</span>
     <span class="pbars">
       {% for e in days[d][:3] %}<i style="--ev: {{ e.color }}"></i>{% endfor %}
@@ -37,7 +37,7 @@
   {% with rows_events = sel_events %}{% include "phone/_rows.html" %}{% endwith %}
   {% else %}
   <div class="prow"><span class="grow" style="color: var(--muted); font-weight: 400">Nothing this day.</span>
-    <a class="when" href="/events/new?day={{ sel.isoformat() }}&back={{ here }}">add ›</a></div>
+    <a class="when" href="{{ base }}/events/new?day={{ sel.isoformat() }}&back={{ here }}">add ›</a></div>
   {% endif %}
 </div>
 

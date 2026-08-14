@@ -29,7 +29,7 @@
   {% if e.item_kind == 'reminder' %}
   {% include "_reminder_uprow.html" %}
   {% else %}
-  <a class="uprow" style="--ev: {{ e.color }}" href="/events/{{ e.id }}/edit?back={{ here }}">
+  <a class="uprow" style="--ev: {{ e.color }}" href="{{ base }}/events/{{ e.id }}/edit?back={{ here }}">
     <span class="when">
       {% if e.all_day %}
         all day{% if e.last_day_local != e.starts_local.date() %} → {{ e.last_day_local.strftime('%b %-d') }}{% endif %}

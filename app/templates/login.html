@@ -7,7 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in — Family calendar</title>
-  <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
+  <link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_v }}">
   <style>
     .gatewrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
     .gatebox { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line);
@@ -27,7 +27,7 @@
       {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
 
       {% if configured %}
-      <form method="post" action="/login">
+      <form method="post" action="{{ base }}/login">
         <input type="hidden" name="next" value="{{ next }}">
         <label>Who
           <select name="who">
