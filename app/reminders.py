@@ -17,6 +17,15 @@
 #
 # An all-day event gets only the first: "two hours before" a birthday means
 # nothing.
+#
+# Standalone reminders (item_kind='reminder', 2026-08-14) are the third shape:
+# a to-do with a due date. They get neither of the above. Instead they nag at
+# 09:00 every day, from the day they are created until someone presses OK in
+# the calendar (acknowledged_at) — including past the due date, because the
+# whole point of a nag is that missing the deadline does not silence it. The
+# morning hour is deliberate: these are errands and paperwork, done in
+# business hours, and an evening nag arrives after the day that could have
+# absorbed it is gone.
 
 import os
 import json
@@ -37,6 +46,10 @@ GRACE = timedelta(hours=6)
 
 # The evening before, in household local time.
 DAY_BEFORE_AT = time(18, 0)
+
+# When the daily nag for a standalone reminder goes out. Morning, so the day
+# it interrupts is the day that can still do something about it.
+NAG_AT = time(9, 0)
 
 
 def _token() -> str:
@@ -90,16 +103,30 @@ def recipients(owner: str) -> list[int]:
     return [chat] if chat else []
 
 
-def compose(ev: dict, kind: str, tz) -> str:
+def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     """Deliberately almost no chrome.
 
     The event's own title carries the meaning and it is written in whichever
     language the household wrote it in. Wrapping it in a paragraph of English or
     Portuguese would only add something to disagree with.
+
+    The nag line stays Portuguese like its siblings; the move to English is a
+    separate ratified item and will take all of them at once.
     """
     start = ev["starts_at"].astimezone(tz)
-    when = "Amanha" if kind == "day" else "Em 2 horas"
-    lines = [f"{when}, {start:%H:%M}" if not ev["all_day"] else f"{when}"]
+    if kind == "nag":
+        due_day = start.date()
+        today = now.astimezone(tz).date()
+        if today == due_day:
+            when = "Hoje"
+        elif today > due_day:
+            when = f"Atrasado desde {due_day:%d/%m}"
+        else:
+            when = f"Ate {due_day:%d/%m}"
+        lines = [when]
+    else:
+        when = "Amanha" if kind == "day" else "Em 2 horas"
+        lines = [f"{when}, {start:%H:%M}" if not ev["all_day"] else f"{when}"]
     lines.append(ev["title"])
     if ev.get("location"):
         lines.append(ev["location"])
@@ -131,8 +158,24 @@ def pending(events: list[dict], already: set[tuple[int, str]], now: datetime, tz
     carries the year ("day@2027"), because the same event id must remind again
     every year, and a bare (id, "day") row would suppress it forever after the
     first one.
+
+    Standalone reminders get one "nag" per day instead, keyed by that day
+    ("nag@2026-08-19"): the same per-occurrence idea as the yearly keys, at a
+    daily grain. A reminder created after the nag hour plus grace simply
+    starts tomorrow, with no special case: today's 09:00 is already outside
+    the window by the time the row exists.
     """
     for ev in events:
+        if ev.get("item_kind") == "reminder":
+            if ev.get("acknowledged_at"):
+                continue
+            stored = f"nag@{now.astimezone(tz).date().isoformat()}"
+            if (ev["id"], stored) in already:
+                continue
+            due = datetime.combine(now.astimezone(tz).date(), NAG_AT, tzinfo=tz)
+            if due <= now <= due + GRACE:
+                yield ev, "nag", stored
+            continue
         for kind in ("day", "hour"):
             stored = f"{kind}@{ev['starts_at'].year}" if ev.get("occurrence") else kind
             if (ev["id"], stored) in already:
