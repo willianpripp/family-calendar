@@ -1,0 +1,49 @@
+<!doctype html>
+{# The phone UI's shell (option B, 2026-08-14): its own skeleton, not an
+   extension of the desktop base. Bottom tab bar, floating +, the month's
+   photo behind everything, the veil still governed by the ◐. Standalone on
+   purpose: the two UIs share routes, context and style tokens, never DOM. #}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}Casa{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📅</text></svg>">
+<link rel="manifest" href="/static/manifest.webmanifest?v={{ asset_v }}">
+<link rel="apple-touch-icon" href="/static/icon-192.png?v={{ asset_v }}">
+<meta name="theme-color" content="#161C24">
+<link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">
+<link rel="stylesheet" href="/static/phone.css?v={{ asset_v }}">
+<style>:root { --month-art: url("/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; }</style>
+</head>
+<body class="phone-ui">
+
+<header class="ptop">
+  <span class="pbrand">Casa</span>
+  {% block ptitle %}{% endblock %}
+  <form method="post" action="/veil" class="pveil">
+    <input type="hidden" name="back" value="{{ here_plain }}">
+    <button type="submit" title="more or less picture">◐</button>
+  </form>
+</header>
+
+<main class="pmain">
+{% block content %}{% endblock %}
+</main>
+
+<a class="pfab" href="/events/new?back={{ here }}" aria-label="add">+</a>
+
+<nav class="ptabs">
+  <a href="/today" {% if view == 'today' %}class="on"{% endif %}><b>☀</b>Hoje</a>
+  <a href="/month" {% if view == 'month' %}class="on"{% endif %}><b>▦</b>Mês</a>
+  <a href="/cinema" {% if view == 'cinema' %}class="on"{% endif %}><b>🎬</b>Cinema</a>
+  <a href="/who?back={{ here }}" {% if view == 'who' %}class="on"{% endif %}><b>🖼</b>Fotos</a>
+</nav>
+
+<form method="post" action="/ui" class="pswitch">
+  <input type="hidden" name="back" value="{{ here_plain }}">
+  <button type="submit" name="choice" value="desktop">Desktop version</button>
+</form>
+
+</body>
+</html>

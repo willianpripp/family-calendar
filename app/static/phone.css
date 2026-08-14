@@ -1,0 +1,132 @@
+/* The phone UI (option B, 2026-08-14). Loaded after style.css and leaning on
+ * its tokens; everything here is scoped under .phone-ui so the two UIs can
+ * never style each other by accident. Screens are cards over the month's
+ * photo; the tab bar and the + live where the thumb already is. */
+
+.phone-ui { display: block; padding-bottom: 76px; }
+
+.phone-ui .ptop {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px calc(8px);
+  background: color-mix(in oklab, var(--ground) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.phone-ui .pbrand { font-weight: 800; letter-spacing: .02em; }
+.phone-ui .ptitle { font-weight: 700; color: var(--muted); font-size: .95rem; }
+.phone-ui .pveil { margin-left: auto; }
+.phone-ui .pveil button {
+  background: none; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--muted); font-size: .95rem; padding: 4px 10px;
+}
+
+.phone-ui .pmain {
+  position: relative; z-index: 1;
+  padding: 12px 12px 20px; display: flex; flex-direction: column; gap: 12px;
+}
+
+/* cards */
+.phone-ui .pcard {
+  background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
+  backdrop-filter: blur(5px);
+  border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+}
+.phone-ui .pcard-h {
+  font-size: .74rem; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin: 0 0 8px;
+}
+.phone-ui .pday-h {
+  font-size: .9rem; font-weight: 800; margin: 4px 2px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .9);
+}
+.phone-ui .pday-h .hol { color: var(--holiday); font-weight: 600; font-size: .8rem; }
+
+/* rows: one event or to-do, finger-sized */
+.phone-ui .prow {
+  --ev: var(--accent);
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 8px 4px; border-bottom: 1px solid var(--line-soft);
+  color: var(--text); font-size: .95rem;
+}
+.phone-ui .prow:last-child { border-bottom: 0; }
+.phone-ui .prow .dot { width: 11px; height: 11px; border-radius: 3px; background: var(--ev); flex: none; }
+.phone-ui .prow .grow { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.phone-ui .prow .grow .loc { color: var(--muted); font-weight: 400; font-size: .85rem; }
+.phone-ui .prow .when { margin-left: auto; flex: none; color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.phone-ui .prow.done .grow { text-decoration: line-through; opacity: .6; }
+.phone-ui .prow.overdue .when { color: #E5714D; font-weight: 700; }
+.phone-ui .prow .ack-box { font-size: 1.45rem; padding: 4px; }
+
+/* the floating add, thumb corner */
+.phone-ui .pfab {
+  position: fixed; right: 16px; bottom: 78px; z-index: 6;
+  width: 56px; height: 56px; border-radius: 28px;
+  background: var(--accent); color: #12161c;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; font-weight: 800; line-height: 1;
+  box-shadow: 0 10px 26px -8px rgba(0, 0, 0, .8);
+}
+
+/* the tab bar */
+.phone-ui .ptabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: color-mix(in oklab, var(--ground) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  padding: 6px 4px calc(8px + env(safe-area-inset-bottom));
+}
+.phone-ui .ptabs a {
+  text-align: center; font-size: .68rem; color: var(--muted); font-weight: 600;
+  padding: 2px 0;
+}
+.phone-ui .ptabs a b { display: block; font-size: 1.15rem; font-weight: 400; margin-bottom: 1px; }
+.phone-ui .ptabs a.on { color: var(--accent); }
+
+/* the escape hatch to the desktop UI, quiet at the very bottom */
+.phone-ui .pswitch { text-align: center; padding: 4px 0 90px; }
+.phone-ui .pswitch button {
+  background: none; border: none; color: var(--muted); font-size: .78rem;
+  text-decoration: underline; padding: 8px;
+}
+
+/* --- the month tab ----------------------------------------------------------- */
+
+.phone-ui .pmonth-nav {
+  display: flex; align-items: center; gap: 8px; justify-content: center;
+  font-weight: 800; font-size: 1.05rem;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .9);
+}
+.phone-ui .pmonth-nav a {
+  color: var(--text); padding: 2px 14px; border-radius: 8px; font-size: 1.2rem;
+}
+.phone-ui .pweek { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.phone-ui .pday {
+  background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
+  border: 1px solid var(--line-soft); border-radius: 9px;
+  padding: 4px 2px 5px; text-align: center; min-width: 0; min-height: 52px;
+  color: var(--text);
+}
+.phone-ui .pday .n { font-weight: 800; font-size: .82rem; font-variant-numeric: tabular-nums; }
+.phone-ui .pday.pad { opacity: .38; }
+.phone-ui .pday.today { background: color-mix(in oklab, var(--accent) 28%, var(--surface)); }
+.phone-ui .pday.sel { outline: 2px solid var(--accent); }
+.phone-ui .pday.holiday .n { color: var(--holiday); }
+.phone-ui .pbars { display: flex; flex-direction: column; gap: 2px; margin: 3px 3px 0; }
+.phone-ui .pbars i { height: 4px; border-radius: 2px; background: var(--ev, var(--accent)); }
+.phone-ui .pbars .more { font-size: .58rem; color: var(--muted); line-height: 1; }
+.phone-ui .pdow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.phone-ui .pdow span {
+  text-align: center; font-size: .64rem; letter-spacing: .1em; font-weight: 700;
+  color: var(--text); text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
+}
+
+/* --- the cinema tab ---------------------------------------------------------- */
+
+.phone-ui .prel { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }
+.phone-ui .prel:last-child { border-bottom: 0; }
+.phone-ui .prel img { border-radius: 6px; flex: none; background: var(--surface-2); object-fit: cover; }
+.phone-ui .prel .t { min-width: 0; }
+.phone-ui .prel .t .name { font-weight: 700; font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.phone-ui .prel .t .meta { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }

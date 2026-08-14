@@ -1,0 +1,44 @@
+{% extends "phone/base.html" %}
+{% block title %}{{ month_name }} {{ year }} — Casa{% endblock %}
+{% block content %}
+
+<div class="pmonth-nav">
+  <a href="/month?y={{ prev.year }}&m={{ prev.month }}" aria-label="previous month">‹</a>
+  {{ month_name }} <span class="yr">{{ year }}</span>
+  <a href="/month?y={{ next.year }}&m={{ next.month }}" aria-label="next month">›</a>
+</div>
+
+<div class="pdow">
+  {% for name in ['S','M','T','W','T','F','S'] %}<span>{{ name }}</span>{% endfor %}
+</div>
+
+{% for week in weeks %}
+<div class="pweek">
+  {% for d in week %}
+  {# Tap a day, it opens below. Up to three colour bars then a +n; the full
+     stack is one tap away, which on this screen size beats squeezing text. #}
+  <a class="pday{% if d.month != month %} pad{% endif %}{% if d == today %} today{% endif %}{% if d == sel %} sel{% endif %}{% if holidays.get(d) %} holiday{% endif %}"
+     href="/month?y={{ year }}&m={{ month }}&sel={{ d.isoformat() }}">
+    <span class="n">{{ d.day }}</span>
+    <span class="pbars">
+      {% for e in days[d][:3] %}<i style="--ev: {{ e.color }}"></i>{% endfor %}
+      {% if days[d] | length > 3 %}<span class="more">+{{ days[d] | length - 3 }}</span>{% endif %}
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<div class="pday-h">{{ 'Hoje' if sel == today else sel.strftime('%A, %b %-d') }}
+  {% for name in holidays.get(sel, []) %}<span class="hol"> · {{ name }}</span>{% endfor %}
+</div>
+<div class="pcard">
+  {% if sel_events %}
+  {% with rows_events = sel_events %}{% include "phone/_rows.html" %}{% endwith %}
+  {% else %}
+  <div class="prow"><span class="grow" style="color: var(--muted); font-weight: 400">Nothing this day.</span>
+    <a class="when" href="/events/new?day={{ sel.isoformat() }}&back={{ here }}">add ›</a></div>
+  {% endif %}
+</div>
+
+{% endblock %}

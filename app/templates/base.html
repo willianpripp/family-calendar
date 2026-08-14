@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Family calendar{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📅</text></svg>">
+<link rel="manifest" href="/static/manifest.webmanifest?v={{ asset_v }}">
+<link rel="apple-touch-icon" href="/static/icon-192.png?v={{ asset_v }}">
+<meta name="theme-color" content="#161C24">
 {# ?v= is a content hash of everything in static/. A deploy changes it, which
    changes the URL, which is the only cache-busting a browser cannot ignore. #}
 <link rel="stylesheet" href="/static/style.css?v={{ asset_v }}">

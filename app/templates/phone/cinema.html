@@ -1,0 +1,29 @@
+{% extends "phone/base.html" %}
+{% block title %}Cinema — Casa{% endblock %}
+{% block ptitle %}<span class="ptitle">At the cinema</span>{% endblock %}
+{% block content %}
+
+{% if releases.status == 'no_key' %}
+<div class="pcard"><div class="pcard-h">At the cinema</div>Waiting on a TMDB key; everything else works without it.</div>
+{% elif releases.status == 'error' %}
+<div class="pcard"><div class="pcard-h">At the cinema</div>TMDB did not answer. This box refills on its own.</div>
+{% elif not releases.sections %}
+<div class="pcard"><div class="pcard-h">At the cinema</div>Nothing listed for this month yet.</div>
+{% else %}
+{% for section in releases.sections %}
+<div class="pcard">
+  <div class="pcard-h">{{ section.label }}</div>
+  {% for r in section.entries %}
+  <a class="prel" href="{{ r.url }}" target="_blank" rel="noopener">
+    <img src="{{ r.poster }}" alt="" loading="lazy" width="40" height="60">
+    <span class="t">
+      <span class="name">{{ r.title }}</span>
+      <span class="meta">{{ r.date[-5:] if r.date else '' }}{% if r.score %} · ★ {{ r.score }}{% endif %}</span>
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

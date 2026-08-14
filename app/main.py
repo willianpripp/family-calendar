@@ -34,6 +34,7 @@ from psycopg_pool import ConnectionPool
 import gate
 import news
 import reminders
+import ui
 from art import (ACCEPT_ATTR, MAX_UPLOAD_BYTES, ArtError, art_for,
                  remove_month_art, save_month_art)
 from people import PEOPLE, whois
@@ -673,17 +674,50 @@ def health() -> JSONResponse:
     return JSONResponse({"status": "ok"})
 
 
+# The pages that exist in both template sets. Anything else (forms, settings
+# pages) serves the desktop template to everyone until its phone screen is
+# built; the README's rule of two applies to features, and these pages are the
+# features' front doors first.
+PHONE_PAGES = {"month.html", "today.html", "cinema.html"}
+
+
+def render(request: Request, name: str, ctx: dict):
+    if ui.is_phone(request) and name in PHONE_PAGES:
+        return templates.TemplateResponse(request, f"phone/{name}", ctx)
+    return templates.TemplateResponse(request, name, ctx)
+
+
 @app.get("/")
-def root() -> RedirectResponse:
-    return RedirectResponse("/month", status_code=307)
+def root(request: Request) -> RedirectResponse:
+    # The phone opens on today; the monitor opens on the month. Each device
+    # lands on the view it is actually held in front of.
+    return RedirectResponse("/today" if ui.is_phone(request) else "/month",
+                            status_code=307)
+
+
+@app.post("/ui")
+def set_ui(choice: str = Form(""), back: str = Form("/")):
+    """The escape hatch between the two UIs, same contract as /who: a cookie,
+    per device, a year, and "auto" forgets it."""
+    resp = RedirectResponse(back, status_code=303)
+    choice = choice.strip().lower()
+    if choice == "auto":
+        resp.delete_cookie(ui.COOKIE)
+    elif choice in ("phone", "desktop"):
+        resp.set_cookie(ui.COOKIE, choice, max_age=31536000, samesite="lax", httponly=True)
+    return resp
 
 
 @app.get("/month", response_class=HTMLResponse)
-def month_view(request: Request, y: int | None = None, m: int | None = None):
+def month_view(request: Request, y: int | None = None, m: int | None = None,
+               sel: str | None = None):
     today = today_local()
     y, m = y or today.year, m or today.month
     if not (2000 <= y <= 2100 and 1 <= m <= 12):
         raise HTTPException(status_code=400, detail="out of range")
+    # The phone month is a grid of dots plus ONE day opened below it; `sel` is
+    # that day. Defaults to today inside the current month, the 1st elsewhere.
+    sel_day = parse_day(sel) if sel else (today if (y, m) == (today.year, today.month) else date(y, m, 1))
 
     # Sunday-first weeks; the grid includes the padding days that fill the
     # month out to whole weeks, so events are fetched for the padded range.
@@ -709,8 +743,9 @@ def month_view(request: Request, y: int | None = None, m: int | None = None):
         holidays=holidays_between(weeks[0][0], weeks[-1][-1]),
         releases=news.releases(y, m, today_local()),
         categories=all_categories(),
+        sel=sel_day, sel_events=days.get(sel_day, []),
     )
-    return templates.TemplateResponse(request, "month.html", ctx)
+    return render(request, "month.html", ctx)
 
 
 @app.get("/week", response_class=HTMLResponse)
@@ -756,23 +791,19 @@ def week_view(request: Request, d: str | None = None):
     return templates.TemplateResponse(request, "week.html", ctx)
 
 
-@app.get("/upcoming", response_class=HTMLResponse)
-def upcoming_view(request: Request):
-    now = datetime.now(HOUSEHOLD_TZ)
-    horizon = now + timedelta(days=60)
-    events = events_between(now, horizon)
-
+def agenda(now: datetime, days: int) -> tuple[list, list]:
+    """(by_day, overdue): the sorted day-bucketed agenda plus the overdue
+    to-dos, shared by Upcoming (desktop) and Today (phone)."""
+    events = events_between(now, now + timedelta(days=days))
     by_day: dict[date, list[dict]] = {}
     for e in events:
         # An in-progress multi-day event files under today, not its start day.
         key = max(e["starts_local"].date(), now.date())
         by_day.setdefault(key, []).append(e)
-
-    # An overdue to-do has already left the [now, horizon) window that feeds
-    # this view, which is exactly when its OK button matters most: this is the
-    # only view that is not date-navigational, so without this section the
-    # button would only exist back on the day the item was due. Acknowledged
-    # ones stay gone; done is done.
+    # An overdue to-do has already left the [now, horizon) window, which is
+    # exactly when its OK button matters most: without this section the button
+    # would only exist back on the day the item was due. Acknowledged ones
+    # stay gone; done is done.
     with pool.connection() as conn:
         overdue = [decorate(r) for r in conn.execute(
             EVENT_SELECT + " where e.item_kind = 'reminder'"
@@ -780,11 +811,52 @@ def upcoming_view(request: Request):
             " order by e.starts_at, e.id",
             (now,),
         ).fetchall()]
+    return sorted(by_day.items()), overdue
+
+
+@app.get("/today", response_class=HTMLResponse)
+def today_view(request: Request):
+    """The phone's home: what is owed, what is today, what is next. A desktop
+    asking for it gets Upcoming, its nearest relative."""
+    if not ui.is_phone(request):
+        return RedirectResponse("/upcoming", status_code=307)
+    now = datetime.now(HOUSEHOLD_TZ)
+    by_day, overdue = agenda(now, 14)
+    # Every open to-do in one card up top, wherever its due date lives:
+    # the phone is where the ☐ gets pressed.
+    with pool.connection() as conn:
+        todos = [decorate(r) for r in conn.execute(
+            EVENT_SELECT + " where e.item_kind = 'reminder'"
+            " and e.acknowledged_at is null order by e.starts_at, e.id limit 8",
+        ).fetchall()]
+    ctx = base_context(request, "today", now.month)
+    ctx.update(by_day=by_day, overdue=overdue, todos=todos,
+               today=now.date(), now=now,
+               holidays=holidays_between(now.date(), (now + timedelta(days=14)).date()))
+    return render(request, "today.html", ctx)
+
+
+@app.get("/cinema", response_class=HTMLResponse)
+def cinema_view(request: Request):
+    """The rail as a phone tab. A desktop asking gets the month, where the
+    rail already lives."""
+    if not ui.is_phone(request):
+        return RedirectResponse("/month", status_code=307)
+    today = today_local()
+    ctx = base_context(request, "cinema", today.month)
+    ctx.update(releases=news.releases(today.year, today.month, today))
+    return render(request, "cinema.html", ctx)
+
+
+@app.get("/upcoming", response_class=HTMLResponse)
+def upcoming_view(request: Request):
+    now = datetime.now(HOUSEHOLD_TZ)
+    by_day, overdue = agenda(now, 60)
 
     ctx = base_context(request, "upcoming", now.month)
     ctx.update(
-        by_day=sorted(by_day.items()), overdue=overdue, today=now.date(),
-        holidays=holidays_between(now.date(), horizon.date()),
+        by_day=by_day, overdue=overdue, today=now.date(),
+        holidays=holidays_between(now.date(), (now + timedelta(days=60)).date()),
         releases=news.releases(now.year, now.month, today_local()),
         categories=all_categories(),
     )
