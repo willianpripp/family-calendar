@@ -17,6 +17,7 @@
 
 import asyncio
 import os
+import time as systime
 from calendar import Calendar
 from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timedelta
@@ -30,6 +31,7 @@ from fastapi.templating import Jinja2Templates
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+import gate
 import news
 import reminders
 from art import (ACCEPT_ATTR, MAX_UPLOAD_BYTES, ArtError, art_for,
@@ -254,6 +256,25 @@ class RevalidatingStatic(StaticFiles):
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", RevalidatingStatic(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+
+@app.middleware("http")
+async def front_door(request: Request, call_next):
+    """Login only where the trust boundary is (see gate.py): tailnet and LAN
+    pass untouched, a public (funnel) visitor needs a session. The stylesheet
+    is exempt so the login page can look like the app; the rest of /static is
+    NOT, because the wallpapers are family photographs. /health stays open for
+    the healthcheck and the homelab monitor, and answers "ok" to anyone."""
+    path = request.url.path
+    if (
+        path in ("/login", "/health")
+        or path == "/static/style.css"
+        or gate.trusted(request)
+        or gate.session_user(request)
+    ):
+        return await call_next(request)
+    q = f"?{request.url.query}" if request.url.query else ""
+    return RedirectResponse(f"/login?next={quote(path + q)}", status_code=303)
 
 
 def _asset_version() -> str:
@@ -839,6 +860,56 @@ def toggle_ack(event_id: int, back: str = Form("/month")):
             (event_id,),
         )
     return RedirectResponse(back, status_code=303)
+
+
+# --- the front door (funnel visitors only; see gate.py) ------------------------
+
+
+def _safe_next(n: str) -> str:
+    """Only same-app paths: a full URL or scheme-relative //host in `next`
+    would turn the login into an open redirect."""
+    return n if n.startswith("/") and not n.startswith("//") else "/month"
+
+
+def _login_ctx(request: Request, nxt: str, error: str | None) -> dict:
+    return {
+        "request": request,
+        "next": _safe_next(nxt),
+        "error": error,
+        "configured": gate.configured(),
+        "people": PEOPLE,
+        "asset_v": ASSET_V,
+    }
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_form(request: Request, next: str = "/month"):
+    # A tailnet device or an existing session has no business at the door.
+    if gate.trusted(request) or gate.session_user(request):
+        return RedirectResponse(_safe_next(next), status_code=303)
+    return templates.TemplateResponse(request, "login.html", _login_ctx(request, next, None))
+
+
+@app.post("/login", response_class=HTMLResponse)
+def login_submit(request: Request, who: str = Form(""), password: str = Form(""),
+                 next: str = Form("/month")):
+    who = who.strip().lower()
+    if not gate.configured():
+        return templates.TemplateResponse(
+            request, "login.html", _login_ctx(request, next, None))
+    if not gate.check_password(who, password):
+        # A flat second per wrong guess. Not a fortress, but brute force from
+        # the funnel should at least have to wait in line.
+        systime.sleep(1)
+        return templates.TemplateResponse(
+            request, "login.html", _login_ctx(request, next, "Wrong name or password."))
+    resp = RedirectResponse(_safe_next(next), status_code=303)
+    resp.set_cookie(gate.COOKIE, gate.mint(who), max_age=gate.SESSION_DAYS * 86400,
+                    httponly=True, samesite="lax", secure=True)
+    # Logging in also says whose pictures these are, same contract as /who.
+    if who in PEOPLE:
+        resp.set_cookie("cal_who", who, max_age=31536000, samesite="lax", httponly=True)
+    return resp
 
 
 # --- categories ---------------------------------------------------------------
