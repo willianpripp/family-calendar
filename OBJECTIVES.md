@@ -15,14 +15,17 @@ building.
    notices ("matricula until the 19th") that live on the calendar and remind,
    without pretending to be a scheduled appointment.
 2. **Richer Telegram messages.** Today the bot sends title and time only;
-   include the notes, the location, and whatever else the event carries.
+   include the notes, the location, the category, and the event's sticker and
+   colour, so the message reads like the calendar entry. Confirmed 2026-08-13:
+   "enriquecer legal msm".
 3. **Bot messages in English.** The app is English; the bot still says
    "Amanha" / "Em 2 horas". Everything it sends moves to English.
 4. **Nag until acknowledged.** For deadline-style items that can be done
-   early: remind **every day** until someone presses OK. Architecture note:
-   today's bot only *sends*; an OK button means it also *receives*
-   (inline keyboard + polling or webhook), which changes the reminder loop.
-   Pairs naturally with item 1.
+   early: remind **every day** until someone presses OK. Staged by Willian's
+   call (2026-08-13): **v1 puts the OK in the calendar UI only**, so the bot
+   stays send-only and the loop just checks an `acknowledged` flag; the OK
+   button inside Telegram (inline keyboard, bot starts receiving) comes
+   later. Pairs naturally with item 1.
 5. **A real phone experience** (shared requirement with House Finances, and
    likely future apps). The web version is good on a monitor and clumsy on the
    phones. Possibly a separate phone-shaped UI for the same app, chosen by
