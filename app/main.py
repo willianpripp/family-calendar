@@ -116,6 +116,15 @@ create table if not exists reminders_sent (
   sent_at timestamptz not null default now(),
   primary key (event_id, kind)
 );
+
+-- Where the Telegram poller keeps its place in the update stream (the Done
+-- button, 2026-08-14). One row, one number: the next update id to ask for.
+-- In the database rather than in memory so a restart cannot replay presses.
+create table if not exists bot_state (
+  id int primary key,
+  update_offset bigint not null default 0
+);
+insert into bot_state (id) values (1) on conflict do nothing;
 """
 
 SEED_CATEGORIES = [
@@ -180,7 +189,12 @@ def reminder_tick() -> int:
         }
         for ev, kind, stored_kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
             text = reminders.compose(ev, kind, HOUSEHOLD_TZ, now)
-            delivered = [c for c in reminders.recipients(ev["owner"]) if reminders.send(c, text)]
+            # A nag carries its Done button; pressing it is the same act as
+            # the calendar's checkbox (see bot_tick).
+            buttons = ([[{"text": "Done", "callback_data": f"ack:{ev['id']}"}]]
+                       if kind == "nag" else None)
+            delivered = [c for c in reminders.recipients(ev["owner"])
+                         if reminders.send(c, text, buttons)]
             if not delivered:
                 # Left unrecorded on purpose, so the next tick retries. If
                 # Telegram is down for hours, GRACE eventually gives up.
@@ -207,6 +221,70 @@ async def reminder_loop():
         await asyncio.sleep(reminders.TICK_SECONDS)
 
 
+def bot_tick() -> int:
+    """Collect Done presses and acknowledge their to-dos. Returns acks done.
+
+    The bot's only incoming vocabulary is the callback "ack:<event id>", and
+    only from the two chats in CAL_TELEGRAM_CHATS: anything else that reaches
+    the bot advances the offset and is otherwise ignored. Pressing Done is
+    the same UPDATE the calendar's checkbox runs, one direction only: the
+    button acknowledges, and only the calendar UI can un-acknowledge, so a
+    mispress in chat is always visible and reversible on the calendar.
+    """
+    if not reminders.configured():
+        return 0
+    known = set(reminders.chats().values())
+    acked = 0
+    with pool.connection() as conn:
+        offset = conn.execute(
+            "select update_offset from bot_state where id = 1"
+        ).fetchone()["update_offset"]
+        batch = reminders.updates(offset)
+        if not batch:
+            return 0
+        new_offset = offset
+        for u in batch:
+            new_offset = max(new_offset, u["update_id"] + 1)
+            cb = u.get("callback_query") or {}
+            msg = cb.get("message") or {}
+            chat = (msg.get("chat") or {}).get("id")
+            data = cb.get("data") or ""
+            if chat not in known or not data.startswith("ack:"):
+                continue
+            try:
+                event_id = int(data[4:])
+            except ValueError:
+                continue
+            done = conn.execute(
+                "update events set acknowledged_at = now()"
+                " where id = %s and item_kind = 'reminder'"
+                " and acknowledged_at is null",
+                (event_id,),
+            ).rowcount
+            acked += done
+            reminders.answer_callback(cb.get("id", ""), "Done ✓")
+            reminders.strip_buttons(chat, msg.get("message_id", 0))
+        if new_offset != offset:
+            conn.execute(
+                "update bot_state set update_offset = %s where id = 1",
+                (new_offset,),
+            )
+    return acked
+
+
+async def bot_loop():
+    while True:
+        try:
+            n = await asyncio.to_thread(bot_tick)
+            if n:
+                print(f"bot: acknowledged {n}", flush=True)
+        except Exception as exc:  # noqa: BLE001
+            # Same posture as the reminder loop: log, carry on. A dead poller
+            # must never take the reminders down with it.
+            print(f"bot: tick failed: {exc!r}", flush=True)
+        await asyncio.sleep(reminders.BOT_POLL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     pool.open()
@@ -227,11 +305,13 @@ async def lifespan(_: FastAPI):
     # The cost is that reminders stop when the app does, which is acceptable
     # because an app that is down is the larger problem, and the grace window
     # delivers anything that came due during a short outage.
-    task = asyncio.create_task(reminder_loop()) if reminders.configured() else None
-    if task is None:
-        print("reminders: no token or no chats configured, loop not started", flush=True)
+    tasks = []
+    if reminders.configured():
+        tasks = [asyncio.create_task(reminder_loop()), asyncio.create_task(bot_loop())]
+    else:
+        print("reminders: no token or no chats configured, loops not started", flush=True)
     yield
-    if task:
+    for task in tasks:
         task.cancel()
     pool.close()
 

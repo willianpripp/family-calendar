@@ -81,24 +81,61 @@ def configured() -> bool:
     return bool(_token()) and bool(chats())
 
 
-def send(chat_id: int, text: str) -> bool:
+def _call(method: str, **params):
+    """One Telegram method call; None on any failure, never an exception.
+
+    Everything here follows send()'s original rule: the bot must not be able
+    to take the app down, so the network is allowed to fail quietly and the
+    caller decides what quiet failure means.
+    """
+    data = urllib.parse.urlencode(params).encode()
+    try:
+        req = urllib.request.Request(API.format(token=_token(), method=method), data=data)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            out = json.load(resp)
+            return out.get("result") if out.get("ok") else None
+    except Exception:
+        return None
+
+
+def send(chat_id: int, text: str, buttons: list | None = None) -> bool:
     # HTML parse mode carries the bold first line compose() writes. Everything
     # user-written in the message is escaped there; a title containing "<3"
-    # must never be able to break its own reminder.
-    data = urllib.parse.urlencode({
+    # must never be able to break its own reminder. `buttons` is a Telegram
+    # inline keyboard; the nags carry their Done button through it.
+    params = {
         "chat_id": chat_id,
         "text": text,
         "parse_mode": "HTML",
         "disable_web_page_preview": "true",
-    }).encode()
-    try:
-        req = urllib.request.Request(API.format(token=_token(), method="sendMessage"), data=data)
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return json.load(resp).get("ok", False)
-    except Exception:
-        # A failed send must not take the loop down with it. The row is left
-        # unmarked, so the next tick tries again until GRACE runs out.
-        return False
+    }
+    if buttons:
+        params["reply_markup"] = json.dumps({"inline_keyboard": buttons})
+    # A failed send is False, the row stays unmarked, the next tick retries
+    # until GRACE runs out.
+    return _call("sendMessage", **params) is not None
+
+
+# How often the poller asks Telegram for button presses. Faster than the
+# reminder tick on purpose: a reminder may be minutes late, but a person who
+# just pressed Done is looking at the screen.
+BOT_POLL_SECONDS = 60
+
+
+def updates(offset: int):
+    """New updates from getUpdates, or None if Telegram was unreachable."""
+    return _call("getUpdates", offset=offset, timeout=0)
+
+
+def answer_callback(callback_id: str, text: str) -> None:
+    _call("answerCallbackQuery", callback_query_id=callback_id, text=text)
+
+
+def strip_buttons(chat_id: int, message_id: int) -> None:
+    """Remove the inline keyboard from a sent message, so a pressed Done
+    cannot be pressed again tomorrow on a stale message."""
+    _call("editMessageReplyMarkup", chat_id=chat_id, message_id=message_id,
+          reply_markup=json.dumps({"inline_keyboard": []}))
 
 
 def recipients(owner: str) -> list[int]:
