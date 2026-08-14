@@ -4,8 +4,13 @@
 <div class="viewhead"><div class="pager"><h1>Whose pictures</h1></div>
   <a class="ghost" href="{{ back }}">Back</a></div>
 
-<p class="hint">The calendar itself is shared: same events, same categories, on
-every device. The only thing this changes is which picture sits behind it.</p>
+{# Every word on this page sits on solid surface (Aline, 2026-08-14): it used
+   to float bare over the month's photograph, which is exactly where muted
+   grey text goes to die. #}
+<div class="whobox">
+  <p class="hint">The calendar itself is shared: same events, same categories, on
+  every device. The only thing this changes is which picture sits behind it.</p>
+</div>
 
 <div class="whobox">
   <p>{% if who.key %}This device is showing <strong>{{ who.name }}</strong>'s
@@ -29,15 +34,16 @@ every device. The only thing this changes is which picture sits behind it.</p>
   choice" goes back to recognising it by its address.</p>
 </div>
 
+<div class="artbox">
 <h2 class="panel-sub">The year as this device sees it</h2>
 <p class="hint">A month with no picture of its own falls back to the shared one,
 and then to a painting. Add yours as <code>month-01</code> … <code>month-12</code>
 inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
 <div class="artgrid">
-  {% for m, a in months %}
+  {% for m, month_name, a in months %}
   <figure class="artcell">
     <img src="/static/art/{{ a.file }}?v={{ a.v }}" alt="" loading="lazy">
-    <figcaption>{{ m }}{% if a.credit %} <span class="hint">painting</span>{% endif %}</figcaption>
+    <figcaption>{{ m }}. {{ month_name }}{% if a.credit %} <span class="hint">painting</span>{% endif %}</figcaption>
     <form method="post" action="/art/upload" enctype="multipart/form-data">
       <input type="hidden" name="month" value="{{ m }}">
       <input type="hidden" name="back" value="/who">
@@ -53,6 +59,7 @@ inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
     </form>
   </figure>
   {% endfor %}
+</div>
 </div>
 {% endblock %}
 

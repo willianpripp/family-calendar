@@ -149,6 +149,25 @@
   document.getElementById('reminder').addEventListener('change', syncKind);
   syncKind();
 
+  // The end follows the start (Aline, 2026-08-14): pick a start and the end
+  // lands after it keeping whatever duration the form already had, an hour
+  // for a fresh event. Adjusting the end by hand afterwards still works; it
+  // is just no longer homework.
+  var startsEl = document.querySelector('input[name=starts]');
+  var endsEl = document.querySelector('input[name=ends]');
+  var prevStart = startsEl.value;
+  startsEl.addEventListener('change', function () {
+    var oldS = new Date(prevStart), oldE = new Date(endsEl.value);
+    var newS = new Date(startsEl.value);
+    prevStart = startsEl.value;
+    if (isNaN(newS)) { return; }
+    var dur = (!isNaN(oldS) && !isNaN(oldE) && oldE > oldS) ? (oldE - oldS) : 3600000;
+    var e = new Date(newS.getTime() + dur);
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    endsEl.value = e.getFullYear() + '-' + pad(e.getMonth() + 1) + '-' + pad(e.getDate()) +
+      'T' + pad(e.getHours()) + ':' + pad(e.getMinutes());
+  });
+
   document.querySelectorAll('.stk-opt').forEach(function (b) {
     b.addEventListener('click', function () {
       document.getElementById('sticker').value = b.dataset.s;

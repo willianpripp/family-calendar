@@ -975,7 +975,10 @@ def who_view(request: Request, back: str = "/month"):
     arrived with, which is the value that has to appear in CAL_DEVICES.
     """
     ctx = base_context(request, "who", today_local().month)
-    months = [(m, art_for(m, ctx["who"]["key"])) for m in range(1, 13)]
+    months = [
+        (m, date(2000, m, 1).strftime("%B"), art_for(m, ctx["who"]["key"]))
+        for m in range(1, 13)
+    ]
     ctx.update(people=PEOPLE, months=months, back=back)
     return templates.TemplateResponse(request, "who.html", ctx)
 

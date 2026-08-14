@@ -173,6 +173,16 @@ main {
 .day.pad { opacity: .42; }
 .dayhead { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 
+/* The event stack scrolls within its cell; the date and holiday stay put. A
+   crowded day used to clip silently at the cell edge. */
+.dayevents {
+  display: flex; flex-direction: column; gap: 2px;
+  flex: 1; min-height: 0; overflow-y: auto;
+  scrollbar-width: thin;
+}
+.dayevents::-webkit-scrollbar { width: 4px; }
+.dayevents::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
 /* The date is the thing you look for first, so it is the biggest thing in the
    cell after the events themselves. */
 .daynum {
@@ -361,7 +371,9 @@ main {
 
 .rail { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .panel {
-  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  /* The same veil the day cells wear, so the ◐ button governs the rail too
+     (Aline, 2026-08-14): one transparency for the whole surface. */
+  background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
   backdrop-filter: blur(6px);
   border: 1px solid var(--line);
   border-radius: var(--radius); padding: 13px 15px;
@@ -445,8 +457,12 @@ button.danger { color: #E5714D; border-color: #E5714D; background: none; }
 
 /* Whose pictures. A settings page, so it borrows the categories page's shapes
    rather than inventing its own. */
-.whobox { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; max-width: 640px; }
+.whobox { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; max-width: 640px; margin-bottom: 12px; }
 .whobox p { margin: 0 0 8px; }
+/* The year grid's own panel: same surface as the whobox, full width, so the
+   captions and hints stop fighting the photograph behind them. */
+.artbox { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; }
+.artbox .panel-sub { margin-top: 0; }
 .whobox code { background: rgba(255,255,255,.07); border-radius: 5px; padding: 1px 6px; font-size: .85em; }
 
 /* The year at a glance: twelve thumbnails, so a missing month is obvious at

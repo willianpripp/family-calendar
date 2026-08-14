@@ -30,6 +30,10 @@
       <div class="holname" title="{{ hol | join(' · ') }}">{{ hol[0] }}</div>
       {% endif %}
 
+      {# The event stack scrolls inside the cell (Aline, 2026-08-14): a day
+         with more events than fits used to clip them invisibly, and an
+         invisible fourth event is the one failure a calendar must not have. #}
+      <div class="dayevents">
       {% for e in days[d] %}
       {% if e.item_kind == 'reminder' %}
       {% include "_reminder_chip.html" %}
@@ -43,6 +47,7 @@
       </a>
       {% endif %}
       {% endfor %}
+      </div>
     </div>
     {% endfor %}
   {% endfor %}
