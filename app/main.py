@@ -152,7 +152,7 @@ def reminder_tick() -> int:
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where e.starts_at > %s and e.starts_at < %s"
-            " and not e.repeats_yearly",
+            " and not e.repeats_yearly and e.item_kind = 'event'",
             (window_start, window_end),
         ).fetchall()
         # A birthday stored in 1990 never matches a date window, so the yearly
@@ -160,7 +160,16 @@ def reminder_tick() -> int:
         # do. The projected rows carry occurrence=True, which is what makes
         # pending() key their sent-record by year: next year must remind again.
         yearly = conn.execute(EVENT_SELECT + " where e.repeats_yearly").fetchall()
-        rows = list(rows) + [
+        # Open reminders are fetched with no date window at all: an overdue
+        # to-do keeps nagging however far past its due date it drifts, and a
+        # starts_at window is exactly the thing that would silence it. They are
+        # also excluded from the windowed query above, or a to-do due tomorrow
+        # would appear twice and be nagged twice in the same tick.
+        todos = conn.execute(
+            EVENT_SELECT + " where e.item_kind = 'reminder'"
+            " and e.acknowledged_at is null",
+        ).fetchall()
+        rows = list(rows) + list(todos) + [
             occ for occ in project_yearly(yearly, window_start, window_end)
         ]
         already = {
@@ -168,7 +177,7 @@ def reminder_tick() -> int:
             for r in conn.execute("select event_id, kind from reminders_sent").fetchall()
         }
         for ev, kind, stored_kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
-            text = reminders.compose(ev, kind, HOUSEHOLD_TZ)
+            text = reminders.compose(ev, kind, HOUSEHOLD_TZ, now)
             delivered = [c for c in reminders.recipients(ev["owner"]) if reminders.send(c, text)]
             if not delivered:
                 # Left unrecorded on purpose, so the next tick retries. If
@@ -415,10 +424,15 @@ def all_categories() -> list[dict]:
 
 
 def overlapping(starts: datetime, ends: datetime, exclude_id: int | None) -> list[dict]:
-    """The reason this app exists: everything that intersects [starts, ends)."""
+    """The reason this app exists: everything that intersects [starts, ends).
+
+    Standalone reminders are not booked time, so they neither raise the warning
+    nor appear in it: a to-do due Tuesday does not double-book Tuesday.
+    """
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where e.id is distinct from %s"
+            " and e.item_kind = 'event'"
             " and e.starts_at < %s and e.ends_at > %s order by e.starts_at, e.id",
             (exclude_id, ends, starts),
         ).fetchall()
@@ -446,6 +460,7 @@ def veil_from(request: Request) -> int:
 
 def base_context(request: Request, view: str, month: int) -> dict:
     who = whois(request)
+    path_q = str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")
     return {
         "view": view,
         "who": who,
@@ -455,7 +470,12 @@ def base_context(request: Request, view: str, month: int) -> dict:
         "art_accept": ACCEPT_ATTR,
         "art_error": request.query_params.get("art_error"),
         "asset_v": ASSET_V,
-        "here": quote(str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")),
+        "here": quote(path_q),
+        # `here` is percent-encoded because it rides inside other URLs. A form
+        # field is NOT one of those places: the value goes through form
+        # encoding on its own, and a pre-quoted "/month%3Fy%3D..." would come
+        # back as a literal path and 404 on redirect. Forms take this one.
+        "here_plain": path_q,
     }
 
 
@@ -615,9 +635,22 @@ def upcoming_view(request: Request):
         key = max(e["starts_local"].date(), now.date())
         by_day.setdefault(key, []).append(e)
 
+    # An overdue to-do has already left the [now, horizon) window that feeds
+    # this view, which is exactly when its OK button matters most: this is the
+    # only view that is not date-navigational, so without this section the
+    # button would only exist back on the day the item was due. Acknowledged
+    # ones stay gone; done is done.
+    with pool.connection() as conn:
+        overdue = [decorate(r) for r in conn.execute(
+            EVENT_SELECT + " where e.item_kind = 'reminder'"
+            " and e.acknowledged_at is null and e.ends_at <= %s"
+            " order by e.starts_at, e.id",
+            (now,),
+        ).fetchall()]
+
     ctx = base_context(request, "upcoming", now.month)
     ctx.update(
-        by_day=sorted(by_day.items()), today=now.date(),
+        by_day=sorted(by_day.items()), overdue=overdue, today=now.date(),
         holidays=holidays_between(now.date(), horizon.date()),
         releases=news.releases(now.year, now.month, today_local()),
         categories=all_categories(),
@@ -680,6 +713,7 @@ def save_event(
     category_id: str = Form(""),
     sticker: str = Form(""),
     all_day: str = Form(""),
+    reminder: str = Form(""),
     repeats_yearly: str = Form(""),
     starts: str = Form(""),
     ends: str = Form(""),
@@ -692,14 +726,22 @@ def save_event(
 ):
     eid = int(event_id) if event_id else None
     cid = int(category_id) if category_id else None
-    is_all_day = all_day == "on"
-    is_yearly = repeats_yearly == "on"
+    is_reminder = reminder == "on"
+    # A reminder is a single all-day row by construction, never yearly. Forced
+    # here rather than trusted from the form: the form hides those controls
+    # when the reminder box is ticked, and a hidden checkbox still posts.
+    # Yearly is not a UI nicety but a correctness rule: a projected occurrence
+    # copies the row wholesale, acknowledged_at included, so a yearly to-do
+    # acknowledged once would silently never nag again in any later year.
+    is_all_day = True if is_reminder else all_day == "on"
+    is_yearly = False if is_reminder else repeats_yearly == "on"
 
     def rerender(error: str | None, conflicts: list[dict] | None):
         """Re-show the form with what was typed, not what is stored."""
         ev = {
             "id": eid, "title": title, "owner": owner, "all_day": is_all_day,
             "repeats_yearly": is_yearly,
+            "item_kind": "reminder" if is_reminder else "event",
             "location": location, "notes": notes, "category_id": cid,
             "sticker": sticker,
             "form_starts": starts, "form_ends": ends,
@@ -717,7 +759,9 @@ def save_event(
     try:
         if is_all_day:
             first = date.fromisoformat(start_date)
-            last = date.fromisoformat(end_date or start_date)
+            # A reminder has one date, the due date; the last-day field is not
+            # even shown for it, so whatever it still holds is ignored.
+            last = first if is_reminder else date.fromisoformat(end_date or start_date)
             if last < first:
                 return rerender("The last day is before the first day.", None)
             starts_at, _ = day_bounds(first)
@@ -731,26 +775,32 @@ def save_event(
 
     # The whole point: warn about a double booking, but never block the save.
     # Some overlaps are deliberate (two things during one trip), so the warning
-    # asks rather than refuses.
-    if confirmed != "1":
+    # asks rather than refuses. Reminders skip it from this side too: saving a
+    # to-do on a busy day is not a double booking.
+    if confirmed != "1" and not is_reminder:
         conflicts = overlapping(starts_at, ends_at, eid)
         if conflicts:
             return rerender(None, conflicts)
 
     values = (title.strip(), starts_at, ends_at, is_all_day, owner,
-              location.strip(), notes.strip(), cid, sticker.strip()[:8], is_yearly)
+              location.strip(), notes.strip(), cid, sticker.strip()[:8], is_yearly,
+              "reminder" if is_reminder else "event")
     with pool.connection() as conn:
         if eid is None:
             conn.execute(
                 "insert into events (title, starts_at, ends_at, all_day, owner,"
-                " location, notes, category_id, sticker, repeats_yearly)"
-                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
+                " location, notes, category_id, sticker, repeats_yearly, item_kind)"
+                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
             )
         else:
+            # acknowledged_at is deliberately not touched here: fixing a typo
+            # on a finished to-do must not reopen it. Only the OK button moves
+            # that column, in either direction.
             conn.execute(
                 "update events set title=%s, starts_at=%s, ends_at=%s, all_day=%s,"
                 " owner=%s, location=%s, notes=%s, category_id=%s, sticker=%s,"
-                " repeats_yearly=%s, updated_at=now() where id=%s", values + (eid,),
+                " repeats_yearly=%s, item_kind=%s, updated_at=now() where id=%s",
+                values + (eid,),
             )
             # Re-arm the reminders. An edit is usually a reschedule or a change
             # of owner, and both make the reminder that was already sent wrong:
@@ -768,6 +818,26 @@ def save_event(
 def delete_event(event_id: int, back: str = Form("/month")):
     with pool.connection() as conn:
         conn.execute("delete from events where id = %s", (event_id,))
+    return RedirectResponse(back, status_code=303)
+
+
+@app.post("/events/{event_id}/ack")
+def toggle_ack(event_id: int, back: str = Form("/month")):
+    """The OK on a to-do, and its undo: the same button pressed again.
+
+    A toggle rather than a one-way ack because the misclick is symmetric: the
+    box sits next to the title in every view, and "oops, that silenced the
+    matricula nag" needs a way back that is not the edit form. Guarded to
+    reminders so a stray POST cannot stamp acknowledged_at onto a real event,
+    where nothing would ever show or clear it.
+    """
+    with pool.connection() as conn:
+        conn.execute(
+            "update events set acknowledged_at ="
+            " case when acknowledged_at is null then now() else null end"
+            " where id = %s and item_kind = 'reminder'",
+            (event_id,),
+        )
     return RedirectResponse(back, status_code=303)
 
 
