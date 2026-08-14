@@ -81,7 +81,7 @@ def configured() -> bool:
     return bool(_token()) and bool(chats())
 
 
-def _call(method: str, **params):
+def _call(method: str, _timeout: int = 20, **params):
     """One Telegram method call; None on any failure, never an exception.
 
     Everything here follows send()'s original rule: the bot must not be able
@@ -91,7 +91,7 @@ def _call(method: str, **params):
     data = urllib.parse.urlencode(params).encode()
     try:
         req = urllib.request.Request(API.format(token=_token(), method=method), data=data)
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=_timeout) as resp:
             out = json.load(resp)
             return out.get("result") if out.get("ok") else None
     except Exception:
@@ -116,15 +116,19 @@ def send(chat_id: int, text: str, buttons: list | None = None) -> bool:
     return _call("sendMessage", **params) is not None
 
 
-# How often the poller asks Telegram for button presses. Faster than the
-# reminder tick on purpose: a reminder may be minutes late, but a person who
-# just pressed Done is looking at the screen.
-BOT_POLL_SECONDS = 60
+# Long polling: getUpdates holds the connection open until something arrives
+# or LONG_POLL seconds pass, so a Done press lands in ~2 seconds. That speed
+# is not cosmetic: Telegram expires a button press's little "Done ✓" toast
+# about 30 seconds after the finger, and a poller on a 60-second interval
+# answered into the void, which read as "nothing happened" on the phone
+# (learned live, 2026-08-14). The person who just pressed is looking at the
+# screen; the reminder tick can be minutes late, this cannot.
+LONG_POLL = 50
 
 
 def updates(offset: int):
-    """New updates from getUpdates, or None if Telegram was unreachable."""
-    return _call("getUpdates", offset=offset, timeout=0)
+    """New updates, held open up to LONG_POLL seconds; None if unreachable."""
+    return _call("getUpdates", _timeout=LONG_POLL + 10, offset=offset, timeout=LONG_POLL)
 
 
 def answer_callback(callback_id: str, text: str) -> None:

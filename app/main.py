@@ -240,6 +240,8 @@ def bot_tick() -> int:
             "select update_offset from bot_state where id = 1"
         ).fetchone()["update_offset"]
         batch = reminders.updates(offset)
+        if batch is None:
+            return -1  # Telegram unreachable: the loop backs off
         if not batch:
             return 0
         new_offset = offset
@@ -273,16 +275,23 @@ def bot_tick() -> int:
 
 
 async def bot_loop():
+    # The waiting happens inside the long poll (reminders.LONG_POLL), in a
+    # thread, so this loop turns around almost immediately when quiet and
+    # only truly sleeps to back off from an unreachable Telegram.
     while True:
+        delay = 2
         try:
             n = await asyncio.to_thread(bot_tick)
-            if n:
+            if n > 0:
                 print(f"bot: acknowledged {n}", flush=True)
+            if n < 0:
+                delay = 30
         except Exception as exc:  # noqa: BLE001
             # Same posture as the reminder loop: log, carry on. A dead poller
             # must never take the reminders down with it.
             print(f"bot: tick failed: {exc!r}", flush=True)
-        await asyncio.sleep(reminders.BOT_POLL_SECONDS)
+            delay = 30
+        await asyncio.sleep(delay)
 
 
 @asynccontextmanager
