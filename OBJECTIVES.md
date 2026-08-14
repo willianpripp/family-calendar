@@ -32,6 +32,25 @@ homelab side verified the flip from the true public ingress. Remaining scope
 that was deliberately deferred: nothing. If accounts ever grow beyond willian
 and aline, the hashes in the host `.env` are the only place to touch.
 
+## Requested by Aline 2026-08-14, relayed by Willian
+
+1. **A day cell must show all its events.** In the month grid a day with many
+   events clips at three or so (`.day` is `overflow: hidden`); the fourth is
+   invisible, which is the one failure a calendar must not have. Plan: the
+   event stack inside the cell becomes its own scroller (`overflow-y: auto`),
+   so the day number stays put and a crowded day scrolls within its cell.
+2. **Picking a start time pre-fills one hour of meeting.** The form already
+   opens with an hour of duration, but changing the start leaves the end
+   where it was. Plan: when the start changes, the end follows, keeping the
+   duration already on the form (an edited event keeps its length; a new one
+   keeps the default hour), same day. Adjusting the end by hand afterwards
+   still works, it is just no longer required.
+3. **The Pictures page is hard to read and "1 painting" says nothing.** The
+   captions become month names ("1. January … 12. December", the painting tag
+   stays as a small note), and the year grid gets the same surface panel the
+   rest of the page's text already sits on, so it stops fighting the
+   background photo.
+
 ## Next, when Willian asks
 
 1. **The rail becomes swipeable: cinema, then concerts, then big events.**
