@@ -42,6 +42,13 @@ English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
 says which of the two it is (Willian's ask, same day). Titles stay in
 whatever language they were written in.
 
+**What "on time" means here:** a reminder may arrive up to about five minutes
+after its nominal moment, the reminder loop's tick interval, by design. On
+2026-08-14 that tolerance was mistaken for a dead loop mid-demo (the check
+outran the tick), which is why a failed delivery now logs loudly instead of
+retrying in silence, and why app-down alerting was handed to the homelab
+side the same night: the loop cannot self-report its own death.
+
 **The nag answers back** (2026-08-14, night): every nag message carries two
 inline buttons. **Done** runs the same acknowledgement as the calendar's
 checkbox, one direction only (un-acknowledging stays in the calendar UI, so a

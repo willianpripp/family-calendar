@@ -16,12 +16,22 @@ delivered 2026-08-14; see `STATUS.md`. Of what remains, he has not said which
 4. **The OK inside Telegram: DELIVERED 2026-08-14 (night)**, together with the
    "Not yet" button. See `STATUS.md` ("The nag answers back") for the shape
    and for why long polling is load-bearing there.
-5. **A real phone experience** (shared requirement with House Finances, and
-   likely future apps). The web version is good on a monitor and clumsy on the
-   phones. Possibly a separate phone-shaped UI for the same app, chosen by
-   device, the same way pictures already are. Validation tooling exists
-   already: Playwright's device emulation (viewport, touch, user agent) covers
-   Pixel/Z Flip testing without new infrastructure.
+5. **A real phone experience: ORDERED 2026-08-14 (night), in progress**
+   (shared requirement with House Finances, and likely future apps). The web
+   version is good on a monitor and clumsy on the phones. Possibly a separate
+   phone-shaped UI for the same app, chosen by device, the same way pictures
+   already are. Validation tooling exists already: Playwright's device
+   emulation (viewport, touch, user agent) covers Pixel/Z Flip testing
+   without new infrastructure.
+
+## Delegated to the homelab repo 2026-08-14
+
+- **App-down alerting for all household apps, calendar first** (Willian: "for
+  all apps, but the calendar is the most critical one"). A probe outside the
+  app hitting `/health`, alerting both phones through the existing bot after
+  consecutive failures. Lives in the homelab because the reminder loop cannot
+  self-report its own death; requested via the homelab session the same
+  night.
 
 ## Login for non-tailnet visitors: DELIVERED 2026-08-14
 
