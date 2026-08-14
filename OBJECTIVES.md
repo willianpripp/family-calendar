@@ -15,7 +15,14 @@ delivered 2026-08-14; see `STATUS.md`. Of what remains, he has not said which
 
 4. **The OK inside Telegram**, the deferred half of the nag decision: inline
    keyboard, the bot starts receiving. The calendar-UI OK shipped 2026-08-14
-   as v1.
+   as v1. Willian asked for it again the same evening ("a button to answer
+   the bot that I already did that"), so it is next in line among the bot
+   items. Shape: nag messages carry one inline "Done" button
+   (callback_data = event id); the reminder loop polls getUpdates on its own
+   tick, accepts callbacks only from the two known chat ids, sets
+   acknowledged_at exactly like the calendar's OK toggle, then confirms in
+   the chat and strikes the button from the message. Worst-case confirmation
+   lag is one tick.
 5. **A real phone experience** (shared requirement with House Finances, and
    likely future apps). The web version is good on a monitor and clumsy on the
    phones. Possibly a separate phone-shaped UI for the same app, chosen by
@@ -50,6 +57,11 @@ and aline, the hashes in the host `.env` are the only place to touch.
    stays as a small note), and the year grid gets the same surface panel the
    rest of the page's text already sits on, so it stops fighting the
    background photo.
+4. **The rail should wear the same veil as the calendar, categories first.**
+   The right panels (cinema, categories) sit at a fixed 92% surface while the
+   calendar's transparency cycles with the ◐ button; they should follow
+   `--surface-veil` like the day cells do. And the order flips: categories on
+   top, the cinema below.
 
 ## Next, when Willian asks
 
