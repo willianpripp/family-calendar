@@ -42,6 +42,21 @@ English now ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19",
 says which of the two it is (Willian's ask, same day). Titles stay in
 whatever language they were written in.
 
+**The front door for the internet** (2026-08-14, evening): the calendar is on
+the public internet (`https://home.example.ts.net:10000`, Tailscale
+Funnel) for Aline's work MacBook, and a visitor whose real address is public
+gets the app's own login page instead of the old basic_auth popup. Accounts
+`willian` and `aline`; the pbkdf2 hashes and the cookie-signing secret live
+only in the host `.env` (`python3 app/gate.py 'the-password'` mints a hash).
+Tailnet (:8446) and home-LAN devices are never asked. The real client is read
+from the right end of X-Forwarded-For, skipping the on-host proxy hops, so a
+forged header cannot claim a trusted address (`app/gate.py` explains the
+chain). Sessions are a 60-day HMAC cookie; a wrong password waits a second;
+the wallpapers are family photos so /static/art is gated too, with only
+/health and the stylesheet public. Logging in also sets whose pictures these
+are, same contract as /who. calgate was retired from the homelab repo the
+same evening, funnel straight to the app since.
+
 **Yearly repetition** (same day): a checkbox on the event form, for birthdays
 and anniversaries by Willian's scoping (bills live in the finances app). One
 boolean, not RRULE: stored once at its first occurrence, projected into every
