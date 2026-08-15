@@ -131,6 +131,7 @@
 .phone-ui .pform label.check input { width: auto; }
 .phone-ui .pform .timed, .phone-ui .pform .allday { display: flex; flex-direction: column; gap: 12px; }
 .phone-ui .pform .stickerbox { max-width: 120px; }
+.phone-ui .pform .leaddays { max-width: 96px; }
 .phone-ui .pdelete { margin: 6px 2px 0; text-align: right; }
 .phone-ui .pnote { color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
 .phone-ui .pwho { display: flex; flex-wrap: wrap; gap: 8px; }

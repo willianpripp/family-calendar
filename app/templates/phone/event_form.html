@@ -72,6 +72,8 @@
       else (ev.starts_local.date().isoformat() if ev and ev.get('starts_local') else default_start.date().isoformat()) %}
   {% set ed_val = ev.get('form_end_date') if ev and ev.get('form_end_date') is not none
       else (ev.last_day_local.isoformat() if ev and ev.get('last_day_local') else default_start.date().isoformat()) %}
+  {% set lead_val = ev.get('lead_days') if ev and ev.get('lead_days') is not none
+      else ('' if ev else default_lead_days) %}
 
   <div class="timed">
     <label>Starts <input type="datetime-local" name="starts" value="{{ starts_val }}"></label>
@@ -80,6 +82,10 @@
   <div class="allday">
     <label><span id="firstdaylabel">First day</span> <input type="date" name="start_date" value="{{ sd_val }}"></label>
     <label id="lastdayrow">Last day <input type="date" name="end_date" value="{{ ed_val }}"></label>
+    <label id="leadrow">Start reminding (days before)
+      <input type="number" name="lead_days" class="leaddays" min="0" step="1"
+             inputmode="numeric" value="{{ lead_val }}">
+    </label>
   </div>
 
   <label>Sticker
@@ -125,6 +131,7 @@
     document.getElementById('alldayrow').style.display = rem ? 'none' : '';
     document.getElementById('yearlyrow').style.display = rem ? 'none' : '';
     document.getElementById('lastdayrow').style.display = rem ? 'none' : '';
+    document.getElementById('leadrow').style.display = rem ? '' : 'none';
     document.getElementById('firstdaylabel').textContent = rem ? 'Due date' : 'First day';
     syncAllDay();
   }

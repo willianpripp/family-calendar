@@ -43,6 +43,16 @@ from holidays import holidays_between
 HOUSEHOLD_TZ = ZoneInfo(os.environ.get("CAL_TZ", "America/New_York"))
 OWNERS = ("Willian", "Aline", "Both")
 
+# What a fresh to-do proposes as its lead time. A week is enough room to act on
+# most household errands, and it keeps the phone's card about this week instead
+# of about everything anyone has ever decided to do eventually.
+DEFAULT_LEAD_DAYS = 7
+
+# The largest lead the form accepts, in days. Not a household rule but a guard:
+# the column is a plain integer, and a typed-in absurdity would otherwise turn a
+# save into a 500 instead of into a saved to-do.
+MAX_LEAD_DAYS = 3650
+
 # The swatch set for categories. Picked to stay distinguishable against the
 # dark ground AND against each other for the most common form of colour
 # blindness, which rules out the red/green pair most palettes lean on.
@@ -108,6 +118,11 @@ alter table events add column if not exists item_kind text not null default 'eve
   check (item_kind in ('event','reminder'));
 alter table events add column if not exists acknowledged_at timestamptz;
 
+-- How early a to-do starts speaking up: null is every row's shape before this
+-- column, remind from the moment it was created; N stays quiet until N days
+-- before the due date, and never quiets it again after that.
+alter table events add column if not exists lead_days integer;
+
 -- One row per reminder actually delivered, so a restart cannot send it twice.
 -- `on delete cascade` because a deleted event should take its history with it,
 -- and because without it a re-used id could inherit someone else's reminders.
@@ -172,14 +187,19 @@ def reminder_tick() -> int:
         # do. The projected rows carry occurrence=True, which is what makes
         # pending() key their sent-record by year: next year must remind again.
         yearly = conn.execute(EVENT_SELECT + " where e.repeats_yearly").fetchall()
-        # Open reminders are fetched with no date window at all: an overdue
-        # to-do keeps nagging however far past its due date it drifts, and a
-        # starts_at window is exactly the thing that would silence it. They are
-        # also excluded from the windowed query above, or a to-do due tomorrow
-        # would appear twice and be nagged twice in the same tick.
+        # Open reminders are fetched with no upper date window at all: an
+        # overdue to-do keeps nagging however far past its due date it drifts,
+        # and a starts_at window is exactly the thing that would silence it.
+        # lead_days is a lower bound only, and holds a to-do back until its
+        # window opens; once open the test stays true forever, so it can delay
+        # a nag but never end one. They are also excluded from the windowed
+        # query above, or a to-do due tomorrow would appear twice and be
+        # nagged twice in the same tick.
         todos = conn.execute(
             EVENT_SELECT + " where e.item_kind = 'reminder'"
-            " and e.acknowledged_at is null",
+            " and e.acknowledged_at is null"
+            " and (e.lead_days is null"
+            " or e.starts_at - make_interval(days => e.lead_days) <= now())",
         ).fetchall()
         rows = list(rows) + list(todos) + [
             occ for occ in project_yearly(yearly, window_start, window_end)
@@ -933,12 +953,17 @@ def today_view(request: Request):
         return RedirectResponse(prefix(request) + "/upcoming", status_code=307)
     now = datetime.now(HOUSEHOLD_TZ)
     by_day, overdue = agenda(now, 14)
-    # Every open to-do in one card up top, wherever its due date lives:
-    # the phone is where the ☐ gets pressed.
+    # Every open to-do in one card up top, wherever its due date lives: the
+    # phone is where the ☐ gets pressed. One exception, the same lower bound
+    # the nag honours: a to-do still outside its lead window is not owed yet,
+    # so it is simply absent rather than shown greyed out.
     with pool.connection() as conn:
         todos = [decorate(r) for r in conn.execute(
             EVENT_SELECT + " where e.item_kind = 'reminder'"
-            " and e.acknowledged_at is null order by e.starts_at, e.id limit 8",
+            " and e.acknowledged_at is null"
+            " and (e.lead_days is null"
+            " or e.starts_at - make_interval(days => e.lead_days) <= now())"
+            " order by e.starts_at, e.id limit 8",
         ).fetchall()]
     ctx = base_context(request, "today", now.month)
     ctx.update(by_day=by_day, overdue=overdue, todos=todos,
@@ -997,6 +1022,7 @@ def form_context(request: Request, ev: dict | None, day: date, back: str,
         request=request, ev=ev, owners=OWNERS, back=back,
         categories=all_categories(), palette=PALETTE, stickers=STICKERS,
         default_start=default_start, default_end=default_end,
+        default_lead_days=DEFAULT_LEAD_DAYS,
         conflicts=None, error=None,
     )
     return ctx
@@ -1027,6 +1053,7 @@ def save_event(
     all_day: str = Form(""),
     reminder: str = Form(""),
     repeats_yearly: str = Form(""),
+    lead_days: str = Form(""),
     starts: str = Form(""),
     ends: str = Form(""),
     start_date: str = Form(""),
@@ -1047,6 +1074,13 @@ def save_event(
     # acknowledged once would silently never nag again in any later year.
     is_all_day = True if is_reminder else all_day == "on"
     is_yearly = False if is_reminder else repeats_yearly == "on"
+    # Same distrust for the lead time: the field only means anything on a
+    # reminder, so an event posting one still stores null. Null is also where
+    # blank and nonsense land, and null is the safe end of this column: it nags
+    # from now, which is noisy, where a wrong number could be silence.
+    lead_raw = lead_days.strip()
+    lead_ok = is_reminder and lead_raw.isascii() and lead_raw.isdigit()
+    lead = min(int(lead_raw), MAX_LEAD_DAYS) if lead_ok else None
 
     def rerender(error: str | None, conflicts: list[dict] | None):
         """Re-show the form with what was typed, not what is stored."""
@@ -1055,7 +1089,7 @@ def save_event(
             "repeats_yearly": is_yearly,
             "item_kind": "reminder" if is_reminder else "event",
             "location": location, "notes": notes, "category_id": cid,
-            "sticker": sticker,
+            "sticker": sticker, "lead_days": lead_raw,
             "form_starts": starts, "form_ends": ends,
             "form_start_date": start_date, "form_end_date": end_date,
         }
@@ -1096,13 +1130,14 @@ def save_event(
 
     values = (title.strip(), starts_at, ends_at, is_all_day, owner,
               location.strip(), notes.strip(), cid, sticker.strip()[:8], is_yearly,
-              "reminder" if is_reminder else "event")
+              "reminder" if is_reminder else "event", lead)
     with pool.connection() as conn:
         if eid is None:
             conn.execute(
                 "insert into events (title, starts_at, ends_at, all_day, owner,"
-                " location, notes, category_id, sticker, repeats_yearly, item_kind)"
-                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
+                " location, notes, category_id, sticker, repeats_yearly, item_kind,"
+                " lead_days)"
+                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
             )
         else:
             # acknowledged_at is deliberately not touched here: fixing a typo
@@ -1111,7 +1146,8 @@ def save_event(
             conn.execute(
                 "update events set title=%s, starts_at=%s, ends_at=%s, all_day=%s,"
                 " owner=%s, location=%s, notes=%s, category_id=%s, sticker=%s,"
-                " repeats_yearly=%s, item_kind=%s, updated_at=now() where id=%s",
+                " repeats_yearly=%s, item_kind=%s, lead_days=%s, updated_at=now()"
+                " where id=%s",
                 values + (eid,),
             )
             # Re-arm the reminders. An edit is usually a reschedule or a change
