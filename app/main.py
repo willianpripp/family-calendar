@@ -719,12 +719,21 @@ def _attended(names: list[str]) -> list[dict]:
             " and e.starts_at >= %s order by e.starts_at, e.id",
             (names, since),
         ).fetchall()
-    return [
-        {"id": r["id"], "title": r["title"],
-         "date": to_local(r["starts_at"]).date().isoformat(),
-         "owner": r["owner"], "category": r["category_name"].lower()}
-        for r in rows
-    ]
+    out = []
+    for r in rows:
+        s = to_local(r["starts_at"])
+        # One formula for both storage shapes: pulling the end back a hair
+        # makes the all-day exclusive bound and a timed midnight ending both
+        # land on their true last day, then the span is inclusive. A one-day
+        # anything is 1; the Pensacola Sat-to-Sat kind of trip is 8.
+        e = to_local(r["ends_at"]) - timedelta(microseconds=1)
+        out.append({
+            "id": r["id"], "title": r["title"],
+            "date": s.date().isoformat(),
+            "days": max(1, (e.date() - s.date()).days + 1),
+            "owner": r["owner"], "category": r["category_name"].lower(),
+        })
+    return out
 
 
 @app.get("/api/attended")
