@@ -13,20 +13,45 @@ its reminders but never reaches Popcorn's diary (09d5f84; feed went 21 to 20).
 The groceries app (its own repo) also gained edit/remove on entries the same
 evening, at Willian's ask.
 
+**Day of 08-15 (field-testing round):** the first natural 09:00 nag fired and
+Not yet was pressed on a real phone, so every behaviour has now been watched
+happen. Three asks came out of the morning tests, all shipped the same day:
+**per-reminder lead time** (c8b2cad: lead_days, null = nag from creation, the
+form proposes 7; gates the 09:00 nag and the phone To-dos card only, the
+month/week/upcoming chips still sit on the due date), **private events plus
+the identity popup** (5538279: private boolean, one visible_to() fragment on
+every listing query and the Popcorn export; an unanswered device gets a
+one-tap "Who uses this device?" whose answer is the same cal_who cookie the
+Pictures page uses, which also closes the photos-do-not-follow-me confusion,
+since the photos always saved fine and the Pixel simply stops being
+recognised whenever it reaches the app through the public funnel instead of
+the tailnet; a NEW Work event for one person proposes itself private), and
+the Pictures pages now say plainly who new photos are saved as. Same commit
+batch carried the homelab session's 🏠 homelink (1b45ff1). Data: "Sell GNR
+tickets" reminder created (id 60, due Sep 8, lead 7, note carries the Sep 19
+show; the tickets are listed for sale) and the hotel-cancel reminder got
+lead 7 (surfaces Aug 26). Tuscany stays as imported (they went once).
+
 ## Pending right now (2026-08-15)
 
-- **First natural 09:00 nag** lands the morning of 08-15 ("Try to Schedule
-  Dentist"): the last behaviour nobody has watched happen on its own clock.
 - **Field testing continues** on the real phones (Aline's Z Flip especially);
-  install via Add to Home Screen on both.
-- **You, Me & Tuscany appears twice in the AMC history** (Apr 9 and Apr 23);
-  only Apr 23 was imported per the duplicate rule. If they truly watched it
-  twice, add Apr 9 back.
+  install via Add to Home Screen on both. The Pixel should answer the new
+  identity popup once (or visit Fotos and pick Willian) so pictures and
+  private events follow it on every path, funnel included.
+- **Aline has no funnel login** (`CAL_GATE_USERS` has only willian). With
+  private events live she should get her own; the same values are reused by
+  groceries and popcorn, so the new entry goes into all three host `.env`s.
+  Waiting on Willian to pick the password.
+- PROPOSAL, not ratified: the other apps changed person colours on 08-15
+  (Aline #B48BE8 purple, Both yellow); the calendar's owner fallback colours
+  (#E0679E / #4FBF73) were picked colourblind-safe on the dark ground, so
+  matching is a choice for Willian, not a default.
 - The three April/May history imports carry a **placeholder 7 PM and plain
   "AMC"** (the history view hides showtimes and theatres); harmless for the
   diary, worth knowing on the calendar.
-- **Guns N' Roses, Sep 19: go or sell**, decided before the Philadelphia trip
-  (Sep 18-21) that contains it.
+- **Guns N' Roses Sep 19: selling.** Tickets listed, waiting for a buyer; the
+  Sep 8 reminder (lead 7) keeps the deadline honest. The event stays on the
+  calendar unless sold.
 - Trigger dates: **Aug 26 18:00** first Both-routed AC/DC reminder; **Aug 27**
   AC/DC; **Sep 18-21** Philadelphia + GNR; **Dec 17** Avengers: Doomsday.
 
