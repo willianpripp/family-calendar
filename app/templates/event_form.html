@@ -39,7 +39,7 @@
 
   <div class="row">
     <label>Who
-      <select name="owner">
+      <select name="owner" id="owner">
         {% for o in owners %}
         <option value="{{ o }}" {% if ev and ev.get('owner') == o %}selected{% endif %}>{{ o }}</option>
         {% endfor %}
@@ -47,7 +47,7 @@
     </label>
 
     <label>Category
-      <select name="category_id">
+      <select name="category_id" id="category_id">
         <option value="">— none (use the owner colour) —</option>
         {% for c in categories %}
         <option value="{{ c.id }}" {% if ev and ev.get('category_id') == c.id %}selected{% endif %}>{{ c.name }}</option>
@@ -70,6 +70,14 @@
   <label class="check" id="yearlyrow">
     <input type="checkbox" name="repeats_yearly" {% if ev and ev.get('repeats_yearly') %}checked{% endif %}>
     Repeats every year <span class="hint-inline">birthdays, anniversaries</span>
+  </label>
+
+  {# Whose calendar this lands on, not whether it is secret: the other person's
+     views simply never list it. Nothing to mean on a Both event, so the JS
+     below hides and clears it there. #}
+  <label class="check" id="privaterow">
+    <input type="checkbox" name="private" id="private" {% if ev and ev.get('private') %}checked{% endif %}>
+    Private, only on my calendar <span class="hint-inline">stays off the other person's views</span>
   </label>
 
   {% set starts_val = ev.get('form_starts') if ev and ev.get('form_starts') is not none
@@ -161,6 +169,40 @@
   }
   document.getElementById('reminder').addEventListener('change', syncKind);
   syncKind();
+
+  // Private belongs to one person. A Both event is on both calendars by
+  // definition, so the box is hidden AND cleared there; the server applies the
+  // same rule, because a hidden checkbox still posts what it was left holding.
+  var ownerEl = document.getElementById('owner');
+  var catEl = document.getElementById('category_id');
+  var privRow = document.getElementById('privaterow');
+  var privBox = document.getElementById('private');
+  // A re-render (conflict warning, validation error) is already carrying the
+  // answer this person gave; treating it as touched stops the suggestion from
+  // overruling a deliberate untick on the way back.
+  var privTouched = {{ 'true' if conflicts or error else 'false' }};
+  var privIsNew = !document.querySelector('input[name=event_id]').value;
+  privBox.addEventListener('change', function () { privTouched = true; });
+
+  function syncPrivate() {
+    var both = ownerEl.value === 'Both';
+    privRow.style.display = both ? 'none' : '';
+    if (both) { privBox.checked = false; }
+  }
+  // Work is what this feature was asked for, so a NEW work event proposes
+  // itself as private. Only a proposal: one manual click on the box and it
+  // stops following the category for good, and an edit never re-proposes.
+  // Matched on the option's text, never on its id: the seed order is stable,
+  // the ids are not.
+  function suggestPrivate() {
+    if (!privIsNew || privTouched) { return; }
+    var opt = catEl.options[catEl.selectedIndex];
+    var work = !!opt && opt.text.trim().toLowerCase() === 'work';
+    privBox.checked = work && ownerEl.value !== 'Both';
+  }
+  ownerEl.addEventListener('change', function () { syncPrivate(); suggestPrivate(); });
+  catEl.addEventListener('change', suggestPrivate);
+  syncPrivate();
 
   // The end follows the start (Aline, 2026-08-14): pick a start and the end
   // lands after it keeping whatever duration the form already had, an hour

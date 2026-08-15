@@ -34,7 +34,7 @@
   </label>
 
   <label>Who
-    <select name="owner">
+    <select name="owner" id="owner">
       {% for o in owners %}
       <option value="{{ o }}" {% if ev and ev.get('owner') == o %}selected{% endif %}>{{ o }}</option>
       {% endfor %}
@@ -42,7 +42,7 @@
   </label>
 
   <label>Category
-    <select name="category_id">
+    <select name="category_id" id="category_id">
       <option value="">— none (use the owner colour) —</option>
       {% for c in categories %}
       <option value="{{ c.id }}" {% if ev and ev.get('category_id') == c.id %}selected{% endif %}>{{ c.name }}</option>
@@ -62,6 +62,10 @@
   <label class="check" id="yearlyrow">
     <input type="checkbox" name="repeats_yearly" {% if ev and ev.get('repeats_yearly') %}checked{% endif %}>
     Repeats every year
+  </label>
+  <label class="check" id="privaterow">
+    <input type="checkbox" name="private" id="private" {% if ev and ev.get('private') %}checked{% endif %}>
+    Private, only on my calendar
   </label>
 
   {% set starts_val = ev.get('form_starts') if ev and ev.get('form_starts') is not none
@@ -137,6 +141,33 @@
   }
   document.getElementById('reminder').addEventListener('change', syncKind);
   syncKind();
+
+  // Same contract as the desktop form, down to the Work suggestion: a NEW work
+  // event for one person proposes itself as private, one manual click on the
+  // box ends the suggestion, a Both event hides and clears it, and a
+  // re-rendered form is left exactly as the person posted it.
+  var ownerEl = document.getElementById('owner');
+  var catEl = document.getElementById('category_id');
+  var privRow = document.getElementById('privaterow');
+  var privBox = document.getElementById('private');
+  var privTouched = {{ 'true' if conflicts or error else 'false' }};
+  var privIsNew = !document.querySelector('input[name=event_id]').value;
+  privBox.addEventListener('change', function () { privTouched = true; });
+
+  function syncPrivate() {
+    var both = ownerEl.value === 'Both';
+    privRow.style.display = both ? 'none' : '';
+    if (both) { privBox.checked = false; }
+  }
+  function suggestPrivate() {
+    if (!privIsNew || privTouched) { return; }
+    var opt = catEl.options[catEl.selectedIndex];
+    var work = !!opt && opt.text.trim().toLowerCase() === 'work';
+    privBox.checked = work && ownerEl.value !== 'Both';
+  }
+  ownerEl.addEventListener('change', function () { syncPrivate(); suggestPrivate(); });
+  catEl.addEventListener('change', suggestPrivate);
+  syncPrivate();
 
   document.querySelectorAll('.stk-opt').forEach(function (b) {
     b.addEventListener('click', function () {

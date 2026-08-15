@@ -48,5 +48,26 @@
   <button type="submit" name="choice" value="desktop">Desktop version</button>
 </form>
 
+{# The desktop shell's twin, same markup and the same shared .whoask styling in
+   style.css: this is one question with one answer, and the two UIs would drift
+   the day they asked it differently. `answered` covers the explicit "Shared
+   device" too, so the kitchen tablet is asked exactly once. #}
+{% if who and not who.answered %}
+<div class="whoask">
+  <div class="whoask-box">
+    <h2>Who uses this device?</h2>
+    <p>It picks the pictures, and it decides whose private events show up here.
+    Change it any time under Fotos.</p>
+    <form method="post" action="{{ base }}/who">
+      <input type="hidden" name="back" value="{{ here_plain }}">
+      {% for key, name in people.items() %}
+      <button type="submit" name="who" value="{{ key }}" class="primary">{{ name }}</button>
+      {% endfor %}
+      <button type="submit" name="who" value="shared">Shared device</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 </body>
 </html>

@@ -524,6 +524,33 @@ button.danger { color: #E5714D; border-color: #E5714D; background: none; }
 .artcell form { margin-top: 4px; display: flex; gap: 5px; }
 .artcell .artbar-btn { padding: 3px 9px; font-size: .72rem; }
 
+/* --- who uses this device --------------------------------------------------- */
+
+/* The only thing in the app allowed to block the calendar, and it earns it:
+   until the device answers, every private event is hidden from it, so the page
+   underneath is not the calendar the person came for. One tap and it is gone
+   for a year. Unscoped like .homelink, because the phone shell loads this
+   sheet and asks the identical question; above everything else (the tab bar
+   and the floating + sit at 6) so no affordance pokes through it. */
+.whoask {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  background: color-mix(in oklab, var(--ground) 84%, transparent);
+  backdrop-filter: blur(6px);
+}
+.whoask-box {
+  width: 100%; max-width: 360px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px 22px;
+  box-shadow: 0 18px 50px -18px var(--shadow);
+}
+.whoask-box h2 { margin: 0 0 6px; font-size: 1.15rem; }
+.whoask-box p { margin: 0 0 15px; color: var(--muted); font-size: .88rem; }
+.whoask-box form { display: flex; flex-wrap: wrap; gap: 9px; margin: 0; }
+/* Thumb-sized, because the device most likely to be asked is a phone that has
+   just been handed to somebody. */
+.whoask-box button { flex: 1; min-width: 104px; min-height: 46px; }
+
 @media (max-width: 700px) {
   .artbar { right: 8px; bottom: 8px; opacity: .85; }
 

@@ -86,5 +86,30 @@
 </form>
 {% if art_error %}<p class="artbar-error">{{ art_error }}</p>{% endif %}
 {% endblock %}
+
+{# Asked once per device, then never again: `answered` is true as soon as this
+   device has said anything, "Shared device" included, so an honest shared
+   answer is not mistaken for silence and re-asked on every page. Until it is
+   answered the calendar cannot tell whose private events these are and shows
+   none of them, which is the reason the question is worth blocking for. The
+   login page does not extend this shell, so it can never be covered by it. #}
+{% if who and not who.answered %}
+<div class="whoask">
+  <div class="whoask-box">
+    <h2>Who uses this device?</h2>
+    <p>It picks the pictures, and it decides whose private events show up here.
+    Change it any time under Pictures.</p>
+    <form method="post" action="{{ base }}/who">
+      {# here_plain, not here: a form field is form-encoded on its own, and a
+         pre-quoted path comes back as a literal and 404s on the redirect. #}
+      <input type="hidden" name="back" value="{{ here_plain }}">
+      {% for key, name in people.items() %}
+      <button type="submit" name="who" value="{{ key }}" class="primary">{{ name }}</button>
+      {% endfor %}
+      <button type="submit" name="who" value="shared">Shared device</button>
+    </form>
+  </div>
+</div>
+{% endif %}
 </body>
 </html>

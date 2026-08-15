@@ -15,7 +15,10 @@
 <div class="whobox">
   <p>{% if who.key %}This device is showing <strong>{{ who.name }}</strong>'s
   pictures{% else %}This device is showing the <strong>shared</strong>
-  pictures{% endif %}, {{ who.source }}.</p>
+  pictures{% endif %}, {{ who.source }}. {% if who.key %}New photos here are
+  saved as <strong>{{ who.name }}</strong>'s and follow that person to every
+  device.{% else %}New photos here are saved at the shared level, visible to
+  everyone.{% endif %}</p>
   <p class="hint">Seen as <code>{{ who.addr or 'no address' }}</code> on the
   tailnet. That is the value to put in <code>CAL_DEVICES</code> if this device
   should be recognised on its own.</p>

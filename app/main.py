@@ -37,7 +37,7 @@ import reminders
 import ui
 from art import (ACCEPT_ATTR, MAX_UPLOAD_BYTES, ArtError, art_for,
                  remove_month_art, save_month_art)
-from people import PEOPLE, whois
+from people import PEOPLE, viewer_owner, whois
 from holidays import holidays_between
 
 HOUSEHOLD_TZ = ZoneInfo(os.environ.get("CAL_TZ", "America/New_York"))
@@ -122,6 +122,14 @@ alter table events add column if not exists acknowledged_at timestamptz;
 -- column, remind from the moment it was created; N stays quiet until N days
 -- before the due date, and never quiets it again after that.
 alter table events add column if not exists lead_days integer;
+
+-- An event kept off the other person's calendar (2026-08-15): the dentist
+-- appointment nobody else needs listed, the work block that is only noise in
+-- the kitchen. NOT a secret, and the difference matters: identity in this app
+-- is the device (see people.py, the standing constraint), so this hides a row
+-- from the other person's views and from the Popcorn export, and stops there.
+-- Default false, so every row that existed before this column stays shared.
+alter table events add column if not exists private boolean not null default false;
 
 -- One row per reminder actually delivered, so a restart cannot send it twice.
 -- `on delete cascade` because a deleted event should take its history with it,
@@ -536,6 +544,25 @@ from events e left join categories c on c.id = e.category_id
 """
 
 
+def visible_to(viewer: str | None) -> tuple[str, tuple]:
+    """The private-event rule as a SQL fragment and its parameters.
+
+    One definition, appended by every query that LISTS events, because the rule
+    is only as good as the query that forgets it. A viewer the app cannot place
+    (no cookie, no recognised address, no login) loses every private row rather
+    than seeing them all: the shared calendar is the safe answer to "I do not
+    know who is holding this".
+
+    Two queries deliberately do not use it. reminder_tick sends to the owner's
+    own chat, so it is already routed by owner and filtering there would only
+    silence somebody's own reminder. get_event does not either: the edit form
+    opens any row by id on purpose, this being convenience and not a boundary.
+    """
+    if viewer is None:
+        return " and not e.private", ()
+    return " and (not e.private or e.owner = %s)", (viewer,)
+
+
 def shift_years(ev: dict, years: int) -> dict:
     """This event's occurrence `years` later, same shape as the original.
 
@@ -567,19 +594,25 @@ def project_yearly(rows: list[dict], start: datetime, end: datetime) -> list[dic
     return out
 
 
-def events_between(start: datetime, end: datetime) -> list[dict]:
+def events_between(start: datetime, end: datetime, viewer: str | None) -> list[dict]:
+    # `viewer` has no default on purpose. A caller that forgets it is a page
+    # that would list the other person's private events, and a TypeError the
+    # first time that page is opened is a far better way to find out than the
+    # calendar quietly being wrong about whose day it is showing.
+    priv, priv_args = visible_to(viewer)
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where e.starts_at < %s and e.ends_at > %s"
-            " and not e.repeats_yearly"
-            " order by e.all_day desc, e.starts_at, e.id",
-            (end, start),
+            " and not e.repeats_yearly" + priv
+            + " order by e.all_day desc, e.starts_at, e.id",
+            (end, start) + priv_args,
         ).fetchall()
         # Fetched without a date filter, deliberately: a birthday stored in
         # 1990 must surface in 2026, so no starts_at window can find it. The
         # set is small (it is the family's birthdays) and projection is cheap.
         yearly = conn.execute(
-            EVENT_SELECT + " where e.repeats_yearly",
+            EVENT_SELECT + " where e.repeats_yearly" + priv,
+            priv_args,
         ).fetchall()
     both = [decorate(r) for r in rows] + [decorate(r) for r in project_yearly(yearly, start, end)]
     both.sort(key=lambda e: (not e["all_day"], e["starts_at"], e["id"]))
@@ -601,18 +634,26 @@ def all_categories() -> list[dict]:
         ).fetchall()
 
 
-def overlapping(starts: datetime, ends: datetime, exclude_id: int | None) -> list[dict]:
+def overlapping(starts: datetime, ends: datetime, exclude_id: int | None,
+                viewer: str | None) -> list[dict]:
     """The reason this app exists: everything that intersects [starts, ends).
 
     Standalone reminders are not booked time, so they neither raise the warning
     nor appear in it: a to-do due Tuesday does not double-book Tuesday.
+
+    Private events the viewer does not own are out too, which costs a real
+    warning: booking over the other person's private appointment saves without
+    a word. That is the trade the feature asks for, and the alternative leaks
+    the row title into the warning, which is precisely what private means.
     """
+    priv, priv_args = visible_to(viewer)
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where e.id is distinct from %s"
             " and e.item_kind = 'event'"
-            " and e.starts_at < %s and e.ends_at > %s order by e.starts_at, e.id",
-            (exclude_id, ends, starts),
+            " and e.starts_at < %s and e.ends_at > %s" + priv
+            + " order by e.starts_at, e.id",
+            (exclude_id, ends, starts) + priv_args,
         ).fetchall()
     return [decorate(r) for r in rows]
 
@@ -653,6 +694,10 @@ def base_context(request: Request, view: str, month: int) -> dict:
         "base": base,
         "view": view,
         "who": who,
+        # For the one thing every page can put on screen: the popup that asks
+        # an unanswered device who is holding it. The names come from here so
+        # the two shells never spell them out in markup.
+        "people": PEOPLE,
         "veil": veil_from(request),
         "art": art_for(month, who["key"]),
         "art_month": month,
@@ -738,12 +783,16 @@ def _attended(names: list[str]) -> list[dict]:
 
     A year back, not the original 60 days: the diary's whole point is the
     recap, and the first real import (the AMC history, 2026-08-15) reached
-    into May. Popcorn dedupes on id, so a wide window costs nothing."""
+    into May. Popcorn dedupes on id, so a wide window costs nothing.
+
+    Private rows never leave here, for anyone: this feed has no viewer to be
+    private FROM, it is read by another app whose diary both of them read."""
     since = datetime.now(HOUSEHOLD_TZ) - timedelta(days=365)
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where lower(c.name) = any(%s)"
             " and e.item_kind = 'event' and not e.repeats_yearly"
+            " and not e.private"
             " and e.starts_at >= %s order by e.starts_at, e.id",
             (names, since),
         ).fetchall()
@@ -855,7 +904,7 @@ def month_view(request: Request, y: int | None = None, m: int | None = None,
     weeks = Calendar(firstweekday=6).monthdatescalendar(y, m)
     grid_start, _ = day_bounds(weeks[0][0])
     _, grid_end = day_bounds(weeks[-1][-1])
-    events = events_between(grid_start, grid_end)
+    events = events_between(grid_start, grid_end, viewer_owner(request))
 
     days = {}
     for week in weeks:
@@ -887,7 +936,7 @@ def week_view(request: Request, d: str | None = None):
 
     ws, _ = day_bounds(week[0])
     _, we = day_bounds(week[-1])
-    events = events_between(ws, we)
+    events = events_between(ws, we, viewer_owner(request))
 
     all_day, timed = {}, {}
     for day in week:
@@ -922,10 +971,11 @@ def week_view(request: Request, d: str | None = None):
     return templates.TemplateResponse(request, "week.html", ctx)
 
 
-def agenda(now: datetime, days: int) -> tuple[list, list]:
+def agenda(now: datetime, days: int, viewer: str | None) -> tuple[list, list]:
     """(by_day, overdue): the sorted day-bucketed agenda plus the overdue
-    to-dos, shared by Upcoming (desktop) and Today (phone)."""
-    events = events_between(now, now + timedelta(days=days))
+    to-dos, shared by Upcoming (desktop) and Today (phone). `viewer` carries
+    the same meaning, and the same no-default rule, as in events_between."""
+    events = events_between(now, now + timedelta(days=days), viewer)
     by_day: dict[date, list[dict]] = {}
     for e in events:
         # An in-progress multi-day event files under today, not its start day.
@@ -935,12 +985,13 @@ def agenda(now: datetime, days: int) -> tuple[list, list]:
     # exactly when its OK button matters most: without this section the button
     # would only exist back on the day the item was due. Acknowledged ones
     # stay gone; done is done.
+    priv, priv_args = visible_to(viewer)
     with pool.connection() as conn:
         overdue = [decorate(r) for r in conn.execute(
             EVENT_SELECT + " where e.item_kind = 'reminder'"
-            " and e.acknowledged_at is null and e.ends_at <= %s"
-            " order by e.starts_at, e.id",
-            (now,),
+            " and e.acknowledged_at is null and e.ends_at <= %s" + priv
+            + " order by e.starts_at, e.id",
+            (now,) + priv_args,
         ).fetchall()]
     return sorted(by_day.items()), overdue
 
@@ -952,18 +1003,21 @@ def today_view(request: Request):
     if not ui.is_phone(request):
         return RedirectResponse(prefix(request) + "/upcoming", status_code=307)
     now = datetime.now(HOUSEHOLD_TZ)
-    by_day, overdue = agenda(now, 14)
+    viewer = viewer_owner(request)
+    by_day, overdue = agenda(now, 14, viewer)
     # Every open to-do in one card up top, wherever its due date lives: the
     # phone is where the ☐ gets pressed. One exception, the same lower bound
     # the nag honours: a to-do still outside its lead window is not owed yet,
     # so it is simply absent rather than shown greyed out.
+    priv, priv_args = visible_to(viewer)
     with pool.connection() as conn:
         todos = [decorate(r) for r in conn.execute(
             EVENT_SELECT + " where e.item_kind = 'reminder'"
             " and e.acknowledged_at is null"
             " and (e.lead_days is null"
-            " or e.starts_at - make_interval(days => e.lead_days) <= now())"
-            " order by e.starts_at, e.id limit 8",
+            " or e.starts_at - make_interval(days => e.lead_days) <= now())" + priv
+            + " order by e.starts_at, e.id limit 8",
+            priv_args,
         ).fetchall()]
     ctx = base_context(request, "today", now.month)
     ctx.update(by_day=by_day, overdue=overdue, todos=todos,
@@ -987,7 +1041,7 @@ def cinema_view(request: Request):
 @app.get("/upcoming", response_class=HTMLResponse)
 def upcoming_view(request: Request):
     now = datetime.now(HOUSEHOLD_TZ)
-    by_day, overdue = agenda(now, 60)
+    by_day, overdue = agenda(now, 60, viewer_owner(request))
 
     ctx = base_context(request, "upcoming", now.month)
     ctx.update(
@@ -1053,6 +1107,7 @@ def save_event(
     all_day: str = Form(""),
     reminder: str = Form(""),
     repeats_yearly: str = Form(""),
+    private: str = Form(""),
     lead_days: str = Form(""),
     starts: str = Form(""),
     ends: str = Form(""),
@@ -1081,12 +1136,17 @@ def save_event(
     lead_raw = lead_days.strip()
     lead_ok = is_reminder and lead_raw.isascii() and lead_raw.isdigit()
     lead = min(int(lead_raw), MAX_LEAD_DAYS) if lead_ok else None
+    # Private only means something on one person's row: a Both event is on both
+    # calendars by definition, and "private from nobody" would be a checkbox
+    # that quietly does nothing. The form hides the box for Both; this is the
+    # rule, because a hidden checkbox still posts whatever it was left holding.
+    is_private = private == "on" and owner != "Both"
 
     def rerender(error: str | None, conflicts: list[dict] | None):
         """Re-show the form with what was typed, not what is stored."""
         ev = {
             "id": eid, "title": title, "owner": owner, "all_day": is_all_day,
-            "repeats_yearly": is_yearly,
+            "repeats_yearly": is_yearly, "private": is_private,
             "item_kind": "reminder" if is_reminder else "event",
             "location": location, "notes": notes, "category_id": cid,
             "sticker": sticker, "lead_days": lead_raw,
@@ -1124,20 +1184,20 @@ def save_event(
     # asks rather than refuses. Reminders skip it from this side too: saving a
     # to-do on a busy day is not a double booking.
     if confirmed != "1" and not is_reminder:
-        conflicts = overlapping(starts_at, ends_at, eid)
+        conflicts = overlapping(starts_at, ends_at, eid, viewer_owner(request))
         if conflicts:
             return rerender(None, conflicts)
 
     values = (title.strip(), starts_at, ends_at, is_all_day, owner,
               location.strip(), notes.strip(), cid, sticker.strip()[:8], is_yearly,
-              "reminder" if is_reminder else "event", lead)
+              "reminder" if is_reminder else "event", lead, is_private)
     with pool.connection() as conn:
         if eid is None:
             conn.execute(
                 "insert into events (title, starts_at, ends_at, all_day, owner,"
                 " location, notes, category_id, sticker, repeats_yearly, item_kind,"
-                " lead_days)"
-                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
+                " lead_days, private)"
+                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
             )
         else:
             # acknowledged_at is deliberately not touched here: fixing a typo
@@ -1146,7 +1206,8 @@ def save_event(
             conn.execute(
                 "update events set title=%s, starts_at=%s, ends_at=%s, all_day=%s,"
                 " owner=%s, location=%s, notes=%s, category_id=%s, sticker=%s,"
-                " repeats_yearly=%s, item_kind=%s, lead_days=%s, updated_at=now()"
+                " repeats_yearly=%s, item_kind=%s, lead_days=%s, private=%s,"
+                " updated_at=now()"
                 " where id=%s",
                 values + (eid,),
             )
@@ -1248,12 +1309,19 @@ def login_submit(request: Request, who: str = Form(""), password: str = Form("")
 @app.get("/categories", response_class=HTMLResponse)
 def categories_view(request: Request, back: str = "/month"):
     ctx = base_context(request, "categories", today_local().month)
+    # The count answers "is this colour still in use", so it counts what this
+    # viewer can actually see. Counting everything would put the other person's
+    # private events back on the page as a number, which is a smaller leak than
+    # a title and still one this page has no reason to make.
+    priv, priv_args = visible_to(viewer_owner(request))
     with pool.connection() as conn:
         counts = {
             r["category_id"]: r["n"]
             for r in conn.execute(
-                "select category_id, count(*) as n from events"
-                " where category_id is not null group by category_id"
+                "select e.category_id, count(*) as n from events e"
+                " where e.category_id is not null" + priv
+                + " group by e.category_id",
+                priv_args,
             ).fetchall()
         }
     ctx.update(categories=all_categories(), palette=PALETTE, counts=counts, back=back)
