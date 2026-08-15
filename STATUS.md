@@ -38,14 +38,14 @@ lead 7 (surfaces Aug 26). Tuscany stays as imported (they went once).
   install via Add to Home Screen on both. The Pixel should answer the new
   identity popup once (or visit Fotos and pick Willian) so pictures and
   private events follow it on every path, funnel included.
-- **Aline has no funnel login** (`CAL_GATE_USERS` has only willian). With
-  private events live she should get her own; the same values are reused by
-  groceries and popcorn, so the new entry goes into all three host `.env`s.
-  Waiting on Willian to pick the password.
-- PROPOSAL, not ratified: the other apps changed person colours on 08-15
-  (Aline #B48BE8 purple, Both yellow); the calendar's owner fallback colours
-  (#E0679E / #4FBF73) were picked colourblind-safe on the dark ground, so
-  matching is a choice for Willian, not a default.
+- ~~Aline's funnel login~~ DONE later on 08-15: both users now have their own
+  password (hashes in the three host `.env`s: calendar, groceries, popcorn;
+  `.env.bak-20260815` kept beside each). Both logins verified against the
+  gate. The login page itself was rebuilt in the finances app's shape
+  (52f4897): centred card, brand mark, full-width fields.
+- ~~Person colours~~ RATIFIED and applied (52f4897): the calendar now wears
+  the household trio (Willian #6FA3E8, Aline #B48BE8, Both #E8A33D), same as
+  portal, groceries and popcorn. Categories keep their own colours.
 - The three April/May history imports carry a **placeholder 7 PM and plain
   "AMC"** (the history view hides showtimes and theatres); harmless for the
   diary, worth knowing on the calendar.
