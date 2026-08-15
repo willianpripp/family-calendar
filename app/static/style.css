@@ -516,4 +516,17 @@ button.danger { color: #E5714D; border-color: #E5714D; background: none; }
 
 @media (max-width: 700px) {
   .artbar { right: 8px; bottom: 8px; opacity: .85; }
+
+  /* The desktop-chrome pages that phones still visit (the form, Pictures,
+     Categories) must behave on a 412px screen (Willian's field test,
+     2026-08-14 night): the header wraps instead of forcing the page wider
+     than the glass, nothing pans sideways, and Starts/Ends stack. */
+  html, body { overflow-x: hidden; }
+  .top { flex-wrap: wrap; gap: 6px 10px; padding: 10px 12px; }
+  .views { gap: 0; }
+  .views a { padding: 6px 9px; }
+  .tools { margin-left: 0; width: 100%; justify-content: flex-end; gap: 6px; }
+  .add, .ghost { padding: 6px 10px; font-size: .85rem; }
+  .event-form .row { flex-direction: column; gap: 12px; }
+  .pagebox { padding: 14px 12px; }
 }
