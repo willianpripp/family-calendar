@@ -710,8 +710,12 @@ def _attended(names: list[str]) -> list[dict]:
     dedupe key), the start date for multi-day events (Popcorn logs once the
     start has passed), owner verbatim. To-dos are excluded on purpose ("buy
     the tickets" is not a show you attended), and so are yearly projections
-    (the same id every year would collide in a diary)."""
-    since = datetime.now(HOUSEHOLD_TZ) - timedelta(days=60)
+    (the same id every year would collide in a diary).
+
+    A year back, not the original 60 days: the diary's whole point is the
+    recap, and the first real import (the AMC history, 2026-08-15) reached
+    into May. Popcorn dedupes on id, so a wide window costs nothing."""
+    since = datetime.now(HOUSEHOLD_TZ) - timedelta(days=365)
     with pool.connection() as conn:
         rows = conn.execute(
             EVENT_SELECT + " where lower(c.name) = any(%s)"
