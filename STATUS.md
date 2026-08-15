@@ -53,9 +53,10 @@ routes and context as the desktop, second template set under
 `templates/phone/`. **The standing rule that came with the decision: every
 new feature ships on both UIs in the same change and is tested on both.** It
 is written in the README as a convention; a desktop-only feature is not done.
-Still on the desktop templates for everyone, phone screens pending: the event
-form, Fotos (/who), categories, and there is deliberately no phone week view
-(the month's day-tap covers it).
+Option B is COMPLETE (2026-08-15, small hours): the event form, Fotos and
+Categories got their phone screens too; no page wears desktop chrome on a
+phone anymore. There is deliberately no phone week view (the month's day-tap
+covers it).
 
 **What "on time" means here:** a reminder may arrive up to about five minutes
 after its nominal moment, the reminder loop's tick interval, by design. On
