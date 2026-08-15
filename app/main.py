@@ -333,10 +333,14 @@ async def lifespan(_: FastAPI):
         # like everything else in here. Travel is already a seed; camping and
         # beach are deliberately NOT created: they join the feed by name the
         # day the family creates them.
+        # Visitors (2026-08-15) is the opposite: seeded here precisely because
+        # it is NOT in ATTENDED, so airport pickups and in-law flights keep
+        # their reminders without ever becoming diary entries.
         for cat_name, cat_color, cat_order in (
             ("Cinema", "#B57BE0", 70),
             ("Concert", "#E5714D", 71),
             ("Sports", "#8FD35D", 72),
+            ("Visitors", "#5BC0BE", 73),
         ):
             exists = conn.execute(
                 "select 1 from categories where lower(name) = lower(%s)",
