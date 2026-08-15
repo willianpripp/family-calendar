@@ -729,15 +729,12 @@ def _attended(names: list[str]) -> list[dict]:
 
 @app.get("/api/attended")
 def api_attended() -> JSONResponse:
-    """Public visitors meet the gate like any route; the LAN poller walks in."""
+    """Public visitors meet the gate like any route; the LAN poller walks in.
+
+    (/api/cinema lived here for about an hour on 2026-08-15 before this
+    widened endpoint replaced it; retired the same night with Popcorn's
+    confirmation that nothing references it.)"""
     return JSONResponse(_attended(ATTENDED))
-
-
-@app.get("/api/cinema")
-def api_cinema() -> JSONResponse:
-    """Deprecated alias, Popcorn's original path: retire once its poller
-    points at /api/attended. Same shape plus the (additive) category field."""
-    return JSONResponse(_attended(["cinema"]))
 
 
 @app.get("/manifest.webmanifest")

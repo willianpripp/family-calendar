@@ -91,8 +91,8 @@ zero code; Cinema, Concert and Sports are created at startup, Travel is a
 seed), 60 days back through the future, as `{id, title, date, owner,
 category}`. The id is Popcorn's dedupe key: stable forever. The date is the
 START day for multi-day events. To-dos and yearly projections are excluded on
-purpose. `GET /api/cinema` is a deprecated alias of the cinema-only subset;
-retire it once Popcorn's poller points at /api/attended. Deleting an event
+purpose. (`/api/cinema` was the endpoint's first name for about an hour;
+retired the same night once Popcorn confirmed nothing calls it.) Deleting an event
 here does not retro-delete a diary entry there; that is Popcorn's rule, not
 ours. The gate applies to public visitors; Popcorn polls over the LAN.
 
