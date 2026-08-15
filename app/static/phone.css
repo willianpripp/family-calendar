@@ -128,6 +128,7 @@
 .phone-ui .pform label { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--muted); }
 .phone-ui .pform label.check { flex-direction: row; align-items: center; gap: 10px; color: var(--text); font-size: .95rem; min-height: 36px; }
 .phone-ui .pform input, .phone-ui .pform select, .phone-ui .pform textarea { width: 100%; font-size: 1rem; }
+.phone-ui .pform label.check input { width: auto; }
 .phone-ui .pform .timed, .phone-ui .pform .allday { display: flex; flex-direction: column; gap: 12px; }
 .phone-ui .pform .stickerbox { max-width: 120px; }
 .phone-ui .pdelete { margin: 6px 2px 0; text-align: right; }
