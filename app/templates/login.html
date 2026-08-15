@@ -1,7 +1,12 @@
 <!doctype html>
 {# Deliberately NOT extending base.html: the shell pulls the month's picture
    and the rail, and this page exists precisely for visitors who have not
-   proven they may see those. Same stylesheet, plain dark ground. #}
+   proven they may see those. Same stylesheet, plain dark ground.
+
+   The shape follows the finances app's sign-in (Willian, 2026-08-15): a
+   centred card, the brand mark on top, "Sign in to continue", labelled
+   full-width fields, a full-width button, and one quiet footer line. The
+   household's front doors should feel like siblings. #}
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -10,45 +15,56 @@
   <link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_v }}">
   <style>
     .gatewrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .gatebox { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line);
-               border-radius: var(--radius); padding: 26px 28px; box-shadow: 0 14px 40px -20px var(--shadow); }
-    .gatebox h1 { margin-bottom: 4px; }
-    .gatesub { color: var(--muted); font-size: .9rem; margin: 0 0 18px; }
-    .gatebox form { display: flex; flex-direction: column; gap: 12px; }
-    .gatebox label { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--muted); }
+    .gatebox { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--line);
+               border-radius: var(--radius); padding: 30px 28px 24px;
+               box-shadow: 0 14px 40px -20px var(--shadow); }
+    .gatebrand { text-align: center; margin-bottom: 20px; }
+    .gatebrand .mark { font-size: 38px; line-height: 1; }
+    .gatebrand h1 { margin: 8px 0 2px; font-size: 1.25rem; }
+    .gatesub { color: var(--muted); font-size: .88rem; margin: 0; }
+    .gatebox form { display: flex; flex-direction: column; gap: 13px; margin-top: 4px; }
+    .gatebox label { display: flex; flex-direction: column; gap: 5px; font-size: .84rem; color: var(--muted); }
+    .gatebox select, .gatebox input { width: 100%; padding: 10px 12px; }
+    .gatebox .primary { width: 100%; padding: 11px; font-size: 1rem; }
+    .gatehint { text-align: center; color: var(--muted); opacity: .7; font-size: .76rem; margin: 16px 0 0; }
   </style>
 </head>
 <body>
   <div class="gatewrap">
-    <div class="gatebox">
-      <h1>Family calendar</h1>
-      <p class="gatesub">You are visiting from outside the house, so: who are you?</p>
-
-      {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
-
-      {% if configured %}
-      <form method="post" action="{{ base }}/login">
-        <input type="hidden" name="next" value="{{ next }}">
-        <label>Who
-          <select name="who">
-            {% for key, name in people.items() %}
-            <option value="{{ key }}">{{ name }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label>Password
-          <input type="password" name="password" required autofocus autocomplete="current-password">
-        </label>
-        <div class="actions">
-          <button type="submit" class="primary">Sign in</button>
+    <div>
+      <div class="gatebox">
+        <div class="gatebrand">
+          <div class="mark">📅</div>
+          <h1>Family calendar</h1>
+          <p class="gatesub">Sign in to continue</p>
         </div>
-      </form>
-      {% else %}
-      <div class="flash warn">Login is not set up on the host yet
-        (<code>CAL_GATE_SECRET</code> / <code>CAL_GATE_USERS</code> in the
-        <code>.env</code>). From the tailnet or the home network everything
-        works without it.</div>
-      {% endif %}
+
+        {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+
+        {% if configured %}
+        <form method="post" action="{{ base }}/login">
+          <input type="hidden" name="next" value="{{ next }}">
+          <label>Who
+            <select name="who">
+              {% for key, name in people.items() %}
+              <option value="{{ key }}">{{ name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Password
+            <input type="password" name="password" required autofocus autocomplete="current-password">
+          </label>
+          <button type="submit" class="primary">Sign in</button>
+        </form>
+        {% else %}
+        <div class="flash warn">Login is not set up on the host yet
+          (<code>CAL_GATE_SECRET</code> / <code>CAL_GATE_USERS</code> in the
+          <code>.env</code>). From the tailnet or the home network everything
+          works without it.</div>
+        {% endif %}
+      </div>
+      <p class="gatehint">Two-person household app. From home or the tailnet
+      you are never asked.</p>
     </div>
   </div>
 </body>

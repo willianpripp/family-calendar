@@ -529,9 +529,11 @@ def decorate(ev: dict) -> dict:
         # inclusive last day, not the exclusive bound.
         ev["last_day_local"] = (ev["ends_local"] - timedelta(days=1)).date()
     # Category colour wins when there is one; owner colour is the fallback, so
-    # an uncategorised event is still readable at a glance.
+    # an uncategorised event is still readable at a glance. The trio is the
+    # household person palette (Willian, 2026-08-15, ratified across portal,
+    # groceries and popcorn): blue him, purple her, the amber accent for Both.
     ev["color"] = ev.get("category_color") or {
-        "Willian": "#4F86E5", "Aline": "#E0679E", "Both": "#4FBF73",
+        "Willian": "#6FA3E8", "Aline": "#B48BE8", "Both": "#E8A33D",
     }.get(ev["owner"], "#8A94A6")
     return ev
 
