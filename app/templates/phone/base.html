@@ -31,7 +31,7 @@
 {% block content %}{% endblock %}
 </main>
 
-<a class="pfab" href="{{ base }}/events/new?back={{ here }}" aria-label="add">+</a>
+{% block pfab %}<a class="pfab" href="{{ base }}/events/new?back={{ here }}" aria-label="add">+</a>{% endblock %}
 
 <nav class="ptabs">
   <a href="{{ base }}/today" {% if view == 'today' %}class="on"{% endif %}><b>☀</b>Hoje</a>

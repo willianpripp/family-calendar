@@ -784,7 +784,8 @@ def health() -> JSONResponse:
 # pages) serves the desktop template to everyone until its phone screen is
 # built; the README's rule of two applies to features, and these pages are the
 # features' front doors first.
-PHONE_PAGES = {"month.html", "today.html", "cinema.html"}
+PHONE_PAGES = {"month.html", "today.html", "cinema.html",
+               "event_form.html", "who.html", "categories.html"}
 
 
 def render(request: Request, name: str, ctx: dict):
@@ -1000,19 +1001,15 @@ def form_context(request: Request, ev: dict | None, day: date, back: str,
 @app.get("/events/new", response_class=HTMLResponse)
 def new_event_form(request: Request, day: str | None = None, back: str = "/month",
                    hour: int | None = None, until: int | None = None):
-    return templates.TemplateResponse(
-        request, "event_form.html",
-        form_context(request, None, parse_day(day), back, hour, until),
-    )
+    return render(request, "event_form.html",
+                  form_context(request, None, parse_day(day), back, hour, until))
 
 
 @app.get("/events/{event_id}/edit", response_class=HTMLResponse)
 def edit_event_form(request: Request, event_id: int, back: str = "/month"):
     ev = get_event(event_id)
-    return templates.TemplateResponse(
-        request, "event_form.html",
-        form_context(request, ev, ev["starts_local"].date(), back),
-    )
+    return render(request, "event_form.html",
+                  form_context(request, ev, ev["starts_local"].date(), back))
 
 
 @app.post("/events/save", response_class=HTMLResponse)
@@ -1060,7 +1057,7 @@ def save_event(
         }
         ctx = form_context(request, ev, today_local(), back)
         ctx["conflicts"], ctx["error"] = conflicts, error
-        return templates.TemplateResponse(request, "event_form.html", ctx)
+        return render(request, "event_form.html", ctx)
 
     if not title.strip():
         return rerender("A title is required.", None)
@@ -1220,7 +1217,7 @@ def categories_view(request: Request, back: str = "/month"):
             ).fetchall()
         }
     ctx.update(categories=all_categories(), palette=PALETTE, counts=counts, back=back)
-    return templates.TemplateResponse(request, "categories.html", ctx)
+    return render(request, "categories.html", ctx)
 
 
 @app.post("/categories/save")
@@ -1273,7 +1270,7 @@ def who_view(request: Request, back: str = "/month"):
         for m in range(1, 13)
     ]
     ctx.update(people=PEOPLE, months=months, back=back)
-    return templates.TemplateResponse(request, "who.html", ctx)
+    return render(request, "who.html", ctx)
 
 
 @app.post("/veil")

@@ -1,0 +1,49 @@
+{% extends "phone/base.html" %}
+{% block title %}Fotos — Casa{% endblock %}
+{% block ptitle %}<span class="ptitle">Whose pictures</span>{% endblock %}
+{% block content %}
+
+<div class="pcard">
+  <p class="pnote">{% if who.key %}This device is showing <strong>{{ who.name }}</strong>'s
+  pictures{% else %}This device is showing the <strong>shared</strong>
+  pictures{% endif %}, {{ who.source }}.</p>
+  <form method="post" action="{{ base }}/who" class="pwho">
+    <input type="hidden" name="back" value="{{ here_plain }}">
+    {% for key, name in people.items() %}
+    <button type="submit" name="who" value="{{ key }}"
+            class="small {% if who.key == key %}primary{% endif %}">{{ name }}</button>
+    {% endfor %}
+    <button type="submit" name="who" value="shared"
+            class="small {% if who.key is none %}primary{% endif %}">Shared</button>
+    <button type="submit" name="who" value="auto" class="small">Forget</button>
+  </form>
+</div>
+
+<div class="pcard">
+  <div class="pcard-h">The year as this device sees it</div>
+  <p class="pnote">A month with no picture of its own falls back to the shared
+  one, and then to a painting. Tap Set to upload from this phone.</p>
+  <div class="partgrid">
+    {% for m, month_name, a in months %}
+    <figure class="partcell">
+      <img src="{{ base }}/static/art/{{ a.file }}?v={{ a.v }}" alt="" loading="lazy">
+      <figcaption>{{ m }}. {{ month_name }}{% if a.credit %} <span class="pnote">painting</span>{% endif %}</figcaption>
+      <form method="post" action="{{ base }}/art/upload" enctype="multipart/form-data">
+        <input type="hidden" name="month" value="{{ m }}">
+        <input type="hidden" name="back" value="{{ here_plain }}">
+        <label class="artbar-btn">
+          <input type="file" name="file" accept="{{ art_accept }}" hidden
+                 onchange="this.form.submit()">Set</label>
+        {% if a.level == 'own' %}
+        <button type="submit" class="artbar-btn" formaction="{{ base }}/art/remove">Clear</button>
+        {% elif a.level == 'shared' and who.key is none %}
+        <button type="submit" class="artbar-btn" formaction="{{ base }}/art/remove"
+                onclick="return confirm('Remove the shared picture for month {{ m }}? Everyone loses it.')">Clear shared</button>
+        {% endif %}
+      </form>
+    </figure>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

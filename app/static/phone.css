@@ -122,6 +122,28 @@
   color: var(--text); text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
 }
 
+/* --- the form, fotos and categories (option B complete, 2026-08-15) ---------- */
+
+.phone-ui .pform { display: flex; flex-direction: column; gap: 12px; }
+.phone-ui .pform label { display: flex; flex-direction: column; gap: 4px; font-size: .84rem; color: var(--muted); }
+.phone-ui .pform label.check { flex-direction: row; align-items: center; gap: 10px; color: var(--text); font-size: .95rem; min-height: 36px; }
+.phone-ui .pform input, .phone-ui .pform select, .phone-ui .pform textarea { width: 100%; font-size: 1rem; }
+.phone-ui .pform .timed, .phone-ui .pform .allday { display: flex; flex-direction: column; gap: 12px; }
+.phone-ui .pform .stickerbox { max-width: 120px; }
+.phone-ui .pdelete { margin: 6px 2px 0; text-align: right; }
+.phone-ui .pnote { color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
+.phone-ui .pwho { display: flex; flex-wrap: wrap; gap: 8px; }
+.phone-ui .partgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.phone-ui .partcell { margin: 0; }
+.phone-ui .partcell img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; display: block; }
+.phone-ui .partcell figcaption { font-size: .78rem; color: var(--muted); margin: 4px 0; }
+.phone-ui .partcell form { display: flex; gap: 6px; }
+.phone-ui .pcatrow { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+.phone-ui .pcatrow:last-child { border-bottom: 0; }
+.phone-ui .pcatrow input[type=color] { width: 44px; height: 40px; padding: 2px; flex: none; }
+.phone-ui .pcatrow input[type=text] { flex: 1; min-width: 110px; }
+.phone-ui .pcatrow .pcount { width: 100%; margin: 0; }
+
 /* --- the cinema tab ---------------------------------------------------------- */
 
 .phone-ui .prel { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-soft); }

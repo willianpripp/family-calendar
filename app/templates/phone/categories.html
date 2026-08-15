@@ -1,0 +1,31 @@
+{% extends "phone/base.html" %}
+{% block title %}Categories — Casa{% endblock %}
+{% block ptitle %}<span class="ptitle">Categories &amp; colours</span>{% endblock %}
+{% block content %}
+
+<div class="pcard">
+  <p class="pnote">A category's colour wins over the owner colour. Deleting one
+  never deletes events: they fall back to the owner colour.</p>
+  {% for c in categories %}
+  <form method="post" action="{{ base }}/categories/save" class="pcatrow">
+    <input type="hidden" name="category_id" value="{{ c.id }}">
+    <input type="color" name="color" value="{{ c.color }}" aria-label="colour for {{ c.name }}">
+    <input type="text" name="name" value="{{ c.name }}" maxlength="40" aria-label="name">
+    <button type="submit" class="small">Save</button>
+    <button type="submit" class="small danger" formaction="{{ base }}/categories/{{ c.id }}/delete"
+            onclick="return confirm('Delete the category {{ c.name }}? Its events stay.')">✕</button>
+    <span class="pnote pcount">{{ counts.get(c.id, 0) }} event{{ '' if counts.get(c.id, 0) == 1 else 's' }}</span>
+  </form>
+  {% endfor %}
+</div>
+
+<div class="pcard">
+  <div class="pcard-h">Add one</div>
+  <form method="post" action="{{ base }}/categories/save" class="pcatrow">
+    <input type="color" name="color" value="#7A82E0" aria-label="colour">
+    <input type="text" name="name" placeholder="Name" maxlength="40" required aria-label="name">
+    <button type="submit" class="small primary">Add</button>
+  </form>
+</div>
+
+{% endblock %}
