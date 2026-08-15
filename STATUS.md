@@ -1,10 +1,28 @@
 # STATUS
 
-**Where it stands (2026-08-14):** live, in daily use. Built 2026-08-07; split
-out of `homelab`, given per-person pictures, browser uploads, Telegram
-reminders, yearly repetition and the veil control on 08-08; standalone
-reminders with the daily nag on 08-14. **The plan lives in `OBJECTIVES.md`**;
-nothing is being built until Willian orders it.
+**Where it stands (2026-08-15, small hours):** live, in daily use, and after
+the marathon of 08-14 essentially feature-complete for what was ordered:
+reminders with the daily nag, the bot in English with Done/Not yet buttons,
+the public login, the portal, the Popcorn feed, and the phone UI (option B,
+complete). **The plan lives in `OBJECTIVES.md`**; nothing is being built
+until Willian orders it.
+
+## Pending right now (2026-08-15)
+
+- **First natural 09:00 nag** lands the morning of 08-15 ("Try to Schedule
+  Dentist"): the last behaviour nobody has watched happen on its own clock.
+- **Field testing continues** on the real phones (Aline's Z Flip especially);
+  install via Add to Home Screen on both.
+- **You, Me & Tuscany appears twice in the AMC history** (Apr 9 and Apr 23);
+  only Apr 23 was imported per the duplicate rule. If they truly watched it
+  twice, add Apr 9 back.
+- The three April/May history imports carry a **placeholder 7 PM and plain
+  "AMC"** (the history view hides showtimes and theatres); harmless for the
+  diary, worth knowing on the calendar.
+- **Guns N' Roses, Sep 19: go or sell**, decided before the Philadelphia trip
+  (Sep 18-21) that contains it.
+- Trigger dates: **Aug 26 18:00** first Both-routed AC/DC reminder; **Aug 27**
+  AC/DC; **Sep 18-21** Philadelphia + GNR; **Dec 17** Avengers: Doomsday.
 
 **There is real household data in it** (a Pensacola trip, flights, a Guns N'
 Roses show), so treat the database as production. See the README.
