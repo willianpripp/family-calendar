@@ -327,18 +327,27 @@ async def lifespan(_: FastAPI):
                 "insert into categories (name, color, sort_order) values (%s, %s, %s)",
                 SEED_CATEGORIES,
             )
-        # Popcorn (the movie diary, 2026-08-15) watches /api/cinema for events
-        # in this category, so it must exist for Willian to pick. Checked
+        # Popcorn (the diary, 2026-08-15) watches the attended categories via
+        # /api/attended, so the core ones must exist to be picked. Checked
         # case-insensitively because the unique index is not, and idempotent
-        # like everything else in here.
-        has_cinema = conn.execute(
-            "select 1 from categories where lower(name) = 'cinema'"
-        ).fetchone()
-        if not has_cinema:
-            conn.execute(
-                "insert into categories (name, color, sort_order) values"
-                " ('Cinema', '#B57BE0', 70) on conflict (name) do nothing"
-            )
+        # like everything else in here. Travel is already a seed; camping and
+        # beach are deliberately NOT created: they join the feed by name the
+        # day the family creates them.
+        for cat_name, cat_color, cat_order in (
+            ("Cinema", "#B57BE0", 70),
+            ("Concert", "#E5714D", 71),
+            ("Sports", "#8FD35D", 72),
+        ):
+            exists = conn.execute(
+                "select 1 from categories where lower(name) = lower(%s)",
+                (cat_name,),
+            ).fetchone()
+            if not exists:
+                conn.execute(
+                    "insert into categories (name, color, sort_order)"
+                    " values (%s, %s, %s) on conflict (name) do nothing",
+                    (cat_name, cat_color, cat_order),
+                )
     # In-process rather than a systemd timer on the host: it needs the same
     # database, the same timezone handling and the same event query the rest of
     # this module already has, and a second process would duplicate all three.
@@ -689,28 +698,46 @@ def _assign_lanes(cluster: list[dict]) -> None:
 # --- views --------------------------------------------------------------------
 
 
-@app.get("/api/cinema")
-def api_cinema() -> JSONResponse:
-    """Popcorn's feed (2026-08-15): events in the Cinema category, 60 days
-    back through the future. The id is Popcorn's dedupe key, so it must stay
-    stable; owner is the column verbatim. To-dos are excluded on purpose
-    ("buy the tickets" is not a movie you watched), and so are yearly
-    projections (same id every year would collide in a diary). Public
-    visitors meet the gate like any route; the LAN poller walks in."""
+# The categories whose events count as "attended" for Popcorn's diary
+# (Willian's extension of 2026-08-15). Matched on the category NAME,
+# case-insensitively, so a family-created "camping" or "Beach" joins the feed
+# with zero code the day it exists.
+ATTENDED = ["cinema", "concert", "sports", "travel", "camping", "beach"]
+
+
+def _attended(names: list[str]) -> list[dict]:
+    """Popcorn's rows: 60 days back through the future, stable ids (its
+    dedupe key), the start date for multi-day events (Popcorn logs once the
+    start has passed), owner verbatim. To-dos are excluded on purpose ("buy
+    the tickets" is not a show you attended), and so are yearly projections
+    (the same id every year would collide in a diary)."""
     since = datetime.now(HOUSEHOLD_TZ) - timedelta(days=60)
     with pool.connection() as conn:
         rows = conn.execute(
-            EVENT_SELECT + " where lower(c.name) = 'cinema'"
+            EVENT_SELECT + " where lower(c.name) = any(%s)"
             " and e.item_kind = 'event' and not e.repeats_yearly"
             " and e.starts_at >= %s order by e.starts_at, e.id",
-            (since,),
+            (names, since),
         ).fetchall()
-    return JSONResponse([
+    return [
         {"id": r["id"], "title": r["title"],
          "date": to_local(r["starts_at"]).date().isoformat(),
-         "owner": r["owner"]}
+         "owner": r["owner"], "category": r["category_name"].lower()}
         for r in rows
-    ])
+    ]
+
+
+@app.get("/api/attended")
+def api_attended() -> JSONResponse:
+    """Public visitors meet the gate like any route; the LAN poller walks in."""
+    return JSONResponse(_attended(ATTENDED))
+
+
+@app.get("/api/cinema")
+def api_cinema() -> JSONResponse:
+    """Deprecated alias, Popcorn's original path: retire once its poller
+    points at /api/attended. Same shape plus the (additive) category field."""
+    return JSONResponse(_attended(["cinema"]))
 
 
 @app.get("/manifest.webmanifest")
