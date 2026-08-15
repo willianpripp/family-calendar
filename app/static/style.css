@@ -104,6 +104,16 @@ body::after {
 .tools .ghost { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 55%, transparent); }
 .uiswitch { display: inline; margin: 0; }
 .uiswitch button { font: inherit; cursor: pointer; background: none; }
+/* The way back to the portal. Unscoped on purpose: the phone shell loads this
+   sheet too, and the link is the same affordance in both headers. */
+.homelink {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex: none;
+  text-decoration: none; font-size: 19px; line-height: 1;
+  border-radius: 8px; opacity: .75;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.homelink:hover, .homelink:focus-visible { opacity: 1; transform: translateY(-1px); }
 
 /* On a desktop the app owns the viewport: the page itself never scrolls, and
  * the week grid scrolls inside its own box. That chain only holds if EVERY
