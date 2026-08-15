@@ -7,6 +7,12 @@ the public login, the portal, the Popcorn feed, and the phone UI (option B,
 complete). **The plan lives in `OBJECTIVES.md`**; nothing is being built
 until Willian orders it.
 
+**Evening of 08-15 (small additions):** Visitors category seeded at startup,
+deliberately outside the attended set, so the in-laws' flight (event 7) keeps
+its reminders but never reaches Popcorn's diary (09d5f84; feed went 21 to 20).
+The groceries app (its own repo) also gained edit/remove on entries the same
+evening, at Willian's ask.
+
 ## Pending right now (2026-08-15)
 
 - **First natural 09:00 nag** lands the morning of 08-15 ("Try to Schedule
