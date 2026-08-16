@@ -70,7 +70,7 @@ purpose-built phone template set (`app/templates/phone/`), chosen per device
 by a "Mobi" token in the user agent, overridable by a cookie in either
 direction. They are not a shared layout with a media query bolted on: bottom
 tabs instead of a nav bar, a floating add button, a today-first home screen.
-Same routes, same view functions, same database query, two render targets —
+Same routes, same view functions, same database query, two render targets.
 `render()` in `app/main.py` is the one place that decides which template set
 answers. The standing rule that came with the decision: a feature that ships
 on only one of them is not done.
@@ -93,7 +93,7 @@ first, because "two hours before" means nothing for something with no hour.
 Standalone reminders (to-dos with a due date and no time at all,
 `item_kind='reminder'`) are a third shape entirely: they nag once a day at a
 fixed morning hour, starting immediately or after a configurable lead time,
-and they keep nagging *past* the due date until a checkbox is pressed —
+and they keep nagging *past* the due date until a checkbox is pressed:
 missing a deadline is exactly the moment a nag must not go quiet.
 
 **Per-person artwork, resolved as a chain.** The picture behind the calendar
@@ -103,8 +103,8 @@ for that month; a public-domain painting, one per month, if nobody has. Each
 level is checked fresh on every request rather than cached at startup, so
 dropping in a picture is "upload it" with no restart, and deleting a person's
 own picture reveals the shared one underneath rather than an empty background
-— a real bug this chain fixed, once "remove" deleted the wrong level because
-nothing on screen said which one was showing.
+(a real bug this chain fixed, once "remove" deleted the wrong level because
+nothing on screen said which one was showing).
 
 **Private events are filtered at the source, not in the template.** An event
 can be marked private to one person, and every query that lists events for
@@ -112,12 +112,12 @@ another app or another person appends the same one-line filter
 (`visible_to()` in `app/main.py`) rather than trusting each caller to
 remember it. The API endpoint that feeds another household app its "what did
 we attend" diary excludes private rows unconditionally, because that
-endpoint has no viewer to be private *from* — it is read by a service both
+endpoint has no viewer to be private *from*, since it is read by a service both
 people already read, so a private row simply never leaves the database for
 that path at all.
 
 **The trusted-network gate.** There is no login for anyone on the household's
-own private network — home Wi-Fi, or a private overlay network like
+own private network, whether home Wi-Fi or a private overlay network like
 Tailscale. `app/gate.py` classifies the request's real client address (read
 carefully from the right-hand end of `X-Forwarded-For`, skipping only the
 proxy hops this deployment actually adds) before it ever asks who the
@@ -128,7 +128,7 @@ path fails *closed*: a private-network visitor never notices, a public one
 is told to configure it rather than let in.
 
 **One codebase answers on its own port and under a path prefix.** Every URL
-the app emits — links, redirects, the PWA manifest — is built from
+the app emits (links, redirects, the PWA manifest) is built from
 `X-Forwarded-Prefix` (`prefix()` in `app/main.py`), which is empty when the
 app is reached directly and set to something like `/calendar` when a router
 in front of it proxies a public host's subpath here. The router strips the
@@ -169,6 +169,38 @@ The design notes in [STATUS.md](STATUS.md) and the roadmap in
 [OBJECTIVES.md](OBJECTIVES.md) are worth a look if you want the reasoning
 rather than just the code: what was built, what was deliberately left out,
 and which rules came from watching the app actually get used by two people.
+
+## How this was built
+
+I built this with [Claude Code](https://claude.com/claude-code), using several
+of Anthropic's models, and I would rather say that plainly than leave anyone to
+guess. Most of the code in this repository was written by a model. The parts
+that make it worth running were not.
+
+What the split actually looks like:
+
+- **The decisions are mine.** What to build, what to refuse to build, and the
+  rules the app enforces: that an overlap warning should offer "save anyway"
+  instead of blocking, because some double-bookings are deliberate.
+  [STATUS.md](STATUS.md) is the record of those arguments, and most of them
+  were settled by the double-booking that caused the whole thing, not by
+  planning.
+- **The models wrote most of the implementation**, often several working in
+  parallel on separate pieces, with a different model reviewing the diff before
+  anything shipped. I read the parts that mattered, and I have been the one
+  running it in production since day one.
+- **Real use drove almost every change.** Two people live with this app. The
+  improvements that mattered came from lists of things that annoyed us that
+  week, not from a roadmap, and the bugs worth reading about were found by
+  using it rather than by testing it.
+- **Nothing destructive or public happened without my explicit go-ahead.**
+  Dropping data, writing to the live deployment, making a repository public:
+  each one waited for me to say so. That habit comes from my day job rather
+  than from caution about the tools.
+
+I use these tools every day and I think being straightforward about how the
+work gets done is more useful than the alternative. The code, the commit
+history and the design notes are all here to be judged on their own terms.
 
 ## License
 
