@@ -1,8 +1,24 @@
-# The real .env lives on the host at /srv/lab/calendar/.env, mode 600. It holds
-# the database password and the TMDB key. The .example file is the contract.
+# The real .env lives on the deploy host, mode 600. It holds the database
+# password and the TMDB key. The .example file is the contract.
 .env
 .env.*
 !.env.example
+
+# Host-specific compose bits (extra port bindings, local paths). The committed
+# compose file stays generic; anything about one machine lives here.
+docker-compose.override.yml
+
+# The bind-mounted Postgres data directory. Same path the deploy host already
+# uses, so a redeploy keeps pointing at the existing database.
+/db/
+
+# Personal per-person artwork must never be committed: it is family
+# photography, not something that belongs in a public repo's history. Only
+# the .gitkeep placeholder in each person's folder is tracked; the twelve
+# public-domain fallback paintings at app/static/art/*.jpg are a different,
+# top-level path and stay tracked (see app/static/art/ATTRIBUTION.md).
+app/static/art/*/*
+!app/static/art/*/.gitkeep
 
 __pycache__/
 *.pyc

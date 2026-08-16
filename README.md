@@ -1,113 +1,151 @@
 # Family calendar
 
-The household calendar for the house: month, week and upcoming views, events
-with categories and colours, US and Brazilian holidays, a picture per month,
-and the overlap warning that was the reason for building it (a flight and a
-Guns N' Roses show booked on the same evening).
+A shared household calendar built around the failure that motivated it: a
+flight and a concert booked for the same evening, discovered too late to fix.
+Month, week and upcoming views, categories with colours, US and Brazilian
+holidays computed rather than looked up, a picture behind the calendar that
+changes with the month, and an overlap warning that offers "save anyway"
+rather than blocking, because some double-bookings are deliberate.
 
-Live at **https://home.example.ts.net:8446**, tailnet only.
+FastAPI, Postgres and Jinja templates. No ORM, no build step, no JavaScript
+framework. It installs as a PWA on a phone, has a purpose-built phone UI
+alongside the desktop one, and can nag a household over Telegram until a
+to-do is actually done.
 
-## Running it
+![The month view, with that month's painting behind it](docs/screenshots/month.jpg)
 
-The stack runs on the `lab` guest of the home Proxmox box, at
-`/srv/lab/calendar`. From this repo:
+<p>
+  <img src="docs/screenshots/week.jpg" alt="The week view" width="62%">
+  <img src="docs/screenshots/phone.jpg" alt="The phone UI, a different layout rather than a squeezed one" width="30%">
+</p>
 
+*Left: the week grid, where dragging across hours creates an event. Right: the
+phone UI, which is a separate set of templates rather than the desktop layout
+squeezed down.*
+
+## Try it
+
+```sh
+cp .env.example .env      # only CAL_DB_PASSWORD needs a value
+make demo                 # builds, starts, and loads a demo month
 ```
-make deploy     # rsync + docker compose up -d --build
-make logs
-make status
-```
 
-First time on a fresh host, before the first deploy:
+Then open <http://127.0.0.1:3002>. The demo data in `demo/seed.sql` is
+invented: a plausible month of family events across every category, a
+recurring birthday, a couple of standalone reminders, one private event, and
+one event in each category the app can feed to another app's "attended"
+diary. `make demo-reset` puts it back.
 
-```
-ssh lab 'mkdir -p /srv/lab/calendar/db /srv/lab/calendar/app/static/art'
-scp .env.example lab:/srv/lab/calendar/.env
-ssh lab 'chmod 600 /srv/lab/calendar/.env'   # then edit: set CAL_DB_PASSWORD
-```
+Without the demo step you get an empty calendar and the default categories,
+which is also a perfectly good place to start.
 
-The art directory has to exist before the first `up`, because it is bind-mounted
-in; Docker would otherwise create it empty and root-owned, and every month would
-fall back to a painting. `make deploy` fills it.
+## What is interesting in here
 
-## Whose pictures, without a login
+**Two UIs, one app.** There is a full desktop template set and a separate,
+purpose-built phone template set (`app/templates/phone/`), chosen per device
+by a "Mobi" token in the user agent, overridable by a cookie in either
+direction. They are not a shared layout with a media query bolted on: bottom
+tabs instead of a nav bar, a floating add button, a today-first home screen.
+Same routes, same view functions, same database query, two render targets —
+`render()` in `app/main.py` is the one place that decides which template set
+answers. The standing rule that came with the decision: a feature that ships
+on only one of them is not done.
 
-The calendar is shared, all of it. The only per-person thing is the background:
-`static/art/willian/month-05.jpg` beats `static/art/month-05.jpg` beats the
-painting. Devices are matched to people by tailnet address in `CAL_DEVICES`,
-and the **Pictures** page (`/who`) shows what was decided, reports the address
-it saw, and overrides it per device with a cookie. See `app/people.py` for why
-Tailscale's own identity headers cannot do this job.
+**Yearly repetition is a boolean, not a rule engine.** Birthdays and
+anniversaries get one flag, `repeats_yearly`. The stored date is the first
+occurrence; every view projects it onto the years it needs at render time
+(`project_yearly` in `app/main.py`), which is why a birthday stored decades
+ago never needs updating and a birthday query never has to reach for
+anything resembling an RRULE parser. February 29th lands on the 28th in a
+non-leap year rather than raising, because a birthday that crashes the
+calendar one year in four is not a feature, and clicking a projected
+occurrence edits the one stored row, which is the only sensible meaning of
+"editing a birthday."
 
-Either of them can change a month from the browser: the button in the bottom
-right of any calendar view uploads into their own folder. `static/art` is
-bind-mounted read-write for this, which is the app's only writable path, and
-every upload is decoded and re-encoded by Pillow rather than stored as sent.
-That is what makes it safe to accept: what lands on disk is always something
-Pillow produced, at 2560px or less, with the EXIF gone.
+**The reminder lead time, and why an all-day event is different.** A timed
+appointment gets two Telegram reminders: the evening before at a fixed local
+hour, and two hours ahead of the actual time. An all-day event gets only the
+first, because "two hours before" means nothing for something with no hour.
+Standalone reminders (to-dos with a due date and no time at all,
+`item_kind='reminder'`) are a third shape entirely: they nag once a day at a
+fixed morning hour, starting immediately or after a configurable lead time,
+and they keep nagging *past* the due date until a checkbox is pressed —
+missing a deadline is exactly the moment a nag must not go quiet.
 
-Uploaded pictures live on the host and are not in git. `make deploy` leaves them
-alone (rsync without `--delete`), but nothing backs them up.
+**Per-person artwork, resolved as a chain.** The picture behind the calendar
+resolves in three steps (`app/art.py`): a person's own upload, if their
+device is recognised and they have one; the shared upload, if anybody set one
+for that month; a public-domain painting, one per month, if nobody has. Each
+level is checked fresh on every request rather than cached at startup, so
+dropping in a picture is "upload it" with no restart, and deleting a person's
+own picture reveals the shared one underneath rather than an empty background
+— a real bug this chain fixed, once "remove" deleted the wrong level because
+nothing on screen said which one was showing.
 
-There is **no authentication**, on purpose. The app publishes to loopback only
-and `tailscale serve` puts it on port 8446 of the tailnet, where everyone is
-family. Do not bind it to `0.0.0.0` and do not forward it from the router.
+**Private events are filtered at the source, not in the template.** An event
+can be marked private to one person, and every query that lists events for
+another app or another person appends the same one-line filter
+(`visible_to()` in `app/main.py`) rather than trusting each caller to
+remember it. The API endpoint that feeds another household app its "what did
+we attend" diary excludes private rows unconditionally, because that
+endpoint has no viewer to be private *from* — it is read by a service both
+people already read, so a private row simply never leaves the database for
+that path at all.
 
-## The database is production
+**The trusted-network gate.** There is no login for anyone on the household's
+own private network — home Wi-Fi, or a private overlay network like
+Tailscale. `app/gate.py` classifies the request's real client address (read
+carefully from the right-hand end of `X-Forwarded-For`, skipping only the
+proxy hops this deployment actually adds) before it ever asks who the
+person is. Only a request whose real address is genuinely public gets a
+login screen, sessions are an HMAC-signed cookie, and passwords are pbkdf2
+hashes that live only in the host's `.env`. Unconfigured means the public
+path fails *closed*: a private-network visitor never notices, a public one
+is told to configure it rather than let in.
 
-It holds the family's real schedule. No `delete from events`, and never
-recreate the `db` service without checking the bind mount first. To test a
-write, use a disposable event in a distant year (2099) and delete it after.
-
-Schema is created idempotently at startup by the app, so there are no migration
-files. Storage is `timestamptz`; every render converts through `CAL_TZ`
-(America/New_York), because the guest itself runs UTC.
+**One codebase answers on its own port and under a path prefix.** Every URL
+the app emits — links, redirects, the PWA manifest — is built from
+`X-Forwarded-Prefix` (`prefix()` in `app/main.py`), which is empty when the
+app is reached directly and set to something like `/calendar` when a router
+in front of it proxies a public host's subpath here. The router strips the
+prefix before forwarding, so routes never see it; the app only has to be
+disciplined about writing it back into everything it renders. That is what
+lets one deployment be both a private app on a home network and a path on a
+shared public host, with no second build and no second config.
 
 ## Layout
 
 ```
-app/main.py          routes, schema, event and category CRUD
-app/art.py           month number to background picture
-app/gate.py          the login for public (funnel) visitors; tailnet never sees it
-app/holidays.py      US federal + Georgia, Brasil + Rio Grande do Sul, all computed
-app/news.py          TMDB client for the cinema rail
-app/reminders.py     Telegram: reminders, nags, the Done/Not yet buttons
-app/ui.py            which UI a device gets (desktop or phone)
-app/templates/       Jinja2, server-rendered, no JS framework (desktop UI)
-app/templates/phone/ the phone UI: same routes, same data, phone-shaped screens
-app/static/art/      the pictures, one per month (see the README there)
+app/main.py           routes, schema, event/category CRUD, the private-event rule
+app/art.py             month number to background picture, the person/shared/painting chain
+app/gate.py            who is trusted, who needs a password
+app/people.py          which device belongs to which person
+app/holidays.py        US federal + Georgia, Brazil + Rio Grande do Sul, all computed
+app/news.py            an optional "what's playing" rail (needs a free API key)
+app/reminders.py       Telegram: reminders, the daily nag, the Done/Not yet buttons
+app/ui.py               which UI a device gets (desktop or phone)
+app/templates/         Jinja, server-rendered, no JS framework (desktop UI)
+app/templates/phone/   the phone UI: same routes, same data, phone-shaped screens
+app/static/art/        the pictures, one per month (see the README there)
+demo/seed.sql           the invented month used by `make demo`
+docker-compose.yml      app + postgres, loopback-bound on purpose
 ```
 
-## The two UIs are one app (Willian's rule, 2026-08-14)
+The committed compose file binds to loopback only: a reverse proxy or a
+private overlay network is meant to be the way in. Host-specific extras, a
+LAN address or another port, belong in a `docker-compose.override.yml`,
+which is git-ignored.
 
-There is a desktop UI and a phone UI (chosen per device, overridable by
-cookie), and they are the same app: same routes, same context, two template
-sets. **Every new feature ships on BOTH UIs in the same change, and is tested
-on both** (Playwright device emulation covers the phones). A feature that
-exists only on the desktop is not done; do not merge it, do not deploy it.
-The phone UI is not a second product to fall behind: it is half of this one.
+Configuration is all in `.env.example`, and every variable there is optional
+except the database password.
 
-## Traps that have already cost a round each
+## Status
 
-- **A UI change does not appear.** A cached stylesheet. Static URLs carry
-  `?v=<hash>` and the mount sends `Cache-Control: no-cache`; if you add a new
-  static route, give it the same treatment.
-- **The picture does not change with the month.** This was `hx-boost`, which
-  swaps the body and leaves `<head>` alone while the image lives in a `<style>`
-  block there. htmx is gone. Do not add it back.
-- **The picture covers the calendar.** The two fixed pseudo-elements that paint
-  it sit in the root stacking context, so `.top` and `.shell` have to be lifted
-  out of it explicitly.
-- **A view is clipped with no scrollbar.** The desktop layout locks page
-  scrolling so the week grid can scroll internally: `main` needs its own
-  `overflow-y`, and every ancestor of a scroller needs `min-height: 0`.
-- **`section.items` in a Jinja template** resolves to the dict's built-in
-  method, not to a key of that name. The releases key is `entries` for exactly
-  this reason.
-- **Times need a meridiem letter** (`6:55p`). A 19:55 flight rendered as "6:55"
-  reads as morning.
+The design notes in [STATUS.md](STATUS.md) and the roadmap in
+[OBJECTIVES.md](OBJECTIVES.md) are worth a look if you want the reasoning
+rather than just the code: what was built, what was deliberately left out,
+and which rules came from watching the app actually get used by two people.
 
-## Related
+## License
 
-The host, the reverse proxy, the backups and the dashboard live in the
-`homelab` repo. This repo owns only the application.
+MIT, see [LICENSE](LICENSE).

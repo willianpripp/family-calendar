@@ -1,27 +1,29 @@
-# The front door for visitors who are not on the tailnet.
+# The front door for visitors who are not on the private network.
 #
 # Ordered by Willian 2026-08-14: the calendar became reachable from the public
-# internet (Tailscale Funnel, for Aline's work MacBook, which cannot run
-# Tailscale), and the interim guard was a Caddy basic_auth popup. This module
-# replaces that popup with a login page that looks like the app, the House
-# Finances arrangement.
+# internet (a Tailscale Funnel style arrangement, for a work laptop that
+# cannot join the private network), and the interim guard was a reverse-proxy
+# basic_auth popup. This module replaces that popup with a login page that
+# looks like the rest of the app, the same shape used elsewhere in the
+# household's apps.
 #
 # The trust rule, exactly as he scoped it: auth only where the trust boundary
-# is. Tailnet devices (:8446) and home-LAN visitors are never asked; only a
-# request whose real client address is public needs a session. people.py keeps
+# is. Tailnet devices and home-LAN visitors are never asked; only a request
+# whose real client address is public needs a session. people.py keeps
 # deciding whose *pictures* these are; this module only decides whether the
 # request gets in at all. The two must not be merged: one is cosmetic, the
 # other is the boundary.
 #
 # Who the real client is takes care, because X-Forwarded-For is a list that
 # anyone can seed. The chain here is at most: forged entries from the visitor,
-# then the address tailscale serve actually saw, then the loopback/docker hops
-# calgate and the container runtime add. So the address is read from the RIGHT,
-# skipping the on-host proxy hops (loopback, the docker nets); the first entry
-# that is not one of those is what the nearest trusted proxy observed. Entries
-# further left are hearsay and are never consulted. A funnel visitor claiming
-# "100.100.1.1" in a forged header still presents a public address in the
-# position that counts, and stays outside.
+# then the address the tailnet's own serve/funnel proxy actually saw, then the
+# loopback/docker hops the local reverse proxy and the container runtime add.
+# So the address is read from the RIGHT, skipping the on-host proxy hops
+# (loopback, the docker nets); the first entry that is not one of those is
+# what the nearest trusted proxy observed. Entries further left are hearsay
+# and are never consulted. A funnel visitor claiming "100.100.1.1" in a forged
+# header still presents a public address in the position that counts, and
+# stays outside.
 #
 # Sessions are an HMAC-signed cookie (stdlib only, same "right size of
 # machinery" rule as the rest of the app): user, expiry, signature. Passwords
@@ -40,8 +42,9 @@ COOKIE = "cal_gate"
 SESSION_DAYS = 60
 
 # The proxy hops that can legitimately sit between a client and the app on
-# this host: loopback (tailscaled, calgate) and the docker bridge nets. These
-# are skipped when reading the forwarded chain from the right. The LAN net is
+# this host: loopback (the tailnet daemon, the local reverse proxy) and the
+# docker bridge nets. These are skipped when reading the forwarded chain from
+# the right. The LAN net is
 # deliberately NOT here: a 192.168.x peer is a real visitor (trusted, below),
 # not a hop to look past.
 def _is_proxy_hop(ip) -> bool:

@@ -1,109 +1,98 @@
 # Objectives
 
-Direction for the calendar. `STATUS.md` is what is true right now; this file is
-what gets built next and in what order. Same arrangement as the homelab repo.
+Direction for the calendar. `STATUS.md` is what is true right now; this file
+is what gets built next and in what order.
 
-Nothing here is committed work until Willian orders it. Items marked IDEA were
-raised once and not yet ratified.
+Nothing here is committed work until it is explicitly ordered. Items marked
+IDEA were raised once and not yet ratified.
 
-## Requested by Willian 2026-08-13, not yet ordered
+## Delivered, kept here for the shape of the reasoning
 
-Items 1, 2, 3 and 4 of the original five (standalone reminders, richer
-messages, English bot messages, nag until acknowledged) were ordered and
-delivered 2026-08-14; see `STATUS.md`. Of what remains, he has not said which
-(or the rail below) goes first; ask before building.
+- **The OK inside Telegram**, together with a "Not yet" button — see
+  `STATUS.md` ("The nag answers back") for the shape and for why long
+  polling is load-bearing there.
+- **A real phone experience** — a separate phone-shaped UI for the same app,
+  chosen by device the same way per-person pictures already are. Delivered
+  in full: the event form, the pictures page and the categories page all got
+  their phone screens too, so no page wears desktop chrome on a phone
+  anymore.
+- **App-down alerting**, delivered from outside this repo: an external
+  monitor probes every household app on a short interval and pages if one
+  goes quiet for several checks running, with a recovery message on the way
+  back. Standing obligation on this repo: `GET /health` stays cheap and
+  auth-free, because it is load-bearing for that monitor.
+- **Login for visitors outside the private network** — the arrangement lives
+  in `STATUS.md` and `app/gate.py`. If accounts ever grow beyond the two the
+  household currently has, the hashes in the host `.env` are the only place
+  to touch.
 
-4. **The OK inside Telegram: DELIVERED 2026-08-14 (night)**, together with the
-   "Not yet" button. See `STATUS.md` ("The nag answers back") for the shape
-   and for why long polling is load-bearing there.
-5. **A real phone experience: ORDERED 2026-08-14 (night), in progress**
-   (shared requirement with House Finances, and likely future apps). The web
-   version is good on a monitor and clumsy on the phones. Possibly a separate
-   phone-shaped UI for the same app, chosen by device, the same way pictures
-   already are. Validation tooling exists already: Playwright's device
-   emulation (viewport, touch, user agent) covers Pixel/Z Flip testing
-   without new infrastructure.
-
-## Delegated to the homelab repo 2026-08-14
-
-- **App-down alerting: DELIVERED by the homelab the same night.** Every
-  household app probed every 2 minutes (this calendar first); 3 consecutive
-  failures page both phones through the bot, re-alert every 4 hours, recovery
-  message on the way back; proven with a real down/up cycle. Standing
-  obligation on this repo: `GET /health` stays cheap and auth-free on
-  loopback, it is load-bearing now (noted on the route). Residual gap (the
-  lab VM itself dying) is the homelab's dead-man's-switch item, theirs.
-
-## Login for non-tailnet visitors: DELIVERED 2026-08-14
-
-Ordered and shipped the same day; the arrangement lives in `STATUS.md` and
-`app/gate.py`. calgate (the interim basic_auth popup in the homelab repo) was
-retired the same evening and the funnel points straight at the app; the
-homelab side verified the flip from the true public ingress. Remaining scope
-that was deliberately deferred: nothing. If accounts ever grow beyond willian
-and aline, the hashes in the host `.env` are the only place to touch.
-
-## Requested by Aline 2026-08-14, relayed by Willian
+## Requested, not yet ordered
 
 1. **A day cell must show all its events.** In the month grid a day with many
-   events clips at three or so (`.day` is `overflow: hidden`); the fourth is
-   invisible, which is the one failure a calendar must not have. Plan: the
-   event stack inside the cell becomes its own scroller (`overflow-y: auto`),
-   so the day number stays put and a crowded day scrolls within its cell.
-2. **Picking a start time pre-fills one hour of meeting.** The form already
-   opens with an hour of duration, but changing the start leaves the end
-   where it was. Plan: when the start changes, the end follows, keeping the
-   duration already on the form (an edited event keeps its length; a new one
-   keeps the default hour), same day. Adjusting the end by hand afterwards
-   still works, it is just no longer required.
-3. **The Pictures page is hard to read and "1 painting" says nothing.** The
-   captions become month names ("1. January … 12. December", the painting tag
-   stays as a small note), and the year grid gets the same surface panel the
-   rest of the page's text already sits on, so it stops fighting the
-   background photo.
-4. **The rail should wear the same veil as the calendar, categories first.**
-   The right panels (cinema, categories) sit at a fixed 92% surface while the
-   calendar's transparency cycles with the ◐ button; they should follow
-   `--surface-veil` like the day cells do. And the order flips: categories on
-   top, the cinema below.
+   events currently clips after a handful; the rest are invisible, which is
+   the one failure a calendar must not have. Plan: the event stack inside the
+   cell becomes its own scroller, so the day number stays put and a crowded
+   day scrolls within its own cell rather than hiding anything.
+2. **Picking a start time should carry the event's existing duration
+   forward.** The form already opens with a default duration, but changing
+   the start time currently leaves the end time where it was. Plan: when the
+   start changes, the end follows by the same offset, keeping whatever
+   duration was already on the form; an edited event keeps its length, a new
+   one keeps the default. Adjusting the end by hand afterwards still works,
+   it is just no longer required.
+3. **The pictures page needs plainer labels.** Numeric month captions and a
+   bare "1 painting" caption say nothing at a glance; captions should read as
+   month names, with the fallback-painting note kept as a small aside, and
+   the year grid should sit on the same surface panel the rest of the page's
+   text already uses instead of fighting the background photo directly.
+4. **The side rail should follow the same transparency control as the
+   calendar.** Right-hand panels currently sit at a fixed opacity while the
+   calendar's own transparency is cycled by its control; they should track
+   the same setting the day cells do.
 
-## Next, when Willian asks
+## Next, when ordered
 
-1. **The rail becomes swipeable: cinema, then concerts, then big events.**
-   Raised 2026-08-08, explicitly not urgent. The rail keeps its place and size;
-   arrows or a swipe move sideways through panes, `scroll-snap` plus two
-   buttons, no framework. Pane one is the existing cinema rail.
-   - **Concerts around Atlanta:** Ticketmaster Discovery API (free key, filters
-     by city/DMA plus `classificationName=music`). A sibling module to
-     `news.py`, not more branches inside it.
-   - **The handful of events that matter** (Super Bowl, Grammys, Oscars,
-     elections): a curated table in the repo, reviewed yearly, **no API**.
-     Election day is rule-based and belongs in `holidays.py`.
-   - Decide before building: should a concert be addable to the calendar in
-     one click? If yes, each entry pre-fills the event form, and that link is
-     the part worth designing.
+1. **The rail becomes swipeable: what's playing, then concerts, then major
+   events.** Not urgent. The rail keeps its place and size; arrows or a swipe
+   move sideways through panes, using scroll-snap plus two buttons, no
+   framework. The existing "what's playing" rail becomes pane one.
+   - **Concerts nearby:** a free ticketing-discovery API filtered by
+     region and event type, as a sibling module to `app/news.py` rather than
+     more branches inside it.
+   - **The handful of events that matter regardless of category** (major
+     sporting finals, awards shows, elections): a small curated table in the
+     repo, reviewed yearly, no API. An election day is rule-based and
+     belongs in `app/holidays.py` instead.
+   - Decide before building: should one of these be addable to the calendar
+     in a single click? If so, each entry should pre-fill the event form, and
+     that link is the part worth designing carefully.
 
 ## Ideas raised, not ordered
 
-- Real snoozing for the nags ("remind me Monday"): stateful, needs a date
-  column and its own design. The stateless "Not yet" button shipped
-  2026-08-14 is deliberately not this.
-- A continuous bar for multi-day trips, instead of the title repeating in each
-  cell.
-- A read-only iCal feed, so Aline's phone subscribes in the app she already
-  opens.
+- Real snoozing for the nags ("remind me again in a few days"): stateful,
+  needs a date column and its own design. The stateless "Not yet" button is
+  deliberately not this.
+- A continuous bar for multi-day trips, instead of the title repeating in
+  each day's cell.
+- A read-only iCal feed, so a phone's own calendar app can subscribe to this
+  one.
 - Weather on the day cells, and countdowns to the next big thing.
-- Surfacing the next few events on the homelab dashboard.
+- Surfacing the next few events on a household dashboard outside this repo.
 
 ## Considered and declined
 
-- **Syncing Aline's work Outlook calendar** (2026-08-08): she adds meetings
-  manually. The analysis stays in `STATUS.md` in case it returns.
+- **Syncing a work calendar automatically**: the analysis stays in
+  `STATUS.md` in case it returns; the decision for now is to add such events
+  manually.
 
 ## Standing constraints (they shape any new feature)
 
-- The database is production; test writes use disposable year-2099 events.
-- No login. Identity is the device (`CAL_DEVICES`), and any feature needing
-  "who did this" inherits that limit.
-- The repo goes public eventually; the licensing/content gate applies at
-  commit time, and secrets live only in the host `.env`.
+- The database backing a real deployment holds a real household's schedule;
+  test writes should use a disposable event far in the future and delete it
+  after.
+- There is no login on the private-network path. Identity there is the
+  device (`CAL_DEVICES`), and any feature needing "who did this" inherits
+  that limit.
+- Anything published here needs to pass a plain test at commit time: would
+  this be fine as public information? Secrets live only in a host `.env`,
+  never in the repo.

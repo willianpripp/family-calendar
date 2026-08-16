@@ -2,7 +2,7 @@
 # migration framework. The schema is applied idempotently at startup, which is
 # the right size of machinery for two tables and two people.
 #
-# The two design points that matter more than they look (see homelab STATUS):
+# Two design points that matter more than they look:
 #
 #   Timezone. Storage is timestamptz (UTC); every parse and every render goes
 #   through HOUSEHOLD_TZ explicitly. Form input arrives as naive local
@@ -10,10 +10,11 @@
 #   silently four hours out is worse than none.
 #
 #   Ownership is an explicit field. Every family device signs in as the same
-#   Tailscale account, so no identity header can tell one of us from the other.
-#   The event says whose it is; the infrastructure cannot. The device address
-#   *can* (see people.py), but that is used only to choose a background picture
-#   and must never be given a job where being wrong matters.
+#   Tailscale (or equivalent private-network) account, so no identity header
+#   can tell one of us from the other. The event says whose it is; the
+#   infrastructure cannot. The device address *can* (see people.py), but that
+#   is used only to choose a background picture and must never be given a job
+#   where being wrong matters.
 
 import asyncio
 import os
@@ -42,6 +43,12 @@ from holidays import holidays_between
 
 HOUSEHOLD_TZ = ZoneInfo(os.environ.get("CAL_TZ", "America/New_York"))
 OWNERS = ("Willian", "Aline", "Both")
+
+# Where the 🏠 link goes when this app is reached directly on its own port,
+# rather than behind a path-prefixed reverse proxy (see prefix() below). Empty
+# means there is no portal to return to, and the icon is simply not drawn: a
+# fresh clone with nothing configured should never show a dead link.
+PORTAL_URL = os.environ.get("CAL_PORTAL_URL", "").strip()
 
 # What a fresh to-do proposes as its lead time. A week is enough room to act on
 # most household errands, and it keeps the phone's card about this week instead
@@ -422,10 +429,10 @@ templates = Jinja2Templates(directory="templates")
 @app.middleware("http")
 async def front_door(request: Request, call_next):
     """Login only where the trust boundary is (see gate.py): tailnet and LAN
-    pass untouched, a public (funnel) visitor needs a session. The stylesheet
-    is exempt so the login page can look like the app; the rest of /static is
-    NOT, because the wallpapers are family photographs. /health stays open for
-    the healthcheck and the homelab monitor, and answers "ok" to anyone."""
+    pass untouched, a public visitor needs a session. The stylesheet is exempt
+    so the login page can look like the app; the rest of /static is NOT,
+    because the wallpapers are family photographs. /health stays open for the
+    healthcheck and any external monitor, and answers "ok" to anyone."""
     path = request.url.path
     if (
         path in ("/login", "/health", "/manifest.webmanifest")
@@ -680,11 +687,12 @@ def veil_from(request: Request) -> int:
 
 
 def prefix(request: Request) -> str:
-    """The path this app is mounted under, as announced by the homelab's
-    router (2026-08-15): empty on the tailnet and LAN, "/calendar" behind the
-    public portal. The router strips it before proxying, so routes never see
-    it; every URL we EMIT (links, redirects, the manifest) must carry it, or
-    a public visitor's click walks out of the app."""
+    """The path this app is mounted under, as announced by whatever reverse
+    proxy sits in front of it: empty on a private network, "/calendar" (or
+    similar) behind a public path router. The router strips it before
+    proxying, so routes never see it; every URL we EMIT (links, redirects, the
+    manifest) must carry it, or a public visitor's click walks out of the
+    app."""
     return request.headers.get("x-forwarded-prefix", "").rstrip("/")
 
 
@@ -694,6 +702,7 @@ def base_context(request: Request, view: str, month: int) -> dict:
     path_q = base + str(request.url.path) + (f"?{request.url.query}" if request.url.query else "")
     return {
         "base": base,
+        "portal_url": PORTAL_URL,
         "view": view,
         "who": who,
         # For the one thing every page can put on screen: the popup that asks
@@ -804,7 +813,7 @@ def _attended(names: list[str]) -> list[dict]:
         # One formula for both storage shapes: pulling the end back a hair
         # makes the all-day exclusive bound and a timed midnight ending both
         # land on their true last day, then the span is inclusive. A one-day
-        # anything is 1; the Pensacola Sat-to-Sat kind of trip is 8.
+        # anything is 1; a Saturday-to-Saturday kind of trip is 8.
         e = to_local(r["ends_at"]) - timedelta(microseconds=1)
         out.append({
             "id": r["id"], "title": r["title"],
@@ -845,11 +854,11 @@ def manifest(request: Request) -> JSONResponse:
 
 @app.get("/health")
 def health() -> JSONResponse:
-    """LOAD-BEARING and deliberately cheap: the homelab's app_health role
-    probes this every 2 minutes (2026-08-14) and pages both phones when it
-    fails three times running. It must stay auth-free (the front_door
-    middleware exempts it) and must not grow work: its one job is proving the
-    app and its database are alive."""
+    """LOAD-BEARING and deliberately cheap: an external health check probes
+    this every couple of minutes and pages the household when it fails
+    several times running. It must stay auth-free (the front_door middleware
+    exempts it) and must not grow work: its one job is proving the app and its
+    database are alive."""
     with pool.connection() as conn:
         conn.execute("select 1")
     return JSONResponse({"status": "ok"})

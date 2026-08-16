@@ -26,8 +26,10 @@
     <button type="submit" title="more or less picture">◐</button>
   </form>
   {# Same door as the desktop header's, at the thumb's end of the bar. #}
+  {% if base or portal_url %}
   <a class="homelink" title="Casa portal"
-     href="{% if base %}/{% else %}https://home.example.ts.net:10000{% endif %}">🏠</a>
+     href="{% if base %}/{% else %}{{ portal_url }}{% endif %}">🏠</a>
+  {% endif %}
 </header>
 
 <main class="pmain">

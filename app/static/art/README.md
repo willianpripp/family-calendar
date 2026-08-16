@@ -10,15 +10,15 @@ Three levels, first match wins:
    and by any month the person has not covered.
 3. **the painting** — the last resort, so no month is ever undressed.
 
-Who a device belongs to is decided by its tailnet address, listed in
+Who a device belongs to is decided by its private-network address, listed in
 `CAL_DEVICES` in the host's `.env`. There is no login. The **Pictures** page in
 the app shows what it decided, reports the address it saw, and can override the
 guess per device. That page is also the fastest way to see the whole year at a
 glance and spot which months are still missing.
 
-This folder is **bind-mounted from the host**, so a picture dropped into
-`/srv/lab/calendar/app/static/art/` appears on the next page load with no
-rebuild and no restart.
+In the compose file this folder is **bind-mounted from the host**, so a
+picture dropped into it appears on the next page load with no rebuild and no
+restart.
 
 ## Adding your own — from the calendar
 
@@ -32,10 +32,12 @@ Uploads are re-encoded, never stored as sent: rotated upright from the phone's
 EXIF, scaled down to 2560px if larger, and written as JPEG. That also strips the
 EXIF, which on a phone photo carries the GPS coordinates of where it was taken.
 
-**Pictures uploaded that way live on the host only**, at
-`/srv/lab/calendar/app/static/art/`. They are not in git, `make deploy` will not
-remove them, and nothing backs them up yet. Commit the ones you would be sad to
-lose.
+**Every per-person upload stays out of git, permanently and by policy**: this
+repo's `.gitignore` ignores everything under `willian/`, `aline/`, or any
+other person's folder except the placeholder that keeps the empty folder
+tracked. There is no escape hatch and no exception — those pictures live only
+on whatever host the app is running on, `make deploy` will not remove them,
+and nothing backs them up unless you arrange that yourself.
 
 ## Adding your own — from the repo
 
@@ -52,8 +54,9 @@ Drop a file in the right folder, named for the month:
 
 `.jpg`, `.jpeg`, `.png`, `.webp` and `.avif` all work, and the folder decides
 who sees it: `aline/month-05.jpg` is hers alone, `month-05.jpg` here is
-everyone's. Commit it and `make deploy`, or copy it straight to the host for a
-picture that should stay out of git (see Licensing below).
+everyone's. A person's own folder is never committed (see above, no
+exceptions); a shared, top-level picture can be committed if it clears the
+licensing test below.
 
 ## What makes a good one
 
@@ -63,8 +66,8 @@ picture that should stay out of git (see Licensing below).
   it. 2400px is comfortable.
 - **Busy in the corners, calm in the middle** reads best, because the calendar
   grid sits over the centre.
-- **Under about 1 MB.** This is opened on a phone over the tailnet; the file
-  is downloaded before anything is visible.
+- **Under about 1 MB.** This may be opened on a phone over a slow connection;
+  the file is downloaded before anything is visible.
 - The calendar is dark only, so a dark or moody picture needs no help. A very
   bright one still works, it just leans harder on the veil below.
 
@@ -74,18 +77,19 @@ lower shows more of it.
 
 ## Licensing
 
-The repo is private today, but **it is going public eventually** (Willian's
-decision, 2026-08-08), and what goes public is the **history**, not the tree.
-Deleting a picture later does not remove it; that needs `git-filter-repo` and a
-force-push. So the test is applied when you commit, not when you publish:
+This repo is public, and what is public is the **history**, not just the
+current tree — deleting a picture later does not remove it from what has
+already been published; that needs rewriting history entirely. So the test
+below applies at commit time, for anyone contributing a shared, top-level
+picture:
 
-- A photograph you took yourself is fine.
+- A photograph you took yourself, and are comfortable publishing, is fine.
 - A film still, a promotional image, or something an image search turned up
   generally is **not**, whatever the search engine implies.
 - The paintings that ship as fallbacks are public domain, because the artists
-  died over seventy years ago. `ATTRIBUTION.md` records which is which.
+  died well over seventy years ago. `ATTRIBUTION.md` records which is which.
 
-For a picture that cannot be published, the escape hatch is to keep it out of
-git entirely: copy it straight to `/srv/lab/calendar/app/static/art/` on the
-host and add its name to `.gitignore`. The calendar renders it identically and
-it is never committed, so nothing has to be scrubbed later.
+Anything that is someone's personal photograph and not meant for a public
+repo belongs in a person's own folder, never at the top level: see "Adding
+your own" above for why that folder can never end up in git regardless of
+intent.

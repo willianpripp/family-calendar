@@ -38,10 +38,13 @@
     {# The door to the other UI; its twin lives at the phone UI's foot. #}
     <form method="post" action="{{ base }}/ui" class="uiswitch"><input type="hidden" name="back" value="/today"><button type="submit" name="choice" value="phone" class="ghost" title="switch this device to the phone UI">📱</button></form>
     <a class="add" href="{{ base }}/events/new?back={{ here }}">+ Add</a>
-    {# Two ways in, two portals: behind the funnel prefix the portal is this
-       host's root; reached straight on the tailnet port it is the :10000 page. #}
+    {# Two ways back to the portal: behind a path-prefixed router the portal
+       is this host's root; reached directly on the app's own port it is
+       CAL_PORTAL_URL, or the icon is not drawn at all when neither applies. #}
+    {% if base or portal_url %}
     <a class="homelink" title="Casa portal"
-       href="{% if base %}/{% else %}https://home.example.ts.net:10000{% endif %}">🏠</a>
+       href="{% if base %}/{% else %}{{ portal_url }}{% endif %}">🏠</a>
+    {% endif %}
   </div>
 </header>
 
