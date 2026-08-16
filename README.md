@@ -1,5 +1,7 @@
 # Family calendar
 
+[![hygiene](https://github.com/willianpripp/family-calendar/actions/workflows/hygiene.yml/badge.svg)](https://github.com/willianpripp/family-calendar/actions/workflows/hygiene.yml)
+
 A shared household calendar built around the failure that motivated it: a
 flight and a concert booked for the same evening, discovered too late to fix.
 Month, week and upcoming views, categories with colours, US and Brazilian
