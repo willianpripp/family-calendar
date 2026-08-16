@@ -1,5 +1,5 @@
 {% extends "phone/base.html" %}
-{% block title %}Hoje — Casa{% endblock %}
+{% block title %}Today — Home{% endblock %}
 {% block ptitle %}<span class="ptitle">{{ now.strftime('%A, %b %-d') }}</span>{% endblock %}
 {% block content %}
 
@@ -26,7 +26,7 @@
    scheduled things, so nothing appears twice on one screen. #}
 {% set scheduled = events | rejectattr('item_kind', 'equalto', 'reminder') | list %}
 {% if scheduled %}
-<div class="pday-h">{{ 'Hoje' if day == today else day.strftime('%a, %b %-d') }}
+<div class="pday-h">{{ 'Today' if day == today else day.strftime('%a, %b %-d') }}
   {% for name in holidays.get(day, []) %}<span class="hol"> · {{ name }}</span>{% endfor %}
 </div>
 <div class="pcard">

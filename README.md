@@ -39,6 +39,30 @@ diary. `make demo-reset` puts it back.
 Without the demo step you get an empty calendar and the default categories,
 which is also a perfectly good place to start.
 
+## Running for real
+
+This is not a portfolio demo that was built and abandoned. It runs continuously
+on a small home server, in Docker, and two people use it every day. The access
+model is the part most worth copying:
+
+- **Nothing is port-forwarded.** The home router has no inbound ports open, so
+  there is no public attack surface pointing at the house.
+- **The household reaches it from anywhere in the world** over a Tailscale
+  tailnet: a phone on mobile data in another country gets the same app as a
+  laptop on the sofa. `tailscale serve` terminates TLS with a real certificate,
+  so it is proper HTTPS without exposing anything to the internet.
+- **Exactly one path is public**, a Tailscale Funnel address, and it exists for
+  one device that cannot join the tailnet (a work laptop with a managed
+  profile). That path is the only one that ever sees the login in
+  `app/gate.py`, and the session cookie is shared with the household's other
+  apps, so one login covers all of them. Everything arriving from the private
+  network is trusted and is never asked to authenticate, which is the whole
+  design: put the authentication where the trust boundary actually is, not
+  everywhere.
+- **Backups run nightly and an uptime probe hits `/health` every couple of
+  minutes.** Both live in a separate private infrastructure repo, because this
+  repo is the app and nothing else.
+
 ## What is interesting in here
 
 **Two UIs, one app.** There is a full desktop template set and a separate,

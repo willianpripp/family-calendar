@@ -24,7 +24,7 @@
    a real navigation costs nothing and cannot desync. #}
 <body>
 <header class="top">
-  <a class="brand" href="{{ base }}/month">Casa</a>
+  <a class="brand" href="{{ base }}/month">Home</a>
 
   <nav class="views">
     <a href="{{ base }}/month" {% if view == 'month' %}class="active"{% endif %}>Month</a>
@@ -42,7 +42,7 @@
        is this host's root; reached directly on the app's own port it is
        CAL_PORTAL_URL, or the icon is not drawn at all when neither applies. #}
     {% if base or portal_url %}
-    <a class="homelink" title="Casa portal"
+    <a class="homelink" title="Home portal"
        href="{% if base %}/{% else %}{{ portal_url }}{% endif %}">🏠</a>
     {% endif %}
   </div>

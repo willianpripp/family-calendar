@@ -1,5 +1,5 @@
 {% extends "phone/base.html" %}
-{% block title %}{{ month_name }} {{ year }} — Casa{% endblock %}
+{% block title %}{{ month_name }} {{ year }} — Home{% endblock %}
 {% block content %}
 
 <div class="pmonth-nav">
@@ -29,7 +29,7 @@
 </div>
 {% endfor %}
 
-<div class="pday-h">{{ 'Hoje' if sel == today else sel.strftime('%A, %b %-d') }}
+<div class="pday-h">{{ 'Today' if sel == today else sel.strftime('%A, %b %-d') }}
   {% for name in holidays.get(sel, []) %}<span class="hol"> · {{ name }}</span>{% endfor %}
 </div>
 <div class="pcard">

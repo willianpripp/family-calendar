@@ -7,7 +7,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>{% block title %}Casa{% endblock %}</title>
+<title>{% block title %}Home{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📅</text></svg>">
 <link rel="manifest" href="{{ base }}/manifest.webmanifest">
 <link rel="apple-touch-icon" href="{{ base }}/static/icon-192.png?v={{ asset_v }}">
@@ -19,7 +19,7 @@
 <body class="phone-ui">
 
 <header class="ptop">
-  <span class="pbrand">Casa</span>
+  <span class="pbrand">Home</span>
   {% block ptitle %}{% endblock %}
   <form method="post" action="{{ base }}/veil" class="pveil">
     <input type="hidden" name="back" value="{{ here_plain }}">
@@ -27,7 +27,7 @@
   </form>
   {# Same door as the desktop header's, at the thumb's end of the bar. #}
   {% if base or portal_url %}
-  <a class="homelink" title="Casa portal"
+  <a class="homelink" title="Home portal"
      href="{% if base %}/{% else %}{{ portal_url }}{% endif %}">🏠</a>
   {% endif %}
 </header>
@@ -39,10 +39,10 @@
 {% block pfab %}<a class="pfab" href="{{ base }}/events/new?back={{ here }}" aria-label="add">+</a>{% endblock %}
 
 <nav class="ptabs">
-  <a href="{{ base }}/today" {% if view == 'today' %}class="on"{% endif %}><b>☀</b>Hoje</a>
-  <a href="{{ base }}/month" {% if view == 'month' %}class="on"{% endif %}><b>▦</b>Mês</a>
+  <a href="{{ base }}/today" {% if view == 'today' %}class="on"{% endif %}><b>☀</b>Today</a>
+  <a href="{{ base }}/month" {% if view == 'month' %}class="on"{% endif %}><b>▦</b>Month</a>
   <a href="{{ base }}/cinema" {% if view == 'cinema' %}class="on"{% endif %}><b>🎬</b>Cinema</a>
-  <a href="{{ base }}/who?back={{ here }}" {% if view == 'who' %}class="on"{% endif %}><b>🖼</b>Fotos</a>
+  <a href="{{ base }}/who?back={{ here }}" {% if view == 'who' %}class="on"{% endif %}><b>🖼</b>Pictures</a>
 </nav>
 
 <form method="post" action="{{ base }}/ui" class="pswitch">
@@ -59,7 +59,7 @@
   <div class="whoask-box">
     <h2>Who uses this device?</h2>
     <p>It picks the pictures, and it decides whose private events show up here.
-    Change it any time under Fotos.</p>
+    Change it any time under Pictures.</p>
     <form method="post" action="{{ base }}/who">
       <input type="hidden" name="back" value="{{ here_plain }}">
       {% for key, name in people.items() %}

@@ -841,7 +841,7 @@ def manifest(request: Request) -> JSONResponse:
     portal must open at /calendar/, not at the portal's front page."""
     base = prefix(request)
     return JSONResponse({
-        "name": "Casa", "short_name": "Casa",
+        "name": "Home", "short_name": "Home",
         "description": "The family calendar",
         "start_url": f"{base}/", "display": "standalone",
         "background_color": "#161C24", "theme_color": "#161C24",

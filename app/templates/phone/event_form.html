@@ -1,5 +1,5 @@
 {% extends "phone/base.html" %}
-{% block title %}{{ 'Edit event' if ev and ev.get('id') else 'New event' }} — Casa{% endblock %}
+{% block title %}{{ 'Edit event' if ev and ev.get('id') else 'New event' }} — Home{% endblock %}
 {% block ptitle %}<span class="ptitle">{{ 'Edit event' if ev and ev.get('id') else 'New event' }}</span>{% endblock %}
 {# No + while already adding: the fab would sit on top of Save. #}
 {% block pfab %}{% endblock %}

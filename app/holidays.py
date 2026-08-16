@@ -85,22 +85,22 @@ def holidays_for_year(year: int) -> dict[date, list[str]]:
         (date(year, 4, 21), "Tiradentes"),
         (date(year, 5, 1), "Dia do Trabalho"),
         (e + timedelta(days=60), "Corpus Christi"),
-        (date(year, 9, 7), "Independencia do Brasil"),
+        (date(year, 9, 7), "Independência do Brasil"),
         (date(year, 10, 12), "Nossa Senhora Aparecida"),
         (date(year, 11, 2), "Finados"),
-        (date(year, 11, 15), "Proclamacao da Republica"),
+        (date(year, 11, 15), "Proclamação da República"),
         # National since Lei 14.759/2023; before that it was state-level only.
-        (date(year, 11, 20), "Consciencia Negra"),
+        (date(year, 11, 20), "Consciência Negra"),
         (date(year, 12, 25), "Natal"),
 
         # --- Rio Grande do Sul -------------------------------------------------
-        (date(year, 9, 20), "Revolucao Farroupilha"),
+        (date(year, 9, 20), "Revolução Farroupilha"),
 
         # --- dates worth remembering, in both countries -------------------------
         # Nobody gets the day off, but a family calendar that does not know when
         # Mother's Day is has missed the point.
         (date(year, 2, 14), "Valentine's Day"),
-        (nth_weekday(year, 5, 6, 2), "Mother's Day / Dia das Maes"),
+        (nth_weekday(year, 5, 6, 2), "Mother's Day / Dia das Mães"),
         (date(year, 6, 12), "Dia dos Namorados"),
         (nth_weekday(year, 6, 6, 3), "Father's Day"),
         (nth_weekday(year, 8, 6, 2), "Dia dos Pais"),
