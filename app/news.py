@@ -6,7 +6,7 @@
 # cosmetic. Asking /discover for a month that has not happened yet returns
 # titles sorted by a popularity score they have not earned: for August 2026 it
 # offered a Korean comedy and an Indian war film ahead of anything playing at
-# an Atlanta multiplex. TMDB's curated /movie/now_playing for the US region
+# an ordinary US multiplex. TMDB's curated /movie/now_playing for the US region
 # returns Spider-Man and The Odyssey, which is the honest answer to "what is at
 # the cinema this week".
 #
