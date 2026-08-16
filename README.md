@@ -155,22 +155,26 @@ framework, no cloud service. Telegram bot for reminders and nagging; uploaded ba
 hardware in the house, which is why the calendar keeps working when the internet
 does not.
 
-## Layout
+## Project structure
 
 ```
-app/main.py           routes, schema, event/category CRUD, the private-event rule
-app/art.py             month number to background picture, the person/shared/painting chain
-app/gate.py            who is trusted, who needs a password
-app/people.py          which device belongs to which person
-app/holidays.py        US federal + Georgia, Brazil + Rio Grande do Sul, all computed
-app/news.py            an optional "what's playing" rail (needs a free API key)
-app/reminders.py       Telegram: reminders, the daily nag, the Done/Not yet buttons
-app/ui.py               which UI a device gets (desktop or phone)
-app/templates/         Jinja, server-rendered, no JS framework (desktop UI)
-app/templates/phone/   the phone UI: same routes, same data, phone-shaped screens
-app/static/art/        the pictures, one per month (see the README there)
-demo/seed.sql           the invented month used by `make demo`
-docker-compose.yml      app + postgres, loopback-bound on purpose
+family-calendar/
+├── app/
+│   ├── main.py           # routes, schema, event/category CRUD, the private-event rule
+│   ├── art.py            # month number to background picture, the person/shared/painting chain
+│   ├── gate.py           # who is trusted, who needs a password
+│   ├── people.py         # which device belongs to which person
+│   ├── holidays.py       # US federal + Georgia, Brazil + Rio Grande do Sul, all computed
+│   ├── news.py           # optional "what's playing" rail (needs a free API key)
+│   ├── reminders.py      # Telegram: reminders, the daily nag, the Done/Not yet buttons
+│   ├── ui.py             # which UI a device gets, desktop or phone
+│   ├── templates/        # Jinja, server-rendered, no JS framework (desktop UI)
+│   │   └── phone/        # the phone UI: same routes, same data, phone-shaped screens
+│   └── static/art/       # the pictures, one per month (see the README there)
+├── demo/seed.sql         # the invented month used by `make demo`
+├── docker-compose.yml    # app + postgres, loopback-bound on purpose
+├── Makefile              # make demo
+└── README.md
 ```
 
 The committed compose file binds to loopback only: a reverse proxy or a
