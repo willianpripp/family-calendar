@@ -24,8 +24,13 @@
 
 <div class="pcard">
   <div class="pcard-h">The year as this device sees it</div>
+  {% if who.key %}
   <p class="pnote">A month with no picture of its own falls back to the shared
   one, and then to a painting. Tap Set to upload from this phone.</p>
+  {% else %}
+  <p class="pnote">This device is not anyone's, so pictures set here are the
+  <strong>shared</strong> ones: both of you get them.</p>
+  {% endif %}
   <div class="partgrid">
     {% for m, month_name, a in months %}
     <figure class="partcell">
@@ -36,7 +41,7 @@
         <input type="hidden" name="back" value="{{ here_plain }}">
         <label class="artbar-btn">
           <input type="file" name="file" accept="{{ art_accept }}" hidden
-                 onchange="this.form.submit()">Set</label>
+                 onchange="this.form.submit()">{% if who.key %}Set{% else %}Set for everyone{% endif %}</label>
         {% if a.level == 'own' %}
         <button type="submit" class="artbar-btn" formaction="{{ base }}/art/remove">Clear</button>
         {% elif a.level == 'shared' and who.key is none %}

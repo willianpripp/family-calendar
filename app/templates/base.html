@@ -65,10 +65,15 @@
 <form class="artbar" method="post" action="{{ base }}/art/upload" enctype="multipart/form-data">
   <input type="hidden" name="month" value="{{ art_month }}">
   <input type="hidden" name="back" value="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">
+  {# A device with nobody behind it (answered "Shared") uploads to the level
+     both of them see, because there is no folder of its own to write to. The
+     button has to say so: the old wording promised "this month's picture" and
+     quietly changed the whole house's. #}
   <label class="artbar-btn">
     <input type="file" name="file" accept="{{ art_accept }}" hidden
            onchange="this.form.submit()">
-    <span aria-hidden="true">🖼</span> Change this month's picture
+    <span aria-hidden="true">🖼</span>
+    {% if who.key %}Change this month's picture{% else %}Set this month's picture for everyone{% endif %}
   </label>
   {# Only offered when the picture on screen is at YOUR level. Offering it for
      the shared picture is how the shared October got deleted by someone who

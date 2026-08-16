@@ -32,6 +32,19 @@ tickets" reminder created (id 60, due Sep 8, lead 7, note carries the Sep 19
 show; the tickets are listed for sale) and the hotel-cancel reminder got
 lead 7 (surfaces Aug 26). Tuscany stays as imported (they went once).
 
+**Late 08-15, photos audited end to end** (Willian asked whether a picture set
+on his phone really reaches his desktop). It does: all three of his tailnet
+addresses resolve to `willian` and are served the identical file and version
+token, an upload from one appeared on the other two (tested on February, a
+month with no picture of his, and removed after), Aline's devices never saw
+it, and an unrecognised address carrying `cal_who=willian` (the funnel case
+the popup now fixes) wrote into his folder rather than the shared one. The
+audit did surface one honest-but-silent case: a device that answered "Shared
+device" has no folder of its own, so its uploads land at the shared level for
+the whole house. The buttons now say so on both shells ("Set this month's
+picture for everyone" / "Set for everyone", with the Fotos hint rewritten for
+that device); a recognised device is worded exactly as before.
+
 ## Pending right now (2026-08-15)
 
 - **Field testing continues** on the real phones (Aline's Z Flip especially);

@@ -39,9 +39,15 @@
 
 <div class="artbox">
 <h2 class="panel-sub">The year as this device sees it</h2>
+{% if who.key %}
 <p class="hint">A month with no picture of its own falls back to the shared one,
 and then to a painting. Add yours as <code>month-01</code> … <code>month-12</code>
-inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
+inside <code>static/art/{{ who.key }}/</code>.</p>
+{% else %}
+<p class="hint">This device is not anyone's, so pictures set here are the
+<strong>shared</strong> ones: both of you get them, on every month neither of
+you has covered with their own.</p>
+{% endif %}
 <div class="artgrid">
   {% for m, month_name, a in months %}
   <figure class="artcell">
@@ -52,7 +58,7 @@ inside <code>static/art/{{ who.key or '&lt;name&gt;' }}/</code>.</p>
       <input type="hidden" name="back" value="{{ base }}/who">
       <label class="artbar-btn">
         <input type="file" name="file" accept="{{ art_accept }}" hidden
-               onchange="this.form.submit()">Set</label>
+               onchange="this.form.submit()">{% if who.key %}Set{% else %}Set for everyone{% endif %}</label>
       {% if a.level == 'own' %}
       <button type="submit" class="artbar-btn" formaction="{{ base }}/art/remove">Clear</button>
       {% elif a.level == 'shared' and who.key is none %}
