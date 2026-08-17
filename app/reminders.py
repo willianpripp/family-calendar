@@ -26,6 +26,18 @@
 # morning hour is deliberate: these are errands and paperwork, done in
 # business hours, and an evening nag arrives after the day that could have
 # absorbed it is gone.
+#
+# The nag escalates over its lead window (Willian, 2026-08-17). Seven identical
+# "due by Aug 19" messages teach the eye to skip all seven, so the calm days
+# now count down ("due in 4 days") and the last two shout: the day before and
+# the due day open with an emoji and a caps verdict, and close with a second
+# urgency line, so the message reads as urgent both on the notification line
+# and after the eye has dropped to the buttons.
+#
+# Those two days also nag twice, the second at 15:00. Same reasoning as the
+# morning hour, one step further: a nag whose deadline is tomorrow has to land
+# while the afternoon can still act on it, and by 19:00 the offices that could
+# have absorbed it are shut.
 
 import colorsys
 import html
@@ -52,6 +64,10 @@ DAY_BEFORE_AT = time(18, 0)
 # When the daily nag for a standalone reminder goes out. Morning, so the day
 # it interrupts is the day that can still do something about it.
 NAG_AT = time(9, 0)
+
+# The second nag, on the day before and the due day only. Mid-afternoon rather
+# than evening: there has to be some working day left on the other side of it.
+URGENT_NAG_AT = time(15, 0)
 
 
 def _token() -> str:
@@ -189,21 +205,32 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
     the app, since 2026-08-14 (Willian's item 3: it opened Portuguese and he
     asked for the switch the first time he read one).
 
-    A nag opens with "Reminder:", his ask of the same day: the phone shows one
-    line, and that line must already say whether this is something scheduled
-    or something owed. Scheduled kinds carry no prefix, so the absence is the
-    other half of the signal.
+    A nag says on its first line that something is owed, his ask of the same
+    day: the phone shows one line, and that line must already say whether this
+    is something scheduled or something owed. On the calm days the word is
+    "Reminder:"; on the last two it is a caps DUE TOMORROW / DUE TODAY, which
+    says the same thing louder. Scheduled kinds say neither, so their silence
+    on the point is the other half of the signal.
     """
     start = ev["starts_at"].astimezone(tz)
+    foot = None
     if kind == "nag":
         due_day = start.date()
         today = now.astimezone(tz).date()
         if today == due_day:
-            when = "Reminder: due today"
+            when = f"🚨 DUE TODAY · {due_day:%b %-d}"
+            foot = "🚨 Deadline is today. Press Done when it's handled."
         elif today > due_day:
-            when = f"Reminder: overdue since {due_day:%b %-d}"
+            when = f"🔴 OVERDUE since {due_day:%b %-d}"
+        elif today == due_day - timedelta(days=1):
+            when = f"⏳ DUE TOMORROW · {due_day:%b %-d}"
+            foot = "⏳ Last day to get ahead of it."
         else:
-            when = f"Reminder: due by {due_day:%b %-d}"
+            # Counted down rather than restated, so the seven days of a default
+            # lead window are seven different messages and the ramp is legible
+            # before the shouting starts. "in 1 days" cannot occur: the day
+            # before has its own branch above.
+            when = f"Reminder: due in {(due_day - today).days} days ({due_day:%b %-d})"
         lines = [when]
     else:
         # The first word says what kind of thing this is, Willian's ask: a
@@ -237,6 +264,10 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
         lines.append(f"Category: {sq} {html.escape(ev['category_name'])}".replace("  ", " "))
     if ev["owner"] == "Both":
         lines.append("(both of you)")
+    # Last, below even "(both of you)": the point of the closing line is that it
+    # is the last thing above the buttons.
+    if foot:
+        lines.append(foot)
     return "\n".join(lines)
 
 
@@ -269,17 +300,30 @@ def pending(events: list[dict], already: set[tuple[int, str]], now: datetime, tz
     daily grain. A reminder created after the nag hour plus grace simply
     starts tomorrow, with no special case: today's 09:00 is already outside
     the window by the time the row exists.
+
+    The day before the due date and the due day itself get a second slot at
+    15:00, keyed separately ("nag-pm@2026-08-19") so the morning send cannot
+    suppress it. At most one of the two goes out per tick: the two windows
+    touch at exactly 15:00, and a morning nag that only got through on the
+    stroke of the afternoon one must not arrive twice.
     """
     for ev in events:
         if ev.get("item_kind") == "reminder":
             if ev.get("acknowledged_at"):
                 continue
-            stored = f"nag@{now.astimezone(tz).date().isoformat()}"
-            if (ev["id"], stored) in already:
-                continue
-            due = datetime.combine(now.astimezone(tz).date(), NAG_AT, tzinfo=tz)
-            if due <= now <= due + GRACE:
-                yield ev, "nag", stored
+            today = now.astimezone(tz).date()
+            due_day = ev["starts_at"].astimezone(tz).date()
+            slots = [("nag", NAG_AT)]
+            if today in (due_day - timedelta(days=1), due_day):
+                slots.append(("nag-pm", URGENT_NAG_AT))
+            for slot, at in slots:
+                stored = f"{slot}@{today.isoformat()}"
+                if (ev["id"], stored) in already:
+                    continue
+                due = datetime.combine(today, at, tzinfo=tz)
+                if due <= now <= due + GRACE:
+                    yield ev, "nag", stored
+                    break
             continue
         for kind in ("day", "hour"):
             stored = f"{kind}@{ev['starts_at'].year}" if ev.get("occurrence") else kind

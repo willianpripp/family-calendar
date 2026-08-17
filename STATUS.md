@@ -64,11 +64,22 @@ occurrence copies `acknowledged_at` forward, and a yearly to-do acknowledged
 once would silently never nag again.
 
 **Bot messages in plain English** (2026-08-14): the chrome around every
-message ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due by Aug 19", "(both
-of you)") is consistent regardless of what language an event's own title was
-written in. A nag always opens with "Reminder:" and a scheduled reminder
-never does, so a single line on a phone's lock screen already says which of
-the two kinds it is.
+message ("Tomorrow, 7:00pm", "In 2 hours", "Reminder: due in 4 days (Aug
+19)", "(both of you)") is consistent regardless of what language an event's
+own title was written in. A nag always says on its first line that something
+is owed and a scheduled reminder never does, so a single line on a phone's
+lock screen already says which of the two kinds it is.
+
+**The nag escalates** (2026-08-17): seven identical "due by Aug 19" messages
+across a default lead window taught the eye to skip all seven. The calm days
+now count down ("due in 4 days"), and the last two shout: the day before
+opens "⏳ DUE TOMORROW · Aug 19" and the due day "🚨 DUE TODAY · Aug 19",
+each closing with a second urgency line below the buttons' reach, so the
+message reads as urgent both on the notification line and after the eye has
+dropped to the bottom. Overdue keeps its single line, escalated to "🔴
+OVERDUE since Aug 19". Those two days also nag twice, the second at 15:00
+(`URGENT_NAG_AT`), keyed `nag-pm@<date>` so the morning send cannot suppress
+it; 19:00 was rejected as already too late to act on anything.
 
 **The phone UI** (2026-08-14, night; declared complete 2026-08-15): a
 purpose-built phone experience, chosen by device and overridable by a cookie
