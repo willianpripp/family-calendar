@@ -271,9 +271,16 @@ def next_nag_toast(conn, event_id: int) -> str:
     """What "Not yet" promises: the hour the next nag for this to-do lands.
 
     Falls back to tomorrow morning whenever the row cannot be read or the
-    afternoon slot has already passed, which is both the common case and the
-    safe direction to be wrong in: a nag arriving later than the toast said is
-    a nag that was ignored anyway, one arriving sooner reads as a bug.
+    afternoon slot is spent, which is both the common case and the safe
+    direction to be wrong in: a nag arriving later than the toast said is a nag
+    that was ignored anyway, one arriving sooner reads as a bug.
+
+    Whether the afternoon nag is still coming is asked of reminders_sent, not
+    inferred from the clock. "It is past 15:00, so the pm nag has been sent"
+    is false for the up-to-TICK_SECONDS gap before the tick that sends it, and
+    in that gap the toast promised tomorrow while the nag landed a minute later
+    (caught in review before this ever shipped). The condition below is
+    deliberately the same one pending() applies, read from the same table.
     """
     row = conn.execute(
         "select starts_at from events where id = %s and item_kind = 'reminder'",
@@ -284,8 +291,17 @@ def next_nag_toast(conn, event_id: int) -> str:
         due_day = row["starts_at"].astimezone(HOUSEHOLD_TZ).date()
         afternoon = datetime.combine(
             now.date(), reminders.URGENT_NAG_AT, tzinfo=HOUSEHOLD_TZ)
-        if now.date() >= due_day - timedelta(days=1) and now < afternoon:
-            return "OK, asking again at 3pm"
+        pm_sent = conn.execute(
+            "select 1 from reminders_sent where event_id = %s and kind = %s",
+            (event_id, f"nag-pm@{now.date().isoformat()}"),
+        ).fetchone()
+        if (now.date() >= due_day - timedelta(days=1)
+                and not pm_sent and now <= afternoon + reminders.GRACE):
+            # Past 15:00 the hour is no longer the useful half of the answer:
+            # the nag is one tick away, and naming a time already gone would
+            # read as the promise being broken rather than kept early.
+            return ("OK, asking again at 3pm" if now < afternoon
+                    else "OK, asking again in a few minutes")
     return "OK, asking again tomorrow at 9"
 
 

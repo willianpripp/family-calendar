@@ -87,7 +87,11 @@ windows touch at exactly 15:00 and a morning nag delivered on that stroke
 would otherwise arrive twice. The toast on "Not yet" now reads the to-do's due
 date and names whichever nag is actually next (`next_nag_toast`): it used to
 hardcode "tomorrow at 9", which the afternoon slot turns into a promise the
-loop breaks by arriving sooner.
+loop breaks by arriving sooner. Whether the afternoon nag is still coming is
+read from `reminders_sent`, not inferred from the clock, which is the same
+mistake one layer down: "it is past 15:00, so the pm nag has been sent" is
+false for the up-to-`TICK_SECONDS` gap before the tick that sends it, and the
+first version promised tomorrow in exactly that gap.
 
 **The phone UI** (2026-08-14, night; declared complete 2026-08-15): a
 purpose-built phone experience, chosen by device and overridable by a cookie
