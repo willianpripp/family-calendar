@@ -74,12 +74,20 @@ lock screen already says which of the two kinds it is.
 across a default lead window taught the eye to skip all seven. The calm days
 now count down ("due in 4 days"), and the last two shout: the day before
 opens "⏳ DUE TOMORROW · Aug 19" and the due day "🚨 DUE TODAY · Aug 19",
-each closing with a second urgency line below the buttons' reach, so the
-message reads as urgent both on the notification line and after the eye has
-dropped to the bottom. Overdue keeps its single line, escalated to "🔴
-OVERDUE since Aug 19". Those two days also nag twice, the second at 15:00
+each closing with a second urgency line, last in the message, so it reads as
+urgent both on the notification line and after the eye has dropped to the
+buttons. Overdue is in scope too, since past the deadline is not a
+de-escalation: "🔴 OVERDUE since Aug 19" over a closing line that counts the
+days late, a number that grows every morning. From the day before onwards,
+overdue days included, the nag also goes out a second time at 15:00
 (`URGENT_NAG_AT`), keyed `nag-pm@<date>` so the morning send cannot suppress
-it; 19:00 was rejected as already too late to act on anything.
+it; 19:00 was rejected as already too late to act on anything. At most one of
+the two slots sends per tick, because with `GRACE` at six hours the two
+windows touch at exactly 15:00 and a morning nag delivered on that stroke
+would otherwise arrive twice. The toast on "Not yet" now reads the to-do's due
+date and names whichever nag is actually next (`next_nag_toast`): it used to
+hardcode "tomorrow at 9", which the afternoon slot turns into a promise the
+loop breaks by arriving sooner.
 
 **The phone UI** (2026-08-14, night; declared complete 2026-08-15): a
 purpose-built phone experience, chosen by device and overridable by a cookie
