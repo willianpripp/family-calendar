@@ -267,6 +267,28 @@ async def reminder_loop():
         await asyncio.sleep(reminders.TICK_SECONDS)
 
 
+def next_nag_toast(conn, event_id: int) -> str:
+    """What "Not yet" promises: the hour the next nag for this to-do lands.
+
+    Falls back to tomorrow morning whenever the row cannot be read or the
+    afternoon slot has already passed, which is both the common case and the
+    safe direction to be wrong in: a nag arriving later than the toast said is
+    a nag that was ignored anyway, one arriving sooner reads as a bug.
+    """
+    row = conn.execute(
+        "select starts_at from events where id = %s and item_kind = 'reminder'",
+        (event_id,),
+    ).fetchone()
+    if row:
+        now = datetime.now(HOUSEHOLD_TZ)
+        due_day = row["starts_at"].astimezone(HOUSEHOLD_TZ).date()
+        afternoon = datetime.combine(
+            now.date(), reminders.URGENT_NAG_AT, tzinfo=HOUSEHOLD_TZ)
+        if now.date() >= due_day - timedelta(days=1) and now < afternoon:
+            return "OK, asking again at 3pm"
+    return "OK, asking again tomorrow at 9"
+
+
 def bot_tick() -> int:
     """Collect Done presses and acknowledge their to-dos. Returns acks done.
 
@@ -315,10 +337,13 @@ def bot_tick() -> int:
                 ).rowcount
                 reminders.answer_callback(cb.get("id", ""), "Done ✓")
             else:
-                # "Not yet" changes nothing on purpose: tomorrow's 09:00 nag
-                # was coming anyway. The toast is the entire feature.
-                reminders.answer_callback(
-                    cb.get("id", ""), "OK, asking again tomorrow at 9")
+                # "Not yet" changes nothing on purpose: the next nag was coming
+                # anyway. The toast is the entire feature, which makes naming
+                # the right next nag the entire correctness requirement: from
+                # the day before onwards there is a second one the same
+                # afternoon, and a toast promising tomorrow morning would be a
+                # promise the loop then breaks by arriving sooner.
+                reminders.answer_callback(cb.get("id", ""), next_nag_toast(conn, event_id))
             reminders.strip_buttons(chat, msg.get("message_id", 0))
         if new_offset != offset:
             conn.execute(

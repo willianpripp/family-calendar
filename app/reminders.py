@@ -34,10 +34,11 @@
 # urgency line, so the message reads as urgent both on the notification line
 # and after the eye has dropped to the buttons.
 #
-# Those two days also nag twice, the second at 15:00. Same reasoning as the
-# morning hour, one step further: a nag whose deadline is tomorrow has to land
-# while the afternoon can still act on it, and by 19:00 the offices that could
-# have absorbed it are shut.
+# From the day before onwards the nag also goes out twice, the second at 15:00.
+# Same reasoning as the morning hour, one step further: a nag whose deadline is
+# tomorrow has to land while the afternoon can still act on it, and by 19:00 the
+# offices that could have absorbed it are shut. Overdue days are in scope too
+# (Willian, 2026-08-17): past the deadline is not a de-escalation.
 
 import colorsys
 import html
@@ -221,7 +222,12 @@ def compose(ev: dict, kind: str, tz, now: datetime | None = None) -> str:
             when = f"🚨 DUE TODAY · {due_day:%b %-d}"
             foot = "🚨 Deadline is today. Press Done when it's handled."
         elif today > due_day:
+            late = (today - due_day).days
             when = f"🔴 OVERDUE since {due_day:%b %-d}"
+            # Counted here rather than in the header, which already carries the
+            # date the count is measured from. A number that grows every morning
+            # is the part that stops reading as wallpaper.
+            foot = f"🔴 {late} day{'s' if late > 1 else ''} late. Press Done when it's handled."
         elif today == due_day - timedelta(days=1):
             when = f"⏳ DUE TOMORROW · {due_day:%b %-d}"
             foot = "⏳ Last day to get ahead of it."
@@ -301,11 +307,12 @@ def pending(events: list[dict], already: set[tuple[int, str]], now: datetime, tz
     starts tomorrow, with no special case: today's 09:00 is already outside
     the window by the time the row exists.
 
-    The day before the due date and the due day itself get a second slot at
-    15:00, keyed separately ("nag-pm@2026-08-19") so the morning send cannot
-    suppress it. At most one of the two goes out per tick: the two windows
-    touch at exactly 15:00, and a morning nag that only got through on the
-    stroke of the afternoon one must not arrive twice.
+    From the day before the due date onwards, and so for every overdue day
+    after it, a second slot fires at 15:00, keyed separately
+    ("nag-pm@2026-08-19") so the morning send cannot suppress it. At most one
+    of the two goes out per tick: the two windows touch at exactly 15:00, and a
+    morning nag that only got through on the stroke of the afternoon one must
+    not arrive twice.
     """
     for ev in events:
         if ev.get("item_kind") == "reminder":
@@ -314,7 +321,7 @@ def pending(events: list[dict], already: set[tuple[int, str]], now: datetime, tz
             today = now.astimezone(tz).date()
             due_day = ev["starts_at"].astimezone(tz).date()
             slots = [("nag", NAG_AT)]
-            if today in (due_day - timedelta(days=1), due_day):
+            if today >= due_day - timedelta(days=1):
                 slots.append(("nag-pm", URGENT_NAG_AT))
             for slot, at in slots:
                 stored = f"{slot}@{today.isoformat()}"
