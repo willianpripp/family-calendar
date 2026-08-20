@@ -143,12 +143,76 @@
 </div>
 
 <script>
+  // Two views onto the same date: starts/ends (timed) and
+  // start_date/end_date (all-day/reminder) were only ever filled once, at
+  // page load. Edit one, flip a checkbox, and the other side's now-stale
+  // value is what got saved (2026-08-19: 09/26 picked, 09/17 saved). These
+  // declarations sit above syncAllDay on purpose, because syncKind() below
+  // calls it during page load, before the "end follows start" block further
+  // down would otherwise have assigned starts/ends.
+  var startsEl = document.querySelector('input[name=starts]');
+  var endsEl = document.querySelector('input[name=ends]');
+  var startDateEl = document.querySelector('input[name=start_date]');
+  var endDateEl = document.querySelector('input[name=end_date]');
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+
+  // The Y-M-D of a datetime-local value, or null if it does not parse.
+  function dateFromDatetime(dtVal) {
+    var d = new Date(dtVal);
+    if (isNaN(d)) { return null; }
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+
+  // A date input's value laid onto a datetime-local field, keeping whatever
+  // time of day that field already carried (an edited time, or the hour
+  // default for a brand new event) rather than resetting it to midnight.
+  function datetimeWithDate(dtVal, dateVal) {
+    var d = new Date(dtVal);
+    var hh = isNaN(d) ? 0 : d.getHours();
+    var mm = isNaN(d) ? 0 : d.getMinutes();
+    return dateVal + 'T' + pad2(hh) + ':' + pad2(mm);
+  }
+
+  // Guards on the copy below, both earned the hard way:
+  //  - `loaded`: a re-render (conflict warning, validation error) echoes
+  //    form_starts/form_start_date exactly as typed, per the comment above
+  //    the form ("never silently reverts an edit"); running the copy during
+  //    the page's own initial sync would fight that, so it stays off until
+  //    the page has finished loading and only real interactions reach it.
+  //  - `prevOn`: syncKind() below calls syncAllDay() every time the
+  //    Reminder box changes, even when it leaves All day's own checked
+  //    state untouched (unticking Reminder does not force All day back
+  //    off). Copying on every call, not just on an actual flip, would let
+  //    that no-op call re-copy starts/ends over a due date the user just
+  //    edited while Reminder was on. Comparing against the previous call's
+  //    state is what tells a real flip apart from a same-state re-run.
+  var loaded = false;
+  var prevOn = null;
+
   // Show the timed or the whole-day fields, never both. Plain JS on purpose:
   // it must work before (and without) htmx.
   function syncAllDay() {
     var on = document.getElementById('all_day').checked;
     document.querySelector('.timed').style.display = on ? 'none' : '';
     document.querySelector('.allday').style.display = on ? '' : 'none';
+    if (loaded && on !== prevOn) {
+      if (on) {
+        // Entering all-day/reminder shape: whatever was just typed into
+        // starts/ends is the edit that must survive, not the possibly-stale
+        // start_date/end_date left over from page load.
+        var sd = dateFromDatetime(startsEl.value);
+        if (sd) { startDateEl.value = sd; }
+        var ed = dateFromDatetime(endsEl.value);
+        if (ed) { endDateEl.value = ed; }
+      } else {
+        // Leaving all-day: the same fix in the other direction, preserving
+        // whichever time of day starts/ends already had.
+        if (startDateEl.value) { startsEl.value = datetimeWithDate(startsEl.value, startDateEl.value); }
+        if (endDateEl.value) { endsEl.value = datetimeWithDate(endsEl.value, endDateEl.value); }
+      }
+    }
+    prevOn = on;
   }
   document.getElementById('all_day').addEventListener('change', syncAllDay);
 
@@ -169,6 +233,7 @@
   }
   document.getElementById('reminder').addEventListener('change', syncKind);
   syncKind();
+  loaded = true;
 
   // Private belongs to one person. A Both event is on both calendars by
   // definition, so the box is hidden AND cleared there; the server applies the
@@ -207,9 +272,8 @@
   // The end follows the start (Aline, 2026-08-14): pick a start and the end
   // lands after it keeping whatever duration the form already had, an hour
   // for a fresh event. Adjusting the end by hand afterwards still works; it
-  // is just no longer homework.
-  var startsEl = document.querySelector('input[name=starts]');
-  var endsEl = document.querySelector('input[name=ends]');
+  // is just no longer homework. startsEl/endsEl are declared at the top of
+  // this script now (syncAllDay needs them during page load).
   var prevStart = startsEl.value;
   startsEl.addEventListener('change', function () {
     var oldS = new Date(prevStart), oldE = new Date(endsEl.value);

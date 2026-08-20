@@ -70,6 +70,10 @@ NAG_AT = time(9, 0)
 # than evening: there has to be some working day left on the other side of it.
 URGENT_NAG_AT = time(15, 0)
 
+# The line between two dispatch batches (2026-08-19): its own message, nothing
+# but the line, sent with the same send() as everything else.
+SEPARATOR = "━" * 20
+
 
 def _token() -> str:
     return os.environ.get("CAL_TELEGRAM_TOKEN", "").strip()

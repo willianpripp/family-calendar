@@ -156,6 +156,17 @@ create table if not exists bot_state (
   update_offset bigint not null default 0
 );
 insert into bot_state (id) values (1) on conflict do nothing;
+
+-- One row per chat: when its last non-empty reminder_tick() dispatch landed
+-- (the batch separator, 2026-08-19). A tick is identified by its own `now`,
+-- so "differs from the stored value" means "that chat's last delivery was an
+-- earlier tick, draw the line before this one." Kept in the database, not in
+-- memory, for the same reason as bot_state: a restart must not forget it and
+-- draw a spurious line (or skip one) on the next tick.
+create table if not exists bot_dispatch (
+  chat_id bigint primary key,
+  last_tick timestamptz not null
+);
 """
 
 SEED_CATEGORIES = [
@@ -223,6 +234,22 @@ def reminder_tick() -> int:
             (r["event_id"], r["kind"])
             for r in conn.execute("select event_id, kind from reminders_sent").fetchall()
         }
+        # Last dispatch marker per chat, as of before this tick. `now` is this
+        # tick's own identity: a stored value that differs from it means that
+        # chat's last delivery happened on an earlier tick, so the separator
+        # belongs before whatever this tick sends it first.
+        dispatch_marks = {
+            r["chat_id"]: r["last_tick"]
+            for r in conn.execute("select chat_id, last_tick from bot_dispatch").fetchall()
+        }
+        # Per-chat, not per-event: several events in the same tick share one
+        # batch and must not draw a line between each other. `separated` guards
+        # against sending the line twice in one tick even if the message that
+        # follows it fails; `marked` guards the DB update, which only happens
+        # once a real send actually lands so a chat with nothing delivered this
+        # tick keeps pointing at its true last batch.
+        separated: set[int] = set()
+        marked: set[int] = set()
         for ev, kind, stored_kind in reminders.pending(rows, already, now, HOUSEHOLD_TZ):
             text = reminders.compose(ev, kind, HOUSEHOLD_TZ, now)
             # A nag carries its buttons: Done is the calendar's checkbox, and
@@ -232,8 +259,32 @@ def reminder_tick() -> int:
             buttons = ([[{"text": "Done", "callback_data": f"ack:{ev['id']}"},
                          {"text": "Not yet", "callback_data": f"later:{ev['id']}"}]]
                        if kind == "nag" else None)
-            delivered = [c for c in reminders.recipients(ev["owner"])
-                         if reminders.send(c, text, buttons)]
+            delivered = []
+            for c in reminders.recipients(ev["owner"]):
+                if c not in separated:
+                    # Any stored marker is from an earlier tick: the marks were
+                    # read before this tick wrote anything, so existence alone
+                    # means "previous batch, draw the line."
+                    marker = dispatch_marks.get(c)
+                    if marker is not None:
+                        try:
+                            reminders.send(c, reminders.SEPARATOR)
+                        except Exception as exc:  # noqa: BLE001
+                            # A missing separator is cosmetic; the real message
+                            # below must still go out.
+                            print(f"reminders: separator FAILED for chat {c}:"
+                                  f" {exc!r}", flush=True)
+                    separated.add(c)
+                if reminders.send(c, text, buttons):
+                    delivered.append(c)
+                    if c not in marked:
+                        conn.execute(
+                            "insert into bot_dispatch (chat_id, last_tick)"
+                            " values (%s, %s) on conflict (chat_id)"
+                            " do update set last_tick = excluded.last_tick",
+                            (c, now),
+                        )
+                        marked.add(c)
             if not delivered:
                 # Left unrecorded on purpose, so the next tick retries. If
                 # Telegram is down for hours, GRACE eventually gives up.
