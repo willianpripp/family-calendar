@@ -3,6 +3,31 @@
 A running record of what was built, what was decided, and what was
 deliberately left out. Newest first.
 
+**2026-08-19, two fixes shipped and deployed the same day they were planned.**
+
+- **The Reminder toggle no longer discards the date the user just picked**
+  (reported as: selected 09/26, saved 09/17). The form's two date fields,
+  `starts` (timed) and `start_date` (all-day/reminder), were both pre-filled
+  once at page load and the toggles only swapped visibility, so switching to
+  Reminder made the stale field authoritative. `syncAllDay()` now copies the
+  date portion across in both directions when the effective all-day state
+  actually flips, with two deliberate guards: the initial render (and a
+  validation-error re-render, which echoes exactly what was typed) is never
+  overwritten, and unticking Reminder without all-day changing does not
+  re-copy stale values over a due date edited meanwhile. Client-side only;
+  the server keeps trusting whichever field the current kind says is
+  authoritative. The 9-day gap in the report was the old stored date, not
+  lead-time arithmetic.
+- **A bold line now separates reminder batches in Telegram.** Reminders sent
+  in the same `reminder_tick()` pass stay visually grouped; when a new batch
+  starts, the bot first sends a message that is nothing but `━` twenty times.
+  New `bot_dispatch` table (idempotent DDL, created itself at boot on prod)
+  stores each chat's last non-empty tick; the marker only advances on a
+  successful send, so a fully-failed tick retries as the same batch. At most
+  one line per chat per tick. Known cosmetic edge, accepted at review: if the
+  line lands and the message after it fails, the next tick draws a second
+  line; it self-heals and loses nothing.
+
 **2026-08-15, small additions:** a Visitors category, seeded at startup and
 deliberately outside the "attended" set, so an in-laws' visit keeps its
 reminders but never reaches another app's diary export.

@@ -52,30 +52,7 @@ IDEA were raised once and not yet ratified.
 
 ## Next, when ordered
 
-1. **Fix: switching an event to Reminder discards the date the user just
-   picked.** Reported 2026-08-19 (selected 09/26, saved 09/17). Root cause
-   found by reading the form: `starts` (datetime-local, timed events) and
-   `start_date` (date, all-day/reminder) are both pre-filled once at page
-   load, and `syncKind()` / `syncAllDay()` in `app/templates/event_form.html`
-   only swap which row is visible, they never copy values across. Edit the
-   date in `starts`, tick "Reminder", and `save_event()` (which forces
-   all-day for reminders) reads the stale `start_date`, silently dropping the
-   edit. The 9-day gap was a coincidence (old stored date vs newly picked
-   date), not lead-time arithmetic: `lead_days` never touches the stored
-   date. Plan: client-side only, copy the date portion between
-   `starts`/`ends` and `start_date`/`end_date` whenever either checkbox
-   flips, so there is one source of truth for the date. No server change.
-2. **A thick separator line in Telegram between notification batches.**
-   Messages sent in the same dispatch batch stay together; between batches
-   the bot sends one message that is nothing but a bold horizontal line
-   (a run of `━` characters, no text). Batch means one `reminder_tick()`
-   pass: two reminders landing at 18:01 share no line, the line appears only
-   when the next dispatch comes later. Plan: persist a "last non-empty
-   dispatch" marker per chat (a column on `bot_state` or a one-row table);
-   at the first send of a new non-empty tick, if the previous dispatch was
-   an earlier tick, send the separator first. Reuses `reminders.send()`
-   as-is, prepend-to-next-batch, so no need to know when a batch ends.
-3. **An authenticated create-reminder API for the finances app.** The house
+1. **An authenticated create-reminder API for the finances app.** The house
    finances app (separate repo) will push reminders here: contract or
    subscription ending, card statement due, a spend-goal deadline. This repo
    grows one small `POST` endpoint that creates a reminder/to-do the same
@@ -85,7 +62,7 @@ IDEA were raised once and not yet ratified.
    which is the point: the finances app never talks to Telegram itself.
    Design the payload once (title, due date, category, who), because the
    finances side will be built against it.
-4. **The rail becomes swipeable: what's playing, then concerts, then major
+2. **The rail becomes swipeable: what's playing, then concerts, then major
    events.** Not urgent. The rail keeps its place and size; arrows or a swipe
    move sideways through panes, using scroll-snap plus two buttons, no
    framework. The existing "what's playing" rail becomes pane one.
