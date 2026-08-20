@@ -3,6 +3,24 @@
 A running record of what was built, what was decided, and what was
 deliberately left out. Newest first.
 
+**2026-08-19, the create-reminder API for the finances app.** `POST
+/api/reminders`, OBJECTIVES.md's first "Next, when ordered" item. The house
+finances app (a separate repo) can now push a reminder here (title, an ISO
+`due_date`, `owner` defaulting to `Both`, an optional `category` by name,
+`lead_days`, `notes`) and have it delivered exactly like a reminder saved
+through the form: same `item_kind='reminder'`, same all-day
+`starts_at`/`ends_at` from `day_bounds()`, same Telegram nag loop, because
+the insert itself now runs through one shared `insert_event()` used by both
+`save_event()` and this route rather than a second copy of the all-day math.
+Auth is a bearer key (`CAL_API_KEY`), compared with `hmac.compare_digest`,
+checked inside the route rather than by `gate.py`: the path is exempted from
+the login middleware the same way `/health` is (no device cookie, no gate
+session), and the route 503s rather than ever falling open when the key is
+unset. A new nullable, unique `external_id` column on `events` is the
+idempotency guard: a repeat POST with the same id returns the row already
+created (`created: false`) instead of a duplicate, which is what lets the
+finances app re-push safely after a timeout without double-nagging anyone.
+
 **2026-08-19, two fixes shipped and deployed the same day they were planned.**
 
 - **The Reminder toggle no longer discards the date the user just picked**

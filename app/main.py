@@ -25,12 +25,15 @@ from datetime import date, datetime, time, timedelta
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
+import hmac
+
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
+from pydantic import BaseModel
 
 import gate
 import news
@@ -59,6 +62,12 @@ DEFAULT_LEAD_DAYS = 7
 # the column is a plain integer, and a typed-in absurdity would otherwise turn a
 # save into a 500 instead of into a saved to-do.
 MAX_LEAD_DAYS = 3650
+
+# The shared key for the finances app's create-reminder API (OBJECTIVES.md,
+# "Next, when ordered" #1). Read once at import, the same way every other
+# host-.env-configured constant here is: unset means the feature is off, and
+# /api/reminders below 503s rather than ever falling open.
+CAL_API_KEY = os.environ.get("CAL_API_KEY", "").strip()
 
 # The swatch set for categories. Picked to stay distinguishable against the
 # dark ground AND against each other for the most common form of colour
@@ -129,6 +138,13 @@ alter table events add column if not exists acknowledged_at timestamptz;
 -- column, remind from the moment it was created; N stays quiet until N days
 -- before the due date, and never quiets it again after that.
 alter table events add column if not exists lead_days integer;
+
+-- The finances app's idempotency key for the create-reminder API
+-- (2026-08-19): unique so a repeat POST with the same external_id finds the
+-- row already made instead of a duplicate. Nullable and left unconstrained
+-- for every row the form creates, which never sets one; Postgres treats
+-- NULL <> NULL, so any number of form-created rows can coexist with it unset.
+alter table events add column if not exists external_id text unique;
 
 -- An event kept off the other person's calendar (2026-08-15): the dentist
 -- appointment nobody else needs listed, the work block that is only noise in
@@ -524,10 +540,14 @@ async def front_door(request: Request, call_next):
     pass untouched, a public visitor needs a session. The stylesheet is exempt
     so the login page can look like the app; the rest of /static is NOT,
     because the wallpapers are family photographs. /health stays open for the
-    healthcheck and any external monitor, and answers "ok" to anyone."""
+    healthcheck and any external monitor, and answers "ok" to anyone.
+    /api/reminders is exempt the same way: the finances app calls it with no
+    device cookie and no gate session, and it has its own bearer-key check
+    (CAL_API_KEY) inside the route, so it must 401/503 cleanly rather than
+    getting redirected to a login page it was never meant to see."""
     path = request.url.path
     if (
-        path in ("/login", "/health", "/manifest.webmanifest")
+        path in ("/login", "/health", "/manifest.webmanifest", "/api/reminders")
         # The stylesheet dresses the login page; the icons and manifest make
         # the home-screen install work before sign-in. None of them reveal a
         # thing; the family photos under the rest of /static stay gated.
@@ -926,6 +946,76 @@ def api_attended() -> JSONResponse:
     return JSONResponse(_attended(ATTENDED))
 
 
+class ReminderIn(BaseModel):
+    """The finances app's request body. Field names are the payload's public
+    contract (OBJECTIVES.md #1): the finances side is built against these."""
+    title: str
+    due_date: date
+    owner: str = "Both"
+    category: str | None = None
+    lead_days: int | None = None
+    notes: str = ""
+    external_id: str | None = None
+
+
+def _api_authorized(request: Request) -> bool:
+    """Constant-time compare of an `Authorization: Bearer <key>` header
+    against CAL_API_KEY. Never called when CAL_API_KEY is unset (the route
+    503s first), so there is no path where an empty key could compare equal
+    to an empty token and let anyone in."""
+    auth = request.headers.get("authorization", "")
+    scheme, _, token = auth.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return False
+    return hmac.compare_digest(token, CAL_API_KEY)
+
+
+@app.post("/api/reminders")
+def create_reminder(request: Request, body: ReminderIn) -> JSONResponse:
+    """The finances app's one door into this calendar (OBJECTIVES.md, "Next,
+    when ordered" #1): contract or subscription ending, a card statement due,
+    a spend-goal deadline. Creates the row exactly the way save_event() would
+    for a reminder (all_day, item_kind='reminder', the same day_bounds()
+    all-day starts_at/ends_at), so the existing Telegram bot delivers it like
+    any other reminder; the finances app never talks to Telegram itself.
+
+    Auth is this module's own bearer key, not gate.py's login: the
+    private-network path has no login to begin with, and the finances app has
+    no device cookie, so the endpoint needs (and is exempted for, in
+    front_door above) its own guard. Unset CAL_API_KEY means the feature is
+    off, never open.
+    """
+    if not CAL_API_KEY:
+        raise HTTPException(status_code=503, detail="CAL_API_KEY not configured")
+    if not _api_authorized(request):
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(status_code=422, detail="title is required")
+    if body.owner not in OWNERS:
+        raise HTTPException(status_code=422, detail=f"owner must be one of {OWNERS}")
+
+    lead = None
+    if body.lead_days is not None:
+        lead = max(0, min(int(body.lead_days), MAX_LEAD_DAYS))
+    # Blank and whitespace-only both mean "no idempotency key supplied", the
+    # same as omitting the field. Left as "" it would still be a real string
+    # to the unique column, and every reminder posted without one would
+    # collide with every other one instead of just getting created.
+    ext_id = body.external_id.strip() if body.external_id else None
+    ext_id = ext_id or None
+
+    starts_at, ends_at = day_bounds(body.due_date)
+    with pool.connection() as conn:
+        cid = resolve_category(conn, body.category)
+        values = (title, starts_at, ends_at, True, body.owner, "",
+                  (body.notes or "").strip(), cid, "", False, "reminder", lead, False)
+        new_id, created = insert_event(conn, values, external_id=ext_id)
+
+    return JSONResponse({"id": new_id, "created": created})
+
+
 @app.get("/manifest.webmanifest")
 def manifest(request: Request) -> JSONResponse:
     """The PWA manifest, generated rather than static, because start_url must
@@ -1199,6 +1289,48 @@ def edit_event_form(request: Request, event_id: int, back: str = "/month"):
                   form_context(request, ev, ev["starts_local"].date(), back))
 
 
+def insert_event(conn, values: tuple, external_id: str | None = None) -> tuple[int, bool]:
+    """The one INSERT for a new events row. `values` is the 13-tuple built by
+    save_event (title, starts_at, ends_at, all_day, owner, location, notes,
+    category_id, sticker, repeats_yearly, item_kind, lead_days, private) so
+    the form and the create-reminder API share the exact same column list and
+    the same all-day ends_at derivation, rather than a second copy of either.
+
+    external_id is the finances app's idempotency key: ON CONFLICT against
+    its unique column means a repeat POST with the same id returns the row
+    already made (created=False) instead of a duplicate. The form never sets
+    one, and NULL never conflicts with NULL, so its inserts always land in
+    the `if row` branch below exactly as before this existed.
+    """
+    row = conn.execute(
+        "insert into events (title, starts_at, ends_at, all_day, owner,"
+        " location, notes, category_id, sticker, repeats_yearly, item_kind,"
+        " lead_days, private, external_id)"
+        " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        " on conflict (external_id) do nothing returning id",
+        values + (external_id,),
+    ).fetchone()
+    if row:
+        return row["id"], True
+    existing = conn.execute(
+        "select id from events where external_id = %s", (external_id,)
+    ).fetchone()
+    return existing["id"], False
+
+
+def resolve_category(conn, name: str | None) -> int | None:
+    """A category by name, case-insensitively, for the create-reminder API:
+    the finances app knows category names, not ids, and an unrecognised name
+    (a typo, a category that does not exist here) is null rather than an
+    error, because a reminder with no category is still a useful reminder."""
+    if not name or not name.strip():
+        return None
+    row = conn.execute(
+        "select id from categories where lower(name) = lower(%s)", (name.strip(),)
+    ).fetchone()
+    return row["id"] if row else None
+
+
 @app.post("/events/save", response_class=HTMLResponse)
 def save_event(
     request: Request,
@@ -1296,12 +1428,7 @@ def save_event(
               "reminder" if is_reminder else "event", lead, is_private)
     with pool.connection() as conn:
         if eid is None:
-            conn.execute(
-                "insert into events (title, starts_at, ends_at, all_day, owner,"
-                " location, notes, category_id, sticker, repeats_yearly, item_kind,"
-                " lead_days, private)"
-                " values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", values,
-            )
+            insert_event(conn, values)
         else:
             # acknowledged_at is deliberately not touched here: fixing a typo
             # on a finished to-do must not reopen it. Only the OK button moves

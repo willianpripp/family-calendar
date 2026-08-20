@@ -118,6 +118,19 @@ endpoint has no viewer to be private *from*, since it is read by a service both
 people already read, so a private row simply never leaves the database for
 that path at all.
 
+**A second small API surface, this one for reminders coming in.** `POST
+/api/reminders` lets the house finances app (a separate repo) create a
+reminder here exactly the way the form does, so the existing Telegram bot
+delivers it like any other nag: a contract or subscription ending, a card
+statement due, a spend-goal deadline. Unlike `GET /api/attended`, it never
+relies on LAN trust alone: it is exempted from `gate.py`'s login the same way
+`/health` is, and instead checks its own bearer key (`CAL_API_KEY`) with a
+constant-time comparison, 503-ing rather than opening up when that key is
+unset. An optional `external_id` on the request is an idempotency key: a
+repeat POST with the same id returns the reminder already created instead of
+a duplicate, which is what lets the finances app re-push safely after a
+timeout.
+
 **The trusted-network gate.** There is no login for anyone on the household's
 own private network, whether home Wi-Fi or a private overlay network like
 Tailscale. `app/gate.py` classifies the request's real client address (read
