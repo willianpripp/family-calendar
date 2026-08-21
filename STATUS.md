@@ -3,6 +3,22 @@
 A running record of what was built, what was decided, and what was
 deliberately left out. Newest first.
 
+**2026-08-21, the third kind of reminder arrives: expiring credits.** No code
+changed here, and that is the point worth recording. The finances app now
+pushes vouchers and airline credits (money the household already owns, lost
+only by forgetting) through the same `POST /api/reminders`, with
+`lead_days: 7`, so a credit expiring eleven months out sits quietly in the
+database and the nag loop picks it up a week before the date. Two things about
+the existing design carried it with no changes: `lead_days` already means "hold
+this to-do back until its window opens" — the same
+`starts_at - make_interval(days => lead_days) <= now()` clause guards both the
+nag tick's open-to-do query and the views — and `external_id` already lets the
+sender re-push daily without duplicating. The senders' ids carry the deadline date, so an airline extending
+a credit produces a NEW reminder here rather than silently moving one someone
+may already have read — the old one is left to be dismissed. Certificate
+numbers are deliberately absent from the payload: the finances app holds them,
+and a Telegram message is not where a bearer instrument should be readable.
+
 **2026-08-19, the create-reminder API for the finances app.** `POST
 /api/reminders`, OBJECTIVES.md's first "Next, when ordered" item. The house
 finances app (a separate repo) can now push a reminder here (title, an ISO
