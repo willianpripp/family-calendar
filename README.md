@@ -122,7 +122,10 @@ that path at all.
 /api/reminders` lets the house finances app (a separate repo) create a
 reminder here exactly the way the form does, so the existing Telegram bot
 delivers it like any other nag: a contract or subscription ending, a card
-statement due, a spend-goal deadline. Unlike `GET /api/attended`, it never
+statement due, a spend-goal deadline, an airline credit or voucher about to
+expire (that last one arrives with seven days of `lead_days`, which is the
+whole reason `lead_days` is part of the payload: the sender says how much
+runway its deadline needs and this app decides when to start nagging). Unlike `GET /api/attended`, it never
 relies on LAN trust alone: it is exempted from `gate.py`'s login the same way
 `/health` is, and instead checks its own bearer key (`CAL_API_KEY`) with a
 constant-time comparison, 503-ing rather than opening up when that key is
