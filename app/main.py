@@ -787,7 +787,20 @@ def overlapping(starts: datetime, ends: datetime, exclude_id: int | None,
 # extra-solid stop for reading in sunlight, and back around. Values, not free
 # input, so the cookie cannot render the calendar unreadable in a way that has
 # no obvious way back: one more click always returns to a sane state.
-VEIL_STEPS = (72, 52, 32, 14, 4, 88)
+#
+# The descent is evenly spaced, 17 points a step, and that is the whole point of
+# these particular numbers. The previous set stepped 20, 20, 18 and then 10, and
+# that last short step was reported as doing nothing at all. It was not a
+# rendering fault: measured in a browser, the veil is linear at about 0.2 mean
+# per-pixel difference per point across the entire range, so a 10-point step
+# simply delivers a quarter of what a 40-point one does. Even spacing is what
+# makes every click worth the same amount.
+#
+# Index 0 is the default, and veil_from() falls back to it for a missing or
+# unrecognised cookie, so it must stay the comfortable reading value rather than
+# either extreme. A cookie holding one of the old values is not in this tuple
+# any more and therefore lands on that default, which is the correct outcome.
+VEIL_STEPS = (72, 55, 38, 21, 4, 88)
 
 
 def veil_from(request: Request) -> int:
