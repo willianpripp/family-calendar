@@ -1062,10 +1062,15 @@ def render(request: Request, name: str, ctx: dict):
 
 @app.get("/")
 def root(request: Request) -> RedirectResponse:
-    # The phone opens on today; the monitor opens on the month. Each device
-    # lands on the view it is actually held in front of.
-    return RedirectResponse(prefix(request) + ("/today" if ui.is_phone(request) else "/month"),
-                            status_code=307)
+    # Both devices open on the month.
+    #
+    # The phone used to open on today, on the reasoning that a phone is checked
+    # for "what is happening now". In use that turned out to be wrong: the month
+    # is what people actually want on opening, and today is one tap away on the
+    # tab bar, whereas the month was not reachable without leaving the landing
+    # screen. Aline asked for it, and the today view is unchanged and still
+    # there.
+    return RedirectResponse(prefix(request) + "/month", status_code=307)
 
 
 @app.post("/ui")
