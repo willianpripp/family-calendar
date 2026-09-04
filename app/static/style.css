@@ -204,11 +204,21 @@ main {
   font-variant-numeric: tabular-nums;
 }
 .daynum:hover { background: var(--surface-2); }
-.day.today { background: color-mix(in oklab, var(--accent) 16%, var(--surface)); }
+/* Tinted with the accent, but mixed with `transparent` at the veil's own
+   alpha so today is marked WITHOUT becoming an opaque patch over the picture.
+   Mixing straight into var(--surface), as this did, produced a fully opaque
+   colour and punched a hole in the photo the veil had let through. */
+.day.today {
+  background: color-mix(in oklab,
+    color-mix(in oklab, var(--accent) 16%, var(--surface)) var(--surface-veil),
+    transparent);
+}
 .day.today .daynum { background: var(--accent); color: #12161c; }
 
-/* Holidays are marked on the day, not just listed beside it. */
-.day.holiday { background: color-mix(in oklab, var(--holiday) 13%, var(--surface)); }
+/* Holidays are marked on the day, not just listed beside it: the date turns
+   yellow and the name sits under it. Deliberately NO background rule here. The
+   cell keeps the same veil as every other day, which is what the phone view has
+   always done (.pday.holiday recolours the number and nothing else). */
 .day.holiday .daynum { color: var(--holiday); }
 .day.today.holiday .daynum { color: #12161c; }
 .holname {
