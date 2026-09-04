@@ -80,13 +80,41 @@ PALETTE = [
     ("#A98D6B", "Sand"), ("#8A94A6", "Slate"),
 ]
 
+# The pickable stickers, grouped so the picker reads as rows of related things
+# rather than one undifferentiated wall. Written as escapes rather than literal
+# emoji on purpose: several of these carry a variation selector or a zero-width
+# joiner, and those are invisible in an editor, so a literal list cannot be
+# proof-read and a stray edit to one is undetectable in review.
+#
+# Order is free to change and entries are free to move between groups: an event
+# stores the character itself (`sticker text`, written as sticker.strip()[:8]),
+# never a position in this list, so nothing here can invalidate saved events.
+# That [:8] is a codepoint cap, so anything added must stay within it.
 STICKERS = [
-    "\U0001F389", "\U0001F382", "\U0001F381", "✈️", "\U0001F3D6️",
-    "\U0001F3AC", "\U0001F3B8", "\U0001F3AB", "⚽", "\U0001F3C3",
-    "\U0001F9D8", "\U0001F4AA", "\U0001F469‍⚕️", "\U0001F9B7",
-    "\U0001F697", "\U0001F6E0️", "\U0001F4B0", "\U0001F4C8", "\U0001F4BB",
-    "\U0001F4DA", "\U0001F374", "\U0001F355", "☕", "\U0001F37B",
-    "\U0001F415", "\U0001F431", "❤️", "⭐", "❗", "\U0001F634",
+    # celebrations
+    "\U0001F389", "\U0001F382", "\U0001F381", "\U0001F384",
+    # travel
+    "\U00002708\U0000FE0F", "\U0001F3D6\U0000FE0F", "\U0001F9F3",
+    # going out
+    "\U0001F3AC", "\U0001F3B8", "\U0001F3AB", "\U0001F3AE", "\U0001F4F7",
+    # sport
+    "\U000026BD", "\U0001F3C3", "\U0001F9D8", "\U0001F4AA",
+    # health
+    "\U0001F469\U0000200D\U00002695\U0000FE0F", "\U0001F9B7", "\U0001F48A",
+    # car and house
+    "\U0001F697", "\U0001F6E0\U0000FE0F", "\U000026FD", "\U0001F9F9",
+    # money
+    "\U0001F4B0", "\U0001F4C8", "\U0001F9FE", "\U0001F6D2",
+    # work and study
+    "\U0001F4BC", "\U0001F4BB", "\U0001F4DA", "\U0001F392", "\U0001F393", "\U0001F9E0", "\U0001F4D7",
+    # getting hold of people
+    "\U0001F4F1", "\U0001F4DE", "\U0001F91D",
+    # food
+    "\U0001F374", "\U0001F355", "\U00002615", "\U0001F37B",
+    # people and pets
+    "\U0001F476", "\U0001F415", "\U0001F436", "\U0001F431", "\U0001F43E",
+    # the rest
+    "\U00002764\U0000FE0F", "\U00002B50", "\U00002757", "\U0001F634",
 ]
 
 SCHEMA = """
