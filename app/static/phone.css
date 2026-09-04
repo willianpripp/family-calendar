@@ -110,7 +110,12 @@
 }
 .phone-ui .pday .n { font-weight: 800; font-size: .82rem; font-variant-numeric: tabular-nums; }
 .phone-ui .pday.pad { opacity: .38; }
-.phone-ui .pday.today { background: color-mix(in oklab, var(--accent) 28%, var(--surface)); }
+/* Carries the veil alpha, for the reason given on .day.today in style.css. */
+.phone-ui .pday.today {
+  background: color-mix(in oklab,
+    color-mix(in oklab, var(--accent) 28%, var(--surface)) var(--surface-veil),
+    transparent);
+}
 .phone-ui .pday.sel { outline: 2px solid var(--accent); }
 .phone-ui .pday.holiday .n { color: var(--holiday); }
 .phone-ui .pbars { display: flex; flex-direction: column; gap: 2px; margin: 3px 3px 0; }
