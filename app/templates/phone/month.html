@@ -1,5 +1,11 @@
 {% extends "phone/base.html" %}
 {% block title %}{{ month_name }} {{ year }} — Home{% endblock %}
+
+{# The add button carries the day that is open below the grid, which is the only
+   day this screen is talking about. The inherited FAB carries no day at all and
+   so always created on today, which made it useless on every other day. `sel`
+   is always a real date: today in the current month, the 1st in any other. #}
+{% block pfab %}<a class="pfab" href="{{ base }}/events/new?day={{ sel.isoformat() }}&back={{ here }}" aria-label="add on {{ sel.isoformat() }}">+</a>{% endblock %}
 {% block content %}
 
 <div class="pmonth-nav">
@@ -36,8 +42,11 @@
   {% if sel_events %}
   {% with rows_events = sel_events %}{% include "phone/_rows.html" %}{% endwith %}
   {% else %}
-  <div class="prow"><span class="grow" style="color: var(--muted); font-weight: 400">Nothing this day.</span>
-    <a class="when" href="{{ base }}/events/new?day={{ sel.isoformat() }}&back={{ here }}">add ›</a></div>
+  {# Deliberately no add link here. It used to be the only way to add to a day,
+     which is why a day with even one row had no way at all, and it pointed at a
+     different date from the FAB. The FAB above is now the single add path and it
+     carries this same day, so a second one would only be able to disagree. #}
+  <div class="prow"><span class="grow" style="color: var(--muted); font-weight: 400">Nothing this day.</span></div>
   {% endif %}
 </div>
 
