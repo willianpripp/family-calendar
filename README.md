@@ -147,7 +147,14 @@ forwards it to meds's own callback endpoint
 touching the message's buttons the way its own ack/later handling does —
 meds edits its own messages once the dose is recorded. Unset env means the
 `meds:` prefix is simply ignored, the same "Not available" toast as any
-other unrecognised callback data.
+other unrecognised callback data — and a `meds:` press from a chat outside
+`CAL_TELEGRAM_CHATS` gets that exact toast too, answered rather than
+silently dropped, instead of falling through to the ack/later handling
+below. Every chat meds maps to a person (its own `MEDS_TELEGRAM_CHATS`)
+must be private and one-on-one, and that same chat id must be in
+`CAL_TELEGRAM_CHATS` here: neither side ever checks Telegram's own
+per-press `from_id`, so a group chat listed in either map would act as
+whichever single person that map says it is.
 
 **The trusted-network gate.** There is no login for anyone on the household's
 own private network, whether home Wi-Fi or a private overlay network like
