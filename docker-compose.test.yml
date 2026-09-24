@@ -1,6 +1,7 @@
 # The test stack: a throwaway Postgres plus a plain Python container running
 # pytest, so the DB-backed bot_tick routing tests (tests/test_bot_tick_meds.py)
-# have somewhere real to run. tests/test_meds_forward.py needs none of this —
+# and the reminder API tests (tests/test_api_reminders.py) have somewhere
+# real to run. tests/test_meds_forward.py needs none of this —
 # forward_meds_callback is pure — but pytest collects the whole tests/
 # directory in one process either way.
 #
@@ -42,6 +43,8 @@ services:
     environment:
       DATABASE_URL: postgresql://calendar_test:calendar_test@db:5432/calendar_test
       CAL_TZ: America/New_York
+      # Read once at import; tests/test_api_reminders.py authenticates with it.
+      CAL_API_KEY: test-api-key
       PYTHONPATH: /work/app
     command: >
       bash -c "

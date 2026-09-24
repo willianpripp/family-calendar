@@ -1085,6 +1085,37 @@ def create_reminder(request: Request, body: ReminderIn) -> JSONResponse:
     return JSONResponse({"id": new_id, "created": created})
 
 
+@app.delete("/api/reminders")
+def delete_reminder(request: Request, external_id: str) -> JSONResponse:
+    """The undo for a create: removes the reminder a caller made with this
+    external_id, so a to-do that stopped being true (meds: a vaccine given
+    early, its due date corrected, or the vaccine deleted) stops nagging.
+    Without it the only off switch is someone pressing OK, and a daily nag
+    for something already done teaches the household to ignore the bot.
+
+    Same path as the create, so front_door's exemption and the bearer key
+    cover it unchanged. Scoped to rows that carry an external_id and are
+    reminders: nothing made from the form can be reached through here.
+    Idempotent: deleting what is already gone answers deleted=false with a
+    200, so a caller retrying after a lost response simply succeeds.
+    reminders_sent goes with the row (on delete cascade).
+    """
+    if not CAL_API_KEY:
+        raise HTTPException(status_code=503, detail="CAL_API_KEY not configured")
+    if not _api_authorized(request):
+        raise HTTPException(status_code=401, detail="unauthorized")
+    ext_id = external_id.strip()
+    if not ext_id:
+        raise HTTPException(status_code=422, detail="external_id is required")
+    with pool.connection() as conn:
+        row = conn.execute(
+            "delete from events where external_id = %s and item_kind = 'reminder'"
+            " returning id",
+            (ext_id,),
+        ).fetchone()
+    return JSONResponse({"deleted": row is not None})
+
+
 @app.get("/manifest.webmanifest")
 def manifest(request: Request) -> JSONResponse:
     """The PWA manifest, generated rather than static, because start_url must

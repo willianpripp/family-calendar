@@ -4,12 +4,18 @@
 # of this (forward_meds_callback is pure) and never requests them, so it
 # stays exactly as cheap to run as before.
 
+import os
 import pathlib
 import sys
 
 APP_DIR = pathlib.Path(__file__).parent.parent / "app"
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
+
+# CAL_API_KEY is read once when main is imported; docker-compose.test.yml
+# sets it, and this default keeps a bare local run from importing main with
+# the reminder API switched off.
+os.environ.setdefault("CAL_API_KEY", "test-api-key")
 
 import pytest
 
@@ -40,3 +46,26 @@ def calendar_db(_db_ready):
         )
         conn.execute("update bot_state set update_offset = 0 where id = 1")
     return app_module
+
+
+@pytest.fixture(scope="session")
+def _session_client(_db_ready):
+    """A TestClient for the HTTP API tests (tests/test_api_reminders.py),
+    entered once so the app's lifespan runs a single time. client=("127.0.0.1",
+    ...) replaces the TestClient's placeholder peer ("testclient", not an
+    IP), which gate.py would read as untrusted; production only ever sees its
+    loopback-bound proxy as the TCP peer."""
+    from fastapi.testclient import TestClient
+    with TestClient(_db_ready.app, client=("127.0.0.1", 12345)) as c:
+        yield c
+
+
+@pytest.fixture
+def client(_session_client):
+    _session_client.cookies.clear()
+    return _session_client
+
+
+@pytest.fixture
+def auth():
+    return {"Authorization": f"Bearer {os.environ['CAL_API_KEY']}"}
