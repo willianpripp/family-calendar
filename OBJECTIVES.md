@@ -25,6 +25,16 @@ IDEA were raised once and not yet ratified.
   in `STATUS.md` and `app/gate.py`. If accounts ever grow beyond the two the
   household currently has, the hashes in the host `.env` are the only place
   to touch.
+- **Forwarding `meds:*` button presses to the meds app.** This app owns the
+  bot token and the only `getUpdates` poll; meds shares the token to send/
+  edit/delete messages but has no poller of its own (two pollers on one
+  token would race for the same updates). `bot_tick` forwards a
+  `meds:give:<group>` / `meds:snooze:<group>` press to meds's own callback
+  endpoint (`CAL_MEDS_CALLBACK_URL`/`CAL_MEDS_CALLBACK_KEY`) and relays
+  whatever toast comes back, without stripping the message's buttons the
+  way its own ack/later handling does — meds edits its own messages.
+  `app/reminders.forward_meds_callback` is a pure function precisely so this
+  is testable without a real bot or a real meds instance (`tests/`).
 
 ## Requested, not yet ordered
 

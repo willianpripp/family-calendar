@@ -345,3 +345,49 @@ def pending(events: list[dict], already: set[tuple[int, str]], now: datetime, tz
                 continue
             if due <= now <= due + GRACE:
                 yield ev, kind, stored
+
+
+# --- forwarding a meds:* callback to the meds app -----------------------------
+#
+# This app owns the household's one Telegram bot (the token, and the only
+# getUpdates long-poll — two pollers on one token would race each other for
+# the same updates). meds shares the same token to send/edit/delete
+# messages, which is safe from any process, but has no poller of its own: a
+# `meds:give:<group>` / `meds:snooze:<group>` button press only ever reaches
+# meds because bot_tick (main.py) forwards it here over HTTP and shows
+# whatever toast comes back. meds edits its own messages afterwards, so this
+# app never strips their buttons the way it does for its own ack/later ones.
+#
+# forward_meds_callback takes the URL and key as plain arguments rather than
+# reading CAL_MEDS_CALLBACK_URL/CAL_MEDS_CALLBACK_KEY itself, so a test can
+# point it at a local fake server with no environment to fake.
+
+import urllib.error
+
+
+def meds_forward_configured() -> bool:
+    return bool(os.environ.get("CAL_MEDS_CALLBACK_URL", "").strip()) and bool(
+        os.environ.get("CAL_MEDS_CALLBACK_KEY", "").strip()
+    )
+
+
+def forward_meds_callback(url: str, key: str, chat_id: int, from_id: int | None,
+                           message_id: int, data: str, timeout: int = 5) -> str:
+    """POSTs {chat_id, from_id, message_id, data} to meds's callback endpoint
+    and returns the `toast` it answers with. Never raises: unreachable,
+    timed out, or any other failure all mean the same thing to the person
+    who just tapped a button — meds could not be reached, go do it by hand."""
+    body = json.dumps({
+        "chat_id": chat_id, "from_id": from_id, "message_id": message_id, "data": data,
+    }).encode()
+    try:
+        req = urllib.request.Request(
+            url, data=body, method="POST",
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            out = json.load(resp)
+            toast = out.get("toast")
+            return toast if toast else "Not available."
+    except Exception:
+        return "Meds is not reachable. Mark it in the app."

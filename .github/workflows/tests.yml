@@ -1,0 +1,32 @@
+name: tests
+
+# tests/test_meds_forward.py needs no database at all (forward_meds_callback
+# is pure); tests/test_bot_tick_meds.py drives the real bot_tick against a
+# real Postgres and a local fake Telegram/meds server. Both run in one
+# pytest process via the same throwaway stack `make test` (README) runs on
+# the lab, so there is exactly one definition of "the tests pass." This
+# repo has no other automated test suite; kept as its own workflow so
+# hygiene.yml's scope (metadata, docs, licence) stays untouched.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the suite in Docker
+        run: |
+          docker compose -f docker-compose.test.yml -p calendar-test run --rm tests
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml -p calendar-test down -v --remove-orphans
