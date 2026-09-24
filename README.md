@@ -1,6 +1,7 @@
 # Family calendar
 
 [![hygiene](https://github.com/willianpripp/family-calendar/actions/workflows/hygiene.yml/badge.svg)](https://github.com/willianpripp/family-calendar/actions/workflows/hygiene.yml)
+[![tests](https://github.com/willianpripp/family-calendar/actions/workflows/tests.yml/badge.svg)](https://github.com/willianpripp/family-calendar/actions/workflows/tests.yml)
 
 A shared household calendar built around the failure that motivated it: a
 flight and a concert booked for the same evening, discovered too late to fix.
@@ -133,6 +134,20 @@ unset. An optional `external_id` on the request is an idempotency key: a
 repeat POST with the same id returns the reminder already created instead of
 a duplicate, which is what lets the finances app re-push safely after a
 timeout.
+
+**A third app shares this bot, one button press at a time.** This app owns
+the Telegram token and is the only process long-polling `getUpdates` (two
+pollers on the same token race each other for updates); the household's
+`meds` app shares that same token only to send, edit and delete messages,
+which is safe from more than one process at once. So a `meds:give:<group>`
+/ `meds:snooze:<group>` button press has nowhere else to land: `bot_tick`
+forwards it to meds's own callback endpoint
+(`CAL_MEDS_CALLBACK_URL`/`CAL_MEDS_CALLBACK_KEY`, a bearer key exactly like
+`CAL_API_KEY` above) and shows whatever toast meds answers with, without
+touching the message's buttons the way its own ack/later handling does —
+meds edits its own messages once the dose is recorded. Unset env means the
+`meds:` prefix is simply ignored, the same "Not available" toast as any
+other unrecognised callback data.
 
 **The trusted-network gate.** There is no login for anyone on the household's
 own private network, whether home Wi-Fi or a private overlay network like
