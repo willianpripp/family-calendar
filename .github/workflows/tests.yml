@@ -1,0 +1,29 @@
+name: tests
+
+# Pure-Python tests for app/reminders.forward_meds_callback: no database, no
+# real bot, no real meds instance — a local fake HTTP server in tests/
+# stands in for meds's callback endpoint. This repo has no other automated
+# test suite yet; kept as its own workflow so hygiene.yml's scope (metadata,
+# docs, licence) stays untouched.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: pip install -r tests/requirements.txt
+
+      - run: pytest -q
