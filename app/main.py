@@ -403,12 +403,18 @@ def next_nag_toast(conn, event_id: int) -> str:
 def bot_tick() -> int:
     """Collect Done presses and acknowledge their to-dos. Returns acks done.
 
-    The bot's only incoming vocabulary is the callback "ack:<event id>", and
+    The bot's own incoming vocabulary is the callback "ack:<event id>", and
     only from the two chats in CAL_TELEGRAM_CHATS: anything else that reaches
     the bot advances the offset and is otherwise ignored. Pressing Done is
     the same UPDATE the calendar's checkbox runs, one direction only: the
     button acknowledges, and only the calendar UI can un-acknowledge, so a
     mispress in chat is always visible and reversible on the calendar.
+
+    A "meds:*" callback is not this app's vocabulary at all — it belongs to
+    the household's meds app, which shares this same bot token to send/edit/
+    delete messages but has no poller of its own (two pollers on one token
+    would race for updates). This loop's only role for those is to forward
+    the press and relay the toast; see reminders.forward_meds_callback.
     """
     if not reminders.configured():
         return 0
@@ -430,6 +436,28 @@ def bot_tick() -> int:
             msg = cb.get("message") or {}
             chat = (msg.get("chat") or {}).get("id")
             data = cb.get("data") or ""
+            if data.startswith("meds:"):
+                # meds owns this button's meaning entirely; this app only
+                # ever relays it and shows whatever toast comes back. Never
+                # strips the message's buttons the way ack/later do below —
+                # meds edits its own messages once the dose is recorded.
+                #
+                # The chat allowlist is still checked FIRST, same as any
+                # other callback, but an unknown chat here gets an answered
+                # "Not available" rather than a silently dropped press —
+                # this is the one visible signal that the button did
+                # nothing, and staying quiet reads as a hung app instead.
+                if chat in known and reminders.meds_forward_configured():
+                    toast = reminders.forward_meds_callback(
+                        os.environ.get("CAL_MEDS_CALLBACK_URL", "").strip(),
+                        os.environ.get("CAL_MEDS_CALLBACK_KEY", "").strip(),
+                        chat, (cb.get("from") or {}).get("id"),
+                        msg.get("message_id", 0), data,
+                    )
+                else:
+                    toast = "Not available."
+                reminders.answer_callback(cb.get("id", ""), toast)
+                continue
             if chat not in known:
                 continue
             action, _, raw_id = data.partition(":")

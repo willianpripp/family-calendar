@@ -1,6 +1,7 @@
 # Family calendar
 
 [![hygiene](https://github.com/willianpripp/family-calendar/actions/workflows/hygiene.yml/badge.svg)](https://github.com/willianpripp/family-calendar/actions/workflows/hygiene.yml)
+[![tests](https://github.com/willianpripp/family-calendar/actions/workflows/tests.yml/badge.svg)](https://github.com/willianpripp/family-calendar/actions/workflows/tests.yml)
 
 A shared household calendar built around the failure that motivated it: a
 flight and a concert booked for the same evening, discovered too late to fix.
@@ -140,6 +141,27 @@ already done is how a household learns to ignore the bot. It only ever
 reaches reminders that were created with an external_id, and deleting one
 that is already gone is a 200, so a retry is safe.
 
+**A third app shares this bot, one button press at a time.** This app owns
+the Telegram token and is the only process long-polling `getUpdates` (two
+pollers on the same token race each other for updates); the household's
+`meds` app shares that same token only to send, edit and delete messages,
+which is safe from more than one process at once. So a `meds:give:<group>`
+/ `meds:snooze:<group>` button press has nowhere else to land: `bot_tick`
+forwards it to meds's own callback endpoint
+(`CAL_MEDS_CALLBACK_URL`/`CAL_MEDS_CALLBACK_KEY`, a bearer key exactly like
+`CAL_API_KEY` above) and shows whatever toast meds answers with, without
+touching the message's buttons the way its own ack/later handling does —
+meds edits its own messages once the dose is recorded. Unset env means the
+`meds:` prefix is simply ignored, the same "Not available" toast as any
+other unrecognised callback data — and a `meds:` press from a chat outside
+`CAL_TELEGRAM_CHATS` gets that exact toast too, answered rather than
+silently dropped, instead of falling through to the ack/later handling
+below. Every chat meds maps to a person (its own `MEDS_TELEGRAM_CHATS`)
+must be private and one-on-one, and that same chat id must be in
+`CAL_TELEGRAM_CHATS` here: neither side ever checks Telegram's own
+per-press `from_id`, so a group chat listed in either map would act as
+whichever single person that map says it is.
+
 **The trusted-network gate.** There is no login for anyone on the household's
 own private network, whether home Wi-Fi or a private overlay network like
 Tailscale. `app/gate.py` classifies the request's real client address (read
@@ -194,7 +216,7 @@ family-calendar/
 │   │   └── phone/        # the phone UI: same routes, same data, phone-shaped screens
 │   └── static/art/       # the pictures, one per month (see the README there)
 ├── demo/seed.sql         # the invented month used by `make demo`
-├── tests/                # the reminder API against a real Postgres (see below)
+├── tests/                # reminder API, meds callback forwarding, bot_tick (see below)
 ├── docker-compose.yml    # app + postgres, loopback-bound on purpose
 ├── docker-compose.test.yml  # the test suite in Docker, one command
 ├── Makefile              # make demo
@@ -210,7 +232,9 @@ Configuration is all in `.env.example`, and every variable there is optional
 except the database password.
 
 Tests cover the reminder API other apps call (create, idempotent repeat,
-delete, auth, the gate exemption) against a real Postgres, in Docker:
+delete, auth, the gate exemption), the forwarding of meds button presses,
+and bot_tick's routing against a fake Telegram, with a real Postgres, in
+Docker:
 
 ```sh
 docker compose -f docker-compose.test.yml -p calendar-test run --rm tests

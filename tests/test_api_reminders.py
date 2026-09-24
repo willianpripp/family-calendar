@@ -3,7 +3,16 @@
 # external_id removes it again so a to-do that stopped being true stops
 # nagging.
 
+import pytest
+
 import main as app_module
+
+
+@pytest.fixture(autouse=True)
+def _clean(calendar_db):
+    """Every test here starts from empty events/reminders_sent (conftest's
+    calendar_db, shared with the bot_tick tests)."""
+    yield
 
 
 def _create(client, auth, external_id="meds-vaccine-1-2026-10-01", **extra):
