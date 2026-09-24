@@ -1,0 +1,25 @@
+name: tests
+
+# The API tests against a real Postgres, via the same compose file a local
+# run uses, so there is one definition of "the tests pass".
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run the suite in Docker
+        run: docker compose -f docker-compose.test.yml -p calendar-test run --rm tests
+
+      - name: Clean up
+        if: always()
+        run: docker compose -f docker-compose.test.yml -p calendar-test down -v --remove-orphans

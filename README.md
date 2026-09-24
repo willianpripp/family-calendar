@@ -132,7 +132,13 @@ constant-time comparison, 503-ing rather than opening up when that key is
 unset. An optional `external_id` on the request is an idempotency key: a
 repeat POST with the same id returns the reminder already created instead of
 a duplicate, which is what lets the finances app re-push safely after a
-timeout.
+timeout. `DELETE /api/reminders?external_id=...`, behind the same key, is the
+undo: the household medication app creates a reminder for each vaccine's next
+due date and removes it again when the vaccine is given early, its date is
+corrected or the vaccine is deleted, because a daily nag for something
+already done is how a household learns to ignore the bot. It only ever
+reaches reminders that were created with an external_id, and deleting one
+that is already gone is a 200, so a retry is safe.
 
 **The trusted-network gate.** There is no login for anyone on the household's
 own private network, whether home Wi-Fi or a private overlay network like
@@ -188,7 +194,9 @@ family-calendar/
 │   │   └── phone/        # the phone UI: same routes, same data, phone-shaped screens
 │   └── static/art/       # the pictures, one per month (see the README there)
 ├── demo/seed.sql         # the invented month used by `make demo`
+├── tests/                # the reminder API against a real Postgres (see below)
 ├── docker-compose.yml    # app + postgres, loopback-bound on purpose
+├── docker-compose.test.yml  # the test suite in Docker, one command
 ├── Makefile              # make demo
 └── README.md
 ```
@@ -200,6 +208,16 @@ which is git-ignored.
 
 Configuration is all in `.env.example`, and every variable there is optional
 except the database password.
+
+Tests cover the reminder API other apps call (create, idempotent repeat,
+delete, auth, the gate exemption) against a real Postgres, in Docker:
+
+```sh
+docker compose -f docker-compose.test.yml -p calendar-test run --rm tests
+docker compose -f docker-compose.test.yml -p calendar-test down -v --remove-orphans
+```
+
+The same suite runs in CI on every push and pull request.
 
 ## Status
 

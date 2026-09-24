@@ -3,6 +3,21 @@
 A running record of what was built, what was decided, and what was
 deliberately left out. Newest first.
 
+**Deleting an API reminder, and a first test suite.** The medication app
+(meds) now creates a calendar reminder for each vaccine's next due date
+through `POST /api/reminders`, and a vaccine given early, a corrected due
+date or a deleted vaccine left a reminder that nags every morning until
+someone presses OK, with nothing a caller could do about it. `DELETE
+/api/reminders?external_id=...` is the minimal fix: same path (so the gate
+exemption is unchanged), same bearer key, scoped to `item_kind = 'reminder'`
+rows carrying that external_id, so a form-made event is unreachable, and
+idempotent (`deleted: false` when already gone) so the caller can retry
+after a lost response. Deleting rather than acknowledging, because the
+to-do stopped being true, not done: it should leave the calendar too. This
+repo had no automated tests until now; `tests/` runs the reminder API
+against a real Postgres via `docker-compose.test.yml`, in CI on every push
+and pull request.
+
 **2026-08-21, the third kind of reminder arrives: expiring credits.** No code
 changed here, and that is the point worth recording. The finances app now
 pushes vouchers and airline credits (money the household already owns, lost
