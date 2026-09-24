@@ -1,10 +1,12 @@
 name: tests
 
-# Pure-Python tests for app/reminders.forward_meds_callback: no database, no
-# real bot, no real meds instance — a local fake HTTP server in tests/
-# stands in for meds's callback endpoint. This repo has no other automated
-# test suite yet; kept as its own workflow so hygiene.yml's scope (metadata,
-# docs, licence) stays untouched.
+# tests/test_meds_forward.py needs no database at all (forward_meds_callback
+# is pure); tests/test_bot_tick_meds.py drives the real bot_tick against a
+# real Postgres and a local fake Telegram/meds server. Both run in one
+# pytest process via the same throwaway stack `make test` (README) runs on
+# the lab, so there is exactly one definition of "the tests pass." This
+# repo has no other automated test suite; kept as its own workflow so
+# hygiene.yml's scope (metadata, docs, licence) stays untouched.
 on:
   push:
     branches: [main]
@@ -20,10 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+      - name: Run the suite in Docker
+        run: |
+          docker compose -f docker-compose.test.yml -p calendar-test run --rm tests
 
-      - run: pip install -r tests/requirements.txt
-
-      - run: pytest -q
+      - name: Clean up
+        if: always()
+        run: |
+          docker compose -f docker-compose.test.yml -p calendar-test down -v --remove-orphans
