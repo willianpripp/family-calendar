@@ -91,6 +91,11 @@ services:
       # endpoint 503s; the mapping was forgotten when the API shipped, so the
       # key sat in .env while the container never saw it.
       CAL_API_KEY: ${CAL_API_KEY:-}
+      # Where Telegram button taps whose data starts with "meds:" are forwarded,
+      # and the bearer key that endpoint expects. Both unset leaves those taps
+      # answered "Not available", exactly as before the meds app existed.
+      CAL_MEDS_CALLBACK_URL: ${CAL_MEDS_CALLBACK_URL:-}
+      CAL_MEDS_CALLBACK_KEY: ${CAL_MEDS_CALLBACK_KEY:-}
       # The front door for visitors arriving over the public internet (see
       # app/gate.py). The private network is never asked; without these set, a
       # public visitor is told the login is not configured and gets nothing.
