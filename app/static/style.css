@@ -34,6 +34,8 @@
   /* How much of the picture the calendar hides. One knob: raise it if a photo
      ever fights the text, lower it to see more of the photo. */
   --surface-veil: 72%;
+  --veil-k: 1;  /* the ◐ choice over the default 72; set per page next to --surface-veil */
+  --grid-line: color-mix(in oklab, var(--line-soft) 55%, transparent);
   --hour-h: 54px;
 
   --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
@@ -62,13 +64,16 @@ body::before {
   opacity: .95;
 }
 /* A light veil so the header and the floating headings keep their contrast
-   over a bright photo. The calendar itself carries its own surface. */
+   over a bright photo. The calendar itself carries its own surface. Scaled by
+   --veil-k (the ◐ choice over the default 72) so the low settings actually
+   reach the picture: at a fixed strength it sat on top of every setting and
+   left the bottom of the ◐ range looking all the same. */
 body::after {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background: linear-gradient(180deg,
-    color-mix(in oklab, var(--ground) 45%, transparent),
-    color-mix(in oklab, var(--ground) 10%, transparent) 40%,
-    color-mix(in oklab, var(--ground) 40%, transparent));
+    color-mix(in oklab, var(--ground) calc(45% * var(--veil-k)), transparent),
+    color-mix(in oklab, var(--ground) calc(10% * var(--veil-k)), transparent) 40%,
+    color-mix(in oklab, var(--ground) calc(40% * var(--veil-k)), transparent));
 }
 /* Load-bearing: without it the two layers above cover the calendar. */
 .top, .shell { position: relative; z-index: 1; }
@@ -164,8 +169,10 @@ main {
      strip too and it takes a full seventh of the calendar's height. */
   grid-template-rows: auto;
   grid-auto-rows: minmax(0, 1fr);
-  gap: 1px; background: color-mix(in oklab, var(--line-soft) 55%, transparent);
-  backdrop-filter: blur(3px);
+  /* No background and no blur here: the cells draw their own lines (see .day)
+     so the veil is the only layer between the picture and the calendar. A
+     55% fill behind the 1px gaps also sat behind every cell, so even ◐ 4%
+     still looked through a dark sheet. */
   border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
   flex: 1; min-height: 560px;
   box-shadow: 0 14px 40px -20px var(--shadow);
@@ -177,11 +184,16 @@ main {
   font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
   text-align: center; padding: 8px 0; font-weight: 700;
 }
+/* The cell lines, top and left of each day; Sunday has no left line because
+   the grid's border is already there. Drawn as inset shadows so they take no
+   room and need no gap behind them. */
 .day {
   background: color-mix(in oklab, var(--surface) var(--surface-veil), transparent);
+  box-shadow: inset 1px 1px 0 var(--grid-line);
   min-width: 0; padding: 5px 6px 7px;
   display: flex; flex-direction: column; gap: 2px; overflow: hidden;
 }
+.grid.month .day:nth-child(7n+1) { box-shadow: inset 0 1px 0 var(--grid-line); }
 .day.pad { opacity: .42; }
 .dayhead { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 

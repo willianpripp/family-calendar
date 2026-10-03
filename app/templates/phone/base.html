@@ -14,7 +14,7 @@
 <meta name="theme-color" content="#161C24">
 <link rel="stylesheet" href="{{ base }}/static/style.css?v={{ asset_v }}">
 <link rel="stylesheet" href="{{ base }}/static/phone.css?v={{ asset_v }}">
-<style>:root { --month-art: url("{{ base }}/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; }</style>
+<style>:root { --month-art: url("{{ base }}/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; --veil-k: {{ '%.3f' % (veil / 72) }}; }</style>
 </head>
 <body class="phone-ui">
 
