@@ -16,7 +16,7 @@
 {# art.v is per-file, not the global asset hash: uploading a new October writes
    month-10.jpg again, so only the file's own mtime changes. The veil is the
    device's chosen transparency, cycled by the ◐ button; stylesheet default 72. #}
-<style>:root { --month-art: url("{{ base }}/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; }</style>
+<style>:root { --month-art: url("{{ base }}/static/art/{{ art.file }}?v={{ art.v }}"); --surface-veil: {{ veil }}%; --veil-k: {{ '%.3f' % (veil / 72) }}; }</style>
 </head>
 {# No hx-boost. It swapped the body on navigation and left <head> alone, so the
    picture above kept whatever the first page loaded had: changing month
