@@ -3,6 +3,18 @@
 A running record of what was built, what was decided, and what was
 deliberately left out. Newest first.
 
+**2026-10-03, the low ◐ settings finally reach the picture (#25).** Aline
+reported that the low settings all looked the same, and measured she was
+right: from 88% down to 4% the month grid only moved from 52 to 66 mean
+luminance, because two layers ignored the setting. The month grid painted a
+55% fill and a blur behind every cell (meant for the 1px gaps), and the page
+gradient sat over the picture at fixed strength. The cells now draw their own
+lines as inset shadows, the grid has no fill, and the gradient is scaled by
+`--veil-k` (the setting over the default 72). Measured live after deploy:
+53 to 83, each low step 7-8 levels instead of 2-3, default unchanged. Trade-off
+accepted: at the lowest settings, text over a bright picture is harder to
+read, which is what those settings are for.
+
 **Deleting an API reminder, and a first test suite.** The medication app
 (meds) now creates a calendar reminder for each vaccine's next due date
 through `POST /api/reminders`, and a vaccine given early, a corrected due
