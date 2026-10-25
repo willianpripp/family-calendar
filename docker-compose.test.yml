@@ -14,7 +14,7 @@
 services:
 
   db:
-    image: postgres:17.10
+    image: postgres:17.11
     environment:
       POSTGRES_DB: calendar_test
       POSTGRES_USER: calendar_test

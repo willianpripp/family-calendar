@@ -25,7 +25,7 @@ services:
     # the en_US.UTF-8 collation of a database it had to import. This one is
     # greenfield: there is no existing cluster whose collation must be matched,
     # so the image default is fine and the build step buys nothing.
-    image: postgres:17.10
+    image: postgres:17.11
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${CAL_DB_NAME:-calendar}
