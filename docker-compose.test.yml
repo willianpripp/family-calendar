@@ -28,7 +28,7 @@ services:
       retries: 10
 
   tests:
-    image: python:3.13-slim
+    image: python:3.14-slim
     depends_on:
       db:
         condition: service_healthy
